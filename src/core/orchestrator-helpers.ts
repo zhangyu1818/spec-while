@@ -1,0 +1,81 @@
+import { buildReport, recordCommitFailure, recordReviewResult } from './engine'
+
+import type { FinalReport, ImplementArtifact, ReviewArtifact, TaskGraph, VerifyArtifact, WorkflowEvent, WorkflowState } from '../types'
+import type { OrchestratorRuntime } from './runtime'
+
+export function now() {
+  return new Date().toISOString()
+}
+
+export async function persistState(runtime: OrchestratorRuntime, graph: TaskGraph, state: WorkflowState) {
+  await runtime.store.saveState(state)
+  const report = buildReport(graph, state, now())
+  await runtime.store.saveReport(report)
+  return report
+}
+
+export async function appendEvent(runtime: OrchestratorRuntime, event: WorkflowEvent) {
+  await runtime.store.appendEvent(event)
+}
+
+export function createTaskCommitMessage(taskId: string, title: string) {
+  return `Task ${taskId}: ${title}`
+}
+
+export async function finalizePassedTask(input: {
+  graph: TaskGraph
+  review: ReviewArtifact['result']
+  runtime: OrchestratorRuntime
+  state: WorkflowState
+  taskId: string
+  taskTitle: string
+  verify: VerifyArtifact['result']
+}) {
+  let taskChecked = false
+  try {
+    await input.runtime.workspace.updateTaskChecks([{ checked: true, taskId: input.taskId }])
+    taskChecked = true
+    const { commitSha } = await input.runtime.git.commitTask({
+      message: createTaskCommitMessage(input.taskId, input.taskTitle),
+    })
+    return { commitSha, state: recordReviewResult(input.graph, input.state, input.taskId, {
+      commitSha,
+      review: input.review,
+      verify: input.verify,
+    }) }
+  }
+  catch (error) {
+    let reason = `Task commit failed: ${error instanceof Error ? error.message : String(error)}`
+    if (taskChecked) {
+      try {
+        await input.runtime.workspace.updateTaskChecks([{ checked: false, taskId: input.taskId }])
+      }
+      catch (rollbackError) {
+        reason = `${reason}; checkbox rollback failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`
+      }
+    }
+    return { state: recordCommitFailure(input.graph, input.state, input.taskId, reason) }
+  }
+}
+
+export async function persistCommittedArtifacts(runtime: OrchestratorRuntime, input: {
+  commitSha: string
+  implementArtifact: ImplementArtifact
+  reviewArtifact: ReviewArtifact
+  verifyArtifact: VerifyArtifact
+}) {
+  await runtime.store.saveImplementArtifact({
+    ...input.implementArtifact,
+    commitSha: input.commitSha,
+  })
+  await runtime.store.saveVerifyArtifact({
+    ...input.verifyArtifact,
+    commitSha: input.commitSha,
+  })
+  await runtime.store.saveReviewArtifact({
+    ...input.reviewArtifact,
+    commitSha: input.commitSha,
+  })
+}
+
+export type WorkflowSummary = FinalReport['summary']
