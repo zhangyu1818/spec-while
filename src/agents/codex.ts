@@ -26,41 +26,47 @@ export interface CodexUsage {
 
 export type CodexThreadEvent =
   | {
-    error: {
+      error: {
+        message: string
+      }
+      type: 'turn.failed'
+    }
+  | {
+      item: {
+        text?: string
+        type: string
+      }
+      type: 'item.completed' | 'item.started' | 'item.updated'
+    }
+  | {
       message: string
+      type: 'error'
     }
-    type: 'turn.failed'
-  }
   | {
-    item: {
-      text?: string
-      type: string
+      thread_id: string
+      type: 'thread.started'
     }
-    type: 'item.completed' | 'item.started' | 'item.updated'
-  }
   | {
-    message: string
-    type: 'error'
-  }
+      type: 'turn.completed'
+      usage: CodexUsage
+    }
   | {
-    thread_id: string
-    type: 'thread.started'
-  }
-  | {
-    type: 'turn.completed'
-    usage: CodexUsage
-  }
-  | {
-    type: 'turn.started'
-  }
+      type: 'turn.started'
+    }
 
 export interface CodexRunStreamedResult {
   events: AsyncGenerator<CodexThreadEvent>
 }
 
 export interface CodexThreadLike {
-  run: (prompt: string, options: { outputSchema: Record<string, unknown> }) => Promise<CodexRunResult>
-  runStreamed?: (prompt: string, options: { outputSchema: Record<string, unknown> }) => Promise<CodexRunStreamedResult>
+  run: (
+    prompt: string,
+    options: { outputSchema: Record<string, unknown> },
+  ) => Promise<CodexRunResult>
+  runStreamed?: (
+    prompt: string,
+    options: { outputSchema: Record<string, unknown> },
+  ) => Promise<CodexRunStreamedResult>
 }
 
 export interface CodexClientLike {
@@ -85,7 +91,7 @@ export class CodexAgentClient implements ImplementerProvider, ReviewerProvider {
 
   private async collectStreamedTurn<T>(
     thread: CodexThreadLike,
-    input: { outputSchema: Record<string, unknown>, prompt: string },
+    input: { outputSchema: Record<string, unknown>; prompt: string },
   ): Promise<T> {
     const streamedTurn = await thread.runStreamed!(input.prompt, {
       outputSchema: input.outputSchema,
@@ -103,7 +109,10 @@ export class CodexAgentClient implements ImplementerProvider, ReviewerProvider {
         throw new Error(event.error.message)
       }
 
-      if (event.type === 'item.completed' && event.item.type === 'agent_message') {
+      if (
+        event.type === 'item.completed' &&
+        event.item.type === 'agent_message'
+      ) {
         finalResponse = event.item.text?.trim() ?? ''
       }
     }
@@ -114,8 +123,7 @@ export class CodexAgentClient implements ImplementerProvider, ReviewerProvider {
 
     try {
       return JSON.parse(finalResponse) as T
-    }
-    catch (error) {
+    } catch (error) {
       throw new Error('Codex agent client returned non-JSON finalResponse', {
         cause: error,
       })
@@ -149,8 +157,7 @@ export class CodexAgentClient implements ImplementerProvider, ReviewerProvider {
     }
     try {
       return JSON.parse(response) as T
-    }
-    catch (error) {
+    } catch (error) {
       throw new Error('Codex agent client returned non-JSON finalResponse', {
         cause: error,
       })

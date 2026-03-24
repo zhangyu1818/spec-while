@@ -116,19 +116,26 @@ test('integrateArtifactSchema captures commit metadata', () => {
 })
 
 test('validateWorkflowEvent accepts integrate lifecycle events', () => {
-  for (const type of ['integrate_started', 'integrate_completed', 'integrate_failed'] as const) {
-    expect(validateWorkflowEvent({
-      attempt: 1,
-      generation: 2,
-      taskId: 'T001',
-      timestamp: '2026-03-24T00:00:00.000Z',
-      type,
-    }).type).toBe(type)
+  for (const type of [
+    'integrate_started',
+    'integrate_completed',
+    'integrate_failed',
+  ] as const) {
+    expect(
+      validateWorkflowEvent({
+        attempt: 1,
+        generation: 2,
+        taskId: 'T001',
+        timestamp: '2026-03-24T00:00:00.000Z',
+        type,
+      }).type,
+    ).toBe(type)
   }
 })
 
 test('reviewOutputSchema remains compatible with structured outputs', () => {
-  const findings = (reviewOutputSchema.properties as Record<string, unknown>).findings as Record<string, unknown>
+  const findings = (reviewOutputSchema.properties as Record<string, unknown>)
+    .findings as Record<string, unknown>
 
   expect(findings.uniqueItems).toBeUndefined()
 })

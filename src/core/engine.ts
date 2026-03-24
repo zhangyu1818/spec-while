@@ -1,4 +1,13 @@
-import { canStartTask, cloneState, collectDescendants, createBaseTaskState, getTask, getTaskState, shouldPassZeroGate, withReviewMetadata } from './engine-helpers'
+import {
+  canStartTask,
+  cloneState,
+  collectDescendants,
+  createBaseTaskState,
+  getTask,
+  getTaskState,
+  shouldPassZeroGate,
+  withReviewMetadata,
+} from './engine-helpers'
 
 import type {
   FinalReport,
@@ -13,51 +22,77 @@ export function createInitialWorkflowState(graph: TaskGraph): WorkflowState {
   return {
     currentTaskId: null,
     featureId: graph.featureId,
-    tasks: Object.fromEntries(graph.tasks.map((task) => [task.id, createBaseTaskState()])),
+    tasks: Object.fromEntries(
+      graph.tasks.map((task) => [task.id, createBaseTaskState()]),
+    ),
   }
 }
 
-export function alignStateWithGraph(graph: TaskGraph, state: WorkflowState): WorkflowState {
+export function alignStateWithGraph(
+  graph: TaskGraph,
+  state: WorkflowState,
+): WorkflowState {
   const next = cloneState(state)
   const alignedTasks = Object.fromEntries(
     graph.tasks.map((task) => {
       const existing = next.tasks[task.id] ?? createBaseTaskState()
       if (existing.status === 'running') {
-        return [task.id, {
-          attempt: existing.attempt,
-          generation: existing.generation,
-          invalidatedBy: existing.invalidatedBy,
-          lastFindings: existing.lastFindings,
-          ...(existing.lastReviewVerdict ? { lastReviewVerdict: existing.lastReviewVerdict } : {}),
-          ...(existing.lastVerifyPassed !== undefined ? { lastVerifyPassed: existing.lastVerifyPassed } : {}),
-          status: 'rework' as const,
-        }]
+        return [
+          task.id,
+          {
+            attempt: existing.attempt,
+            generation: existing.generation,
+            invalidatedBy: existing.invalidatedBy,
+            lastFindings: existing.lastFindings,
+            ...(existing.lastReviewVerdict
+              ? { lastReviewVerdict: existing.lastReviewVerdict }
+              : {}),
+            ...(existing.lastVerifyPassed !== undefined
+              ? { lastVerifyPassed: existing.lastVerifyPassed }
+              : {}),
+            status: 'rework' as const,
+          },
+        ]
       }
       return [task.id, existing]
     }),
   )
 
   return {
-    currentTaskId: next.currentTaskId && alignedTasks[next.currentTaskId] ? next.currentTaskId : null,
+    currentTaskId:
+      next.currentTaskId && alignedTasks[next.currentTaskId]
+        ? next.currentTaskId
+        : null,
     featureId: graph.featureId,
     tasks: alignedTasks,
   }
 }
 
-export function selectNextRunnableTask(graph: TaskGraph, state: WorkflowState): null | TaskDefinition {
-  return graph.tasks.find((task) => {
-    const taskState = state.tasks[task.id]
-    if (!taskState) {
-      return false
-    }
-    if (taskState.status === 'rework') {
-      return true
-    }
-    return taskState.status === 'pending' && canStartTask(graph, state, task.id)
-  }) ?? null
+export function selectNextRunnableTask(
+  graph: TaskGraph,
+  state: WorkflowState,
+): null | TaskDefinition {
+  return (
+    graph.tasks.find((task) => {
+      const taskState = state.tasks[task.id]
+      if (!taskState) {
+        return false
+      }
+      if (taskState.status === 'rework') {
+        return true
+      }
+      return (
+        taskState.status === 'pending' && canStartTask(graph, state, task.id)
+      )
+    }) ?? null
+  )
 }
 
-export function startAttempt(graph: TaskGraph, state: WorkflowState, taskId: string): WorkflowState {
+export function startAttempt(
+  graph: TaskGraph,
+  state: WorkflowState,
+  taskId: string,
+): WorkflowState {
   const taskState = getTaskState(state, taskId)
   if (taskState.status !== 'pending' && taskState.status !== 'rework') {
     throw new Error(`Task ${taskId} is not runnable`)
@@ -78,7 +113,10 @@ export function startAttempt(graph: TaskGraph, state: WorkflowState, taskId: str
   return next
 }
 
-export function recordImplementSuccess(state: WorkflowState, taskId: string): WorkflowState {
+export function recordImplementSuccess(
+  state: WorkflowState,
+  taskId: string,
+): WorkflowState {
   const next = cloneState(state)
   const taskState = getTaskState(next, taskId)
   if (taskState.status !== 'running' || taskState.stage !== 'implement') {
@@ -92,25 +130,35 @@ export function recordImplementSuccess(state: WorkflowState, taskId: string): Wo
   return next
 }
 
-export function recordImplementFailure(graph: TaskGraph, state: WorkflowState, taskId: string, reason: string): WorkflowState {
+export function recordImplementFailure(
+  graph: TaskGraph,
+  state: WorkflowState,
+  taskId: string,
+  reason: string,
+): WorkflowState {
   const next = cloneState(state)
   const task = getTask(graph, taskId)
   const taskState = getTaskState(next, taskId)
   next.currentTaskId = null
-  next.tasks[taskId] = taskState.attempt >= task.maxAttempts
-    ? {
-        ...withReviewMetadata(taskState, {}),
-        reason,
-        status: 'blocked',
-      }
-    : {
-        ...withReviewMetadata(taskState, {}),
-        status: 'rework',
-      }
+  next.tasks[taskId] =
+    taskState.attempt >= task.maxAttempts
+      ? {
+          ...withReviewMetadata(taskState, {}),
+          reason,
+          status: 'blocked',
+        }
+      : {
+          ...withReviewMetadata(taskState, {}),
+          status: 'rework',
+        }
   return next
 }
 
-export function recordVerifyResult(state: WorkflowState, taskId: string, verify: VerifyResult): WorkflowState {
+export function recordVerifyResult(
+  state: WorkflowState,
+  taskId: string,
+  verify: VerifyResult,
+): WorkflowState {
   const next = cloneState(state)
   const taskState = getTaskState(next, taskId)
   if (taskState.status !== 'running' || taskState.stage !== 'verify') {
@@ -126,25 +174,31 @@ export function recordVerifyResult(state: WorkflowState, taskId: string, verify:
   return next
 }
 
-export function recordVerifyFailure(graph: TaskGraph, state: WorkflowState, taskId: string, reason: string): WorkflowState {
+export function recordVerifyFailure(
+  graph: TaskGraph,
+  state: WorkflowState,
+  taskId: string,
+  reason: string,
+): WorkflowState {
   const next = cloneState(state)
   const task = getTask(graph, taskId)
   const taskState = getTaskState(next, taskId)
   next.currentTaskId = null
-  next.tasks[taskId] = taskState.attempt >= task.maxAttempts
-    ? {
-        ...withReviewMetadata(taskState, {
-          verifyPassed: false,
-        }),
-        reason,
-        status: 'blocked',
-      }
-    : {
-        ...withReviewMetadata(taskState, {
-          verifyPassed: false,
-        }),
-        status: 'rework',
-      }
+  next.tasks[taskId] =
+    taskState.attempt >= task.maxAttempts
+      ? {
+          ...withReviewMetadata(taskState, {
+            verifyPassed: false,
+          }),
+          reason,
+          status: 'blocked',
+        }
+      : {
+          ...withReviewMetadata(taskState, {
+            verifyPassed: false,
+          }),
+          status: 'rework',
+        }
   return next
 }
 
@@ -168,7 +222,9 @@ export function recordReviewResult(
   })
 
   if (shouldPassZeroGate(input)) {
-    throw new Error(`Task ${taskId} requires integrate result after approved review`)
+    throw new Error(
+      `Task ${taskId} requires integrate result after approved review`,
+    )
   }
 
   if (input.review.verdict === 'replan') {
@@ -189,20 +245,25 @@ export function recordReviewResult(
     return next
   }
 
-  next.tasks[taskId] = taskState.attempt >= task.maxAttempts
-    ? {
-        ...metadata,
-        reason: input.review.summary,
-        status: 'blocked',
-      }
-    : {
-        ...metadata,
-        status: 'rework',
-      }
+  next.tasks[taskId] =
+    taskState.attempt >= task.maxAttempts
+      ? {
+          ...metadata,
+          reason: input.review.summary,
+          status: 'blocked',
+        }
+      : {
+          ...metadata,
+          status: 'rework',
+        }
   return next
 }
 
-export function recordReviewApproved(state: WorkflowState, taskId: string, review: ReviewOutput): WorkflowState {
+export function recordReviewApproved(
+  state: WorkflowState,
+  taskId: string,
+  review: ReviewOutput,
+): WorkflowState {
   const next = cloneState(state)
   const taskState = getTaskState(next, taskId)
   if (taskState.status !== 'running' || taskState.stage !== 'review') {
@@ -238,7 +299,9 @@ export function recordIntegrateResult(
     throw new Error(`Task ${taskId} is not integrating`)
   }
   if (!shouldPassZeroGate(input)) {
-    throw new Error(`Task ${taskId} integration requires an approved review and passing verify result`)
+    throw new Error(
+      `Task ${taskId} integration requires an approved review and passing verify result`,
+    )
   }
   next.currentTaskId = null
   next.tasks[taskId] = {
@@ -253,7 +316,12 @@ export function recordIntegrateResult(
   return next
 }
 
-export function recordCommitFailure(graph: TaskGraph, state: WorkflowState, taskId: string, reason: string): WorkflowState {
+export function recordCommitFailure(
+  graph: TaskGraph,
+  state: WorkflowState,
+  taskId: string,
+  reason: string,
+): WorkflowState {
   const next = cloneState(state)
   const task = getTask(graph, taskId)
   const taskState = getTaskState(next, taskId)
@@ -262,38 +330,49 @@ export function recordCommitFailure(graph: TaskGraph, state: WorkflowState, task
     reviewVerdict: 'pass',
     verifyPassed: true,
   })
-  next.tasks[taskId] = taskState.attempt >= task.maxAttempts
-    ? {
-        ...metadata,
-        reason,
-        status: 'blocked',
-      }
-    : {
-        ...metadata,
-        status: 'rework',
-      }
+  next.tasks[taskId] =
+    taskState.attempt >= task.maxAttempts
+      ? {
+          ...metadata,
+          reason,
+          status: 'blocked',
+        }
+      : {
+          ...metadata,
+          status: 'rework',
+        }
   return next
 }
 
-export function recordReviewFailure(graph: TaskGraph, state: WorkflowState, taskId: string, reason: string): WorkflowState {
+export function recordReviewFailure(
+  graph: TaskGraph,
+  state: WorkflowState,
+  taskId: string,
+  reason: string,
+): WorkflowState {
   const next = cloneState(state)
   const task = getTask(graph, taskId)
   const taskState = getTaskState(next, taskId)
   next.currentTaskId = null
-  next.tasks[taskId] = taskState.attempt >= task.maxAttempts
-    ? {
-        ...withReviewMetadata(taskState, {}),
-        reason,
-        status: 'blocked',
-      }
-    : {
-        ...withReviewMetadata(taskState, {}),
-        status: 'rework',
-      }
+  next.tasks[taskId] =
+    taskState.attempt >= task.maxAttempts
+      ? {
+          ...withReviewMetadata(taskState, {}),
+          reason,
+          status: 'blocked',
+        }
+      : {
+          ...withReviewMetadata(taskState, {}),
+          status: 'rework',
+        }
   return next
 }
 
-export function rewindTaskGeneration(graph: TaskGraph, state: WorkflowState, taskId: string) {
+export function rewindTaskGeneration(
+  graph: TaskGraph,
+  state: WorkflowState,
+  taskId: string,
+) {
   const next = cloneState(state)
   const descendants = collectDescendants(graph, taskId)
   const resetTaskIds = [taskId, ...descendants]
@@ -320,7 +399,11 @@ export function rewindTaskGeneration(graph: TaskGraph, state: WorkflowState, tas
   }
 }
 
-export function buildReport(graph: TaskGraph, state: WorkflowState, generatedAt: string): FinalReport {
+export function buildReport(
+  graph: TaskGraph,
+  state: WorkflowState,
+  generatedAt: string,
+): FinalReport {
   const tasks = graph.tasks.map((task) => {
     const taskState = getTaskState(state, task.id)
     return {
@@ -328,8 +411,12 @@ export function buildReport(graph: TaskGraph, state: WorkflowState, generatedAt:
       attempt: taskState.attempt,
       generation: taskState.generation,
       ...('commitSha' in taskState ? { commitSha: taskState.commitSha } : {}),
-      ...(taskState.lastReviewVerdict ? { lastReviewVerdict: taskState.lastReviewVerdict } : {}),
-      ...(typeof taskState.lastVerifyPassed === 'boolean' ? { lastVerifyPassed: taskState.lastVerifyPassed } : {}),
+      ...(taskState.lastReviewVerdict
+        ? { lastReviewVerdict: taskState.lastReviewVerdict }
+        : {}),
+      ...(typeof taskState.lastVerifyPassed === 'boolean'
+        ? { lastVerifyPassed: taskState.lastVerifyPassed }
+        : {}),
       ...('reason' in taskState ? { reason: taskState.reason } : {}),
       status: taskState.status,
     }
@@ -338,13 +425,14 @@ export function buildReport(graph: TaskGraph, state: WorkflowState, generatedAt:
   const blockedTasks = tasks.filter((task) => task.status === 'blocked').length
   const completedTasks = tasks.filter((task) => task.status === 'done').length
   const replanTasks = tasks.filter((task) => task.status === 'replan').length
-  const finalStatus = replanTasks > 0
-    ? 'replan_required'
-    : blockedTasks > 0
-      ? 'blocked'
-      : completedTasks === tasks.length
-        ? 'completed'
-        : 'in_progress'
+  const finalStatus =
+    replanTasks > 0
+      ? 'replan_required'
+      : blockedTasks > 0
+        ? 'blocked'
+        : completedTasks === tasks.length
+          ? 'completed'
+          : 'in_progress'
 
   return {
     featureId: graph.featureId,

@@ -13,9 +13,10 @@ export async function rewindCommand(context: WorkspaceContext, taskId: string) {
   return rewindTask({
     runtime,
     taskId,
-    loadGraph: () => normalizeTaskGraph({
-      featureDir: context.featureDir,
-      tasksPath: context.tasksPath,
-    }),
+    loadGraph: () =>
+      normalizeTaskGraph({
+        featureDir: context.featureDir,
+        tasksPath: context.tasksPath,
+      }),
   })
 }

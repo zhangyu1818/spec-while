@@ -55,10 +55,18 @@ test('buildReviewerPrompt keeps review context path-only', async () => {
   expect(prompt).toMatch(/Attempt: 2/)
   expect(prompt).toMatch(/src\/parser\.ts/)
   expect(prompt).toMatch(/missed edge case/)
-  expect(prompt).toContain('Use spec.md, plan.md, and the provided tasks snippet to judge whether the task matches the intended implementation.')
-  expect(prompt).toContain('Evaluate task acceptance, spec/plan alignment, verify results, actual changed files, and overall risk.')
-  expect(prompt).toContain('Treat task.paths as the expected primary scope, not as an absolute hard boundary.')
-  expect(prompt).toContain('Do not expand the review to unrelated files or repository-wide history.')
+  expect(prompt).toContain(
+    'Use spec.md, plan.md, and the provided tasks snippet to judge whether the task matches the intended implementation.',
+  )
+  expect(prompt).toContain(
+    'Evaluate task acceptance, spec/plan alignment, verify results, actual changed files, and overall risk.',
+  )
+  expect(prompt).toContain(
+    'Treat task.paths as the expected primary scope, not as an absolute hard boundary.',
+  )
+  expect(prompt).toContain(
+    'Do not expand the review to unrelated files or repository-wide history.',
+  )
   expect(prompt).not.toContain('Boundary Check:')
   expect(prompt).not.toMatch(/export const value/)
 })

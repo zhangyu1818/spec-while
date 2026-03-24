@@ -3,7 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 const mockState = vi.hoisted(() => {
   return {
     resolveCalls: [] as unknown[],
-    rewindCalls: [] as { context: unknown, taskId: string }[],
+    rewindCalls: [] as { context: unknown; taskId: string }[],
     runCalls: [] as unknown[],
   }
 })
@@ -60,7 +60,16 @@ test('runCli dispatches run command and prints result', async () => {
   const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
   const cwd = vi.spyOn(process, 'cwd').mockReturnValue('/tmp/current')
 
-  await runCli(['run', '--workspace', '/tmp/workspace', '--feature', '001-demo', '--until-task', 'T002', '--verbose'])
+  await runCli([
+    'run',
+    '--workspace',
+    '/tmp/workspace',
+    '--feature',
+    '001-demo',
+    '--until-task',
+    'T002',
+    '--verbose',
+  ])
 
   expect(mockState.resolveCalls).toEqual([
     {
@@ -81,22 +90,48 @@ test('runCli dispatches run command and prints result', async () => {
 })
 
 test('runCli rejects unknown flags and unexpected positional arguments', async () => {
-  await expect(runCli(['run', '--workspace', '/tmp/workspace', '--feature', '001-demo', '--bogus']))
-    .rejects
-    .toThrow(/unknown|unexpected option/i)
-  await expect(runCli(['rewind', '--workspace', '/tmp/workspace', '--feature', '001-demo', '--task', 'T001', 'extra']))
-    .rejects
-    .toThrow(/Unexpected positional arguments: extra/)
+  await expect(
+    runCli([
+      'run',
+      '--workspace',
+      '/tmp/workspace',
+      '--feature',
+      '001-demo',
+      '--bogus',
+    ]),
+  ).rejects.toThrow(/unknown|unexpected option/i)
+  await expect(
+    runCli([
+      'rewind',
+      '--workspace',
+      '/tmp/workspace',
+      '--feature',
+      '001-demo',
+      '--task',
+      'T001',
+      'extra',
+    ]),
+  ).rejects.toThrow(/Unexpected positional arguments: extra/)
 })
 
 test('runCli dispatches rewind command and requires task id', async () => {
-  await runCli(['rewind', '--workspace', '/tmp/workspace', '--feature', '001-demo', '--task', 'T001'])
+  await runCli([
+    'rewind',
+    '--workspace',
+    '/tmp/workspace',
+    '--feature',
+    '001-demo',
+    '--task',
+    'T001',
+  ])
 
   expect(mockState.rewindCalls[0]).toMatchObject({
     taskId: 'T001',
   })
 
-  await expect(runCli(['rewind', '--workspace', '/tmp/workspace'])).rejects.toThrow(/Missing --task/)
+  await expect(
+    runCli(['rewind', '--workspace', '/tmp/workspace']),
+  ).rejects.toThrow(/Missing --task/)
 })
 
 test('runCli rejects removed resume command and unknown commands', async () => {

@@ -24,11 +24,14 @@ export type TaskContextSource =
     }
 
 export class FakeVerifier {
-  public readonly calls: { commands: string[], taskId: string }[] = []
+  public readonly calls: { commands: string[]; taskId: string }[] = []
 
   public constructor(private readonly responses: (Error | VerifyResult)[]) {}
 
-  public async verify(input: { commands: string[]; taskId: string }): Promise<VerifyResult> {
+  public async verify(input: {
+    commands: string[]
+    taskId: string
+  }): Promise<VerifyResult> {
     this.calls.push(input)
     const next = this.responses.shift()
     if (!next) {
@@ -127,7 +130,12 @@ export class InMemoryStore implements WorkflowStore {
   }
 
   public async saveIntegrateArtifact(artifact: IntegrateArtifact) {
-    const index = this.integrateArtifacts.findIndex((item) => item.taskId === artifact.taskId && item.generation === artifact.generation && item.attempt === artifact.attempt)
+    const index = this.integrateArtifacts.findIndex(
+      (item) =>
+        item.taskId === artifact.taskId &&
+        item.generation === artifact.generation &&
+        item.attempt === artifact.attempt,
+    )
     if (index >= 0) {
       this.integrateArtifacts[index] = artifact
       return
@@ -136,7 +144,12 @@ export class InMemoryStore implements WorkflowStore {
   }
 
   public async saveImplementArtifact(artifact: ImplementArtifact) {
-    const index = this.implementArtifacts.findIndex((item) => item.taskId === artifact.taskId && item.generation === artifact.generation && item.attempt === artifact.attempt)
+    const index = this.implementArtifacts.findIndex(
+      (item) =>
+        item.taskId === artifact.taskId &&
+        item.generation === artifact.generation &&
+        item.attempt === artifact.attempt,
+    )
     if (index >= 0) {
       this.implementArtifacts[index] = artifact
       return
@@ -149,7 +162,12 @@ export class InMemoryStore implements WorkflowStore {
   }
 
   public async saveReviewArtifact(artifact: ReviewArtifact) {
-    const index = this.reviewArtifacts.findIndex((item) => item.taskId === artifact.taskId && item.generation === artifact.generation && item.attempt === artifact.attempt)
+    const index = this.reviewArtifacts.findIndex(
+      (item) =>
+        item.taskId === artifact.taskId &&
+        item.generation === artifact.generation &&
+        item.attempt === artifact.attempt,
+    )
     if (index >= 0) {
       this.reviewArtifacts[index] = artifact
       return
@@ -162,7 +180,12 @@ export class InMemoryStore implements WorkflowStore {
   }
 
   public async saveVerifyArtifact(artifact: VerifyArtifact) {
-    const index = this.verifyArtifacts.findIndex((item) => item.taskId === artifact.taskId && item.generation === artifact.generation && item.attempt === artifact.attempt)
+    const index = this.verifyArtifacts.findIndex(
+      (item) =>
+        item.taskId === artifact.taskId &&
+        item.generation === artifact.generation &&
+        item.attempt === artifact.attempt,
+    )
     if (index >= 0) {
       this.verifyArtifacts[index] = artifact
       return
@@ -172,11 +195,9 @@ export class InMemoryStore implements WorkflowStore {
 }
 
 export class InMemoryWorkspace {
-  public readonly checkboxUpdates: { checked: boolean, taskId: string }[][] = []
+  public readonly checkboxUpdates: { checked: boolean; taskId: string }[][] = []
 
-  public constructor(
-    private readonly taskContext: TaskContextSource,
-  ) {}
+  public constructor(private readonly taskContext: TaskContextSource) {}
 
   public async loadTaskContext(task: TaskDefinition) {
     if (this.taskContext.kind === 'single') {
@@ -189,7 +210,9 @@ export class InMemoryWorkspace {
     return context
   }
 
-  public async updateTaskChecks(updates: { checked: boolean, taskId: string }[]) {
+  public async updateTaskChecks(
+    updates: { checked: boolean; taskId: string }[],
+  ) {
     this.checkboxUpdates.push(updates)
   }
 }

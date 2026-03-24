@@ -9,13 +9,21 @@ import { loadWorkflowConfig } from '../src/workflow/config'
 const workspaces: string[] = []
 
 async function createWorkspace() {
-  const workspaceRoot = await mkdtemp(path.join(tmpdir(), 'while-workflow-config-'))
+  const workspaceRoot = await mkdtemp(
+    path.join(tmpdir(), 'while-workflow-config-'),
+  )
   workspaces.push(workspaceRoot)
   return workspaceRoot
 }
 
 afterEach(async () => {
-  await Promise.all(workspaces.splice(0).map(async (workspaceRoot) => rm(workspaceRoot, { force: true, recursive: true })))
+  await Promise.all(
+    workspaces
+      .splice(0)
+      .map(async (workspaceRoot) =>
+        rm(workspaceRoot, { force: true, recursive: true }),
+      ),
+  )
 })
 
 test('loadWorkflowConfig defaults to direct codex roles when while.yaml is absent', async () => {
@@ -36,13 +44,16 @@ test('loadWorkflowConfig defaults to direct codex roles when while.yaml is absen
 
 test('loadWorkflowConfig parses configured role providers from yaml mappings', async () => {
   const workspaceRoot = await createWorkspace()
-  await writeFile(path.join(workspaceRoot, 'while.yaml'), [
-    'workflow:',
-    '  roles:',
-    '    implementer: { provider: claude }',
-    '    reviewer: { provider: codex }',
-    '',
-  ].join('\n'))
+  await writeFile(
+    path.join(workspaceRoot, 'while.yaml'),
+    [
+      'workflow:',
+      '  roles:',
+      '    implementer: { provider: claude }',
+      '    reviewer: { provider: codex }',
+      '',
+    ].join('\n'),
+  )
 
   const config = await loadWorkflowConfig(workspaceRoot)
 
@@ -59,24 +70,30 @@ test('loadWorkflowConfig parses configured role providers from yaml mappings', a
 
 test('loadWorkflowConfig rejects unsupported pull-request mode in v1', async () => {
   const workspaceRoot = await createWorkspace()
-  await writeFile(path.join(workspaceRoot, 'while.yaml'), [
-    'workflow:',
-    '  mode: pull-request',
-    '',
-  ].join('\n'))
+  await writeFile(
+    path.join(workspaceRoot, 'while.yaml'),
+    ['workflow:', '  mode: pull-request', ''].join('\n'),
+  )
 
-  await expect(loadWorkflowConfig(workspaceRoot)).rejects.toThrow(/pull-request/i)
+  await expect(loadWorkflowConfig(workspaceRoot)).rejects.toThrow(
+    /pull-request/i,
+  )
 })
 
 test('loadWorkflowConfig rejects unknown keys instead of silently defaulting', async () => {
   const workspaceRoot = await createWorkspace()
-  await writeFile(path.join(workspaceRoot, 'while.yaml'), [
-    'workflow:',
-    '  roles:',
-    '    implementer:',
-    '      proivder: claude',
-    '',
-  ].join('\n'))
+  await writeFile(
+    path.join(workspaceRoot, 'while.yaml'),
+    [
+      'workflow:',
+      '  roles:',
+      '    implementer:',
+      '      proivder: claude',
+      '',
+    ].join('\n'),
+  )
 
-  await expect(loadWorkflowConfig(workspaceRoot)).rejects.toThrow(/proivder|unrecognized/i)
+  await expect(loadWorkflowConfig(workspaceRoot)).rejects.toThrow(
+    /proivder|unrecognized/i,
+  )
 })

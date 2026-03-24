@@ -5,7 +5,11 @@ import { createFsRuntime } from '../runtime/fs-runtime'
 import { loadWorkflowConfig } from '../workflow/config'
 import { createDirectWorkflowPreset } from '../workflow/preset'
 
-import type { ImplementerProvider, ReviewerProvider, WorkflowRoleProviders } from '../agents/types'
+import type {
+  ImplementerProvider,
+  ReviewerProvider,
+  WorkflowRoleProviders,
+} from '../agents/types'
 import type { WorkspaceContext } from '../types'
 import type { WorkflowConfig } from '../workflow/config'
 import type { WorkflowRuntime } from '../workflow/preset'
@@ -19,20 +23,29 @@ function createCodexEventHandler(verbose: boolean | undefined) {
   if (!verbose) {
     return undefined
   }
-  return (event: { item?: { type?: string }, type: string }) => {
+  return (event: { item?: { type?: string }; type: string }) => {
     const itemType = 'item' in event ? event.item?.type : undefined
-    process.stderr.write(`[codex] ${event.type}${itemType ? ` ${itemType}` : ''}\n`)
+    process.stderr.write(
+      `[codex] ${event.type}${itemType ? ` ${itemType}` : ''}\n`,
+    )
   }
 }
 
-function createProviderResolver(context: WorkspaceContext, verbose: boolean | undefined) {
+function createProviderResolver(
+  context: WorkspaceContext,
+  verbose: boolean | undefined,
+) {
   const cache = new Map<
     WorkflowConfig['workflow']['roles']['implementer']['provider'],
     ImplementerProvider & ReviewerProvider
   >()
-  return (providerName: WorkflowConfig['workflow']['roles']['implementer']['provider']) => {
+  return (
+    providerName: WorkflowConfig['workflow']['roles']['implementer']['provider'],
+  ) => {
     if (providerName === 'claude') {
-      throw new Error('claude provider is not available in CLI mode because no Claude adapter is configured')
+      throw new Error(
+        'claude provider is not available in CLI mode because no Claude adapter is configured',
+      )
     }
     const cached = cache.get(providerName)
     if (cached) {
@@ -77,7 +90,10 @@ export interface WorkflowExecution {
   execute: () => ReturnType<typeof runWorkflow>
 }
 
-export async function loadWorkflowExecution(context: WorkspaceContext, options: RunCommandOptions = {}): Promise<WorkflowExecution> {
+export async function loadWorkflowExecution(
+  context: WorkspaceContext,
+  options: RunCommandOptions = {},
+): Promise<WorkflowExecution> {
   const config = await loadWorkflowConfig(context.workspaceRoot)
   const workflow = resolveWorkflowRuntime(context, config, options)
   const runtime = createFsRuntime({
@@ -105,7 +121,10 @@ export async function loadWorkflowExecution(context: WorkspaceContext, options: 
   }
 }
 
-export async function runCommand(context: WorkspaceContext, options: RunCommandOptions = {}) {
+export async function runCommand(
+  context: WorkspaceContext,
+  options: RunCommandOptions = {},
+) {
   const execution = await loadWorkflowExecution(context, options)
   return execution.execute()
 }

@@ -25,12 +25,18 @@ async function createWorkspace(featureIds: string[]) {
 async function createGitWorkspace() {
   const root = await createWorkspace(['001-demo', '002-other'])
   await execFileAsync('git', ['init'], { cwd: root })
-  await execFileAsync('git', ['config', 'user.email', 'test@example.com'], { cwd: root })
-  await execFileAsync('git', ['config', 'user.name', 'Test User'], { cwd: root })
+  await execFileAsync('git', ['config', 'user.email', 'test@example.com'], {
+    cwd: root,
+  })
+  await execFileAsync('git', ['config', 'user.name', 'Test User'], {
+    cwd: root,
+  })
   await writeFile(path.join(root, '.gitkeep'), 'x\n')
   await execFileAsync('git', ['add', '.'], { cwd: root })
   await execFileAsync('git', ['commit', '-m', 'init'], { cwd: root })
-  await execFileAsync('git', ['checkout', '-b', '001-feature-branch'], { cwd: root })
+  await execFileAsync('git', ['checkout', '-b', '001-feature-branch'], {
+    cwd: root,
+  })
   return root
 }
 
@@ -101,17 +107,21 @@ test('resolveWorkspaceContext can infer feature from git branch prefix', async (
 test('resolveWorkspaceContext throws when multiple features exist without explicit selection', async () => {
   const root = await createWorkspace(['001-demo', '002-other'])
 
-  await expect(resolveWorkspaceContext({
-    cwd: root,
-    env: {},
-  })).rejects.toThrow(/Unable to determine feature/i)
+  await expect(
+    resolveWorkspaceContext({
+      cwd: root,
+      env: {},
+    }),
+  ).rejects.toThrow(/Unable to determine feature/i)
 })
 
 test('resolveWorkspaceContext throws when workspace root cannot be found', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'while-no-workspace-'))
 
-  await expect(resolveWorkspaceContext({
-    cwd: root,
-    env: {},
-  })).rejects.toThrow(/Unable to locate a Spec Kit workspace/i)
+  await expect(
+    resolveWorkspaceContext({
+      cwd: root,
+      env: {},
+    }),
+  ).rejects.toThrow(/Unable to locate a Spec Kit workspace/i)
 })

@@ -19,8 +19,7 @@ async function exists(targetPath: string) {
   try {
     await access(targetPath, constants.F_OK)
     return true
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -33,7 +32,9 @@ async function findWorkspaceRoot(startDir: string) {
     }
     const parent = path.dirname(current)
     if (parent === current) {
-      throw new Error('Unable to locate a Spec Kit workspace from current directory')
+      throw new Error(
+        'Unable to locate a Spec Kit workspace from current directory',
+      )
     }
     current = parent
   }
@@ -44,17 +45,22 @@ async function readFeatureDirs(workspaceRoot: string) {
   const entries = await readdir(specsDir, {
     withFileTypes: true,
   })
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
 }
 
 async function detectGitBranch(workspaceRoot: string) {
   try {
-    const { stdout } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
-      cwd: workspaceRoot,
-    })
+    const { stdout } = await execFileAsync(
+      'git',
+      ['rev-parse', '--abbrev-ref', 'HEAD'],
+      {
+        cwd: workspaceRoot,
+      },
+    )
     return stdout.trim()
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -68,7 +74,9 @@ function matchFeatureByPrefix(featureDirs: string[], branch: string) {
   return featureDirs.find((feature) => feature.startsWith(`${prefix}-`)) ?? null
 }
 
-export async function resolveWorkspaceContext(input: ResolveWorkspaceContextInput): Promise<WorkspaceContext> {
+export async function resolveWorkspaceContext(
+  input: ResolveWorkspaceContextInput,
+): Promise<WorkspaceContext> {
   const workspaceRoot = input.workspace
     ? path.resolve(input.workspace)
     : await findWorkspaceRoot(input.cwd)
@@ -76,9 +84,7 @@ export async function resolveWorkspaceContext(input: ResolveWorkspaceContextInpu
   const featureDirs = await readFeatureDirs(workspaceRoot)
   const env = input.env ?? process.env
 
-  let featureId = input.feature
-    ?? env.SPECIFY_FEATURE
-    ?? null
+  let featureId = input.feature ?? env.SPECIFY_FEATURE ?? null
 
   if (!featureId) {
     const branch = await detectGitBranch(workspaceRoot)
@@ -90,8 +96,7 @@ export async function resolveWorkspaceContext(input: ResolveWorkspaceContextInpu
   if (!featureId) {
     if (featureDirs.length === 1) {
       featureId = featureDirs[0] ?? null
-    }
-    else {
+    } else {
       throw new Error('Unable to determine feature. Pass --feature explicitly.')
     }
   }

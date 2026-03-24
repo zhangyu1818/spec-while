@@ -1,7 +1,15 @@
 import { expect, test } from 'vitest'
 
 import { rewindTask, runWorkflow } from '../src/core/orchestrator'
-import { createGraph, createImplement, createReview, createRuntime, createVerify, createWorkflow, ScriptedWorkflowProvider } from './workflow-test-helpers'
+import {
+  createGraph,
+  createImplement,
+  createReview,
+  createRuntime,
+  createVerify,
+  createWorkflow,
+  ScriptedWorkflowProvider,
+} from './workflow-test-helpers'
 
 test('runWorkflow keeps a task done when post-commit artifact persistence fails', async () => {
   const graph = {
@@ -31,16 +39,20 @@ test('runWorkflow keeps a task done when post-commit artifact persistence fails'
     }
     await originalSaveImplementArtifact(artifact)
   }
-  const workflow = createWorkflow(new ScriptedWorkflowProvider(
-    [createImplement('T001', 'src/greeting.ts')],
-    [createReview('T001', 'buildGreeting works')],
-  ))
+  const workflow = createWorkflow(
+    new ScriptedWorkflowProvider(
+      [createImplement('T001', 'src/greeting.ts')],
+      [createReview('T001', 'buildGreeting works')],
+    ),
+  )
 
-  await expect(runWorkflow({
-    graph,
-    runtime,
-    workflow,
-  })).rejects.toThrow(/artifact disk full/)
+  await expect(
+    runWorkflow({
+      graph,
+      runtime,
+      workflow,
+    }),
+  ).rejects.toThrow(/artifact disk full/)
 
   expect(git.commitMessages).toEqual(['Task T001: Implement greeting'])
   expect(store.events.map((event) => event.type)).toEqual([
@@ -58,7 +70,9 @@ test('runWorkflow keeps a task done when post-commit artifact persistence fails'
     status: 'done',
   })
   expect(store.report?.summary.finalStatus).toBe('completed')
-  expect(workspace.checkboxUpdates).toEqual([[{ checked: true, taskId: 'T001' }]])
+  expect(workspace.checkboxUpdates).toEqual([
+    [{ checked: true, taskId: 'T001' }],
+  ])
 })
 
 test('runWorkflow does not re-run a completed task when integrate completion event persistence fails', async () => {
@@ -91,16 +105,20 @@ test('runWorkflow does not re-run a completed task when integrate completion eve
     }
     await originalAppendEvent(event)
   }
-  const workflow = createWorkflow(new ScriptedWorkflowProvider(
-    [createImplement('T001', 'src/greeting.ts')],
-    [createReview('T001', 'buildGreeting works')],
-  ))
+  const workflow = createWorkflow(
+    new ScriptedWorkflowProvider(
+      [createImplement('T001', 'src/greeting.ts')],
+      [createReview('T001', 'buildGreeting works')],
+    ),
+  )
 
-  await expect(runWorkflow({
-    graph,
-    runtime,
-    workflow,
-  })).rejects.toThrow(/events disk full/)
+  await expect(
+    runWorkflow({
+      graph,
+      runtime,
+      workflow,
+    }),
+  ).rejects.toThrow(/events disk full/)
 
   expect(store.state?.tasks.T001).toMatchObject({
     commitSha: 'commit-1',
@@ -118,7 +136,9 @@ test('runWorkflow does not re-run a completed task when integrate completion eve
     commitSha: 'commit-1',
     status: 'done',
   })
-  expect(workspace.checkboxUpdates).toEqual([[{ checked: true, taskId: 'T001' }]])
+  expect(workspace.checkboxUpdates).toEqual([
+    [{ checked: true, taskId: 'T001' }],
+  ])
 })
 
 test('runWorkflow records integrate failure events when commit integration fails', async () => {
@@ -143,10 +163,12 @@ test('runWorkflow records integrate failure events when commit integration fails
     commitFailures: [new Error('git commit rejected')],
     verifierResponses: [createVerify('T001', true)],
   })
-  const workflow = createWorkflow(new ScriptedWorkflowProvider(
-    [createImplement('T001', 'src/greeting.ts')],
-    [createReview('T001', 'buildGreeting works')],
-  ))
+  const workflow = createWorkflow(
+    new ScriptedWorkflowProvider(
+      [createImplement('T001', 'src/greeting.ts')],
+      [createReview('T001', 'buildGreeting works')],
+    ),
+  )
 
   const result = await runWorkflow({
     graph,
@@ -170,47 +192,55 @@ test('runWorkflow records integrate failure events when commit integration fails
     reason: 'Task commit failed: git commit rejected',
     status: 'blocked',
   })
-  expect(workspace.checkboxUpdates).toEqual([[{ checked: true, taskId: 'T001' }], [{ checked: false, taskId: 'T001' }]])
+  expect(workspace.checkboxUpdates).toEqual([
+    [{ checked: true, taskId: 'T001' }],
+    [{ checked: false, taskId: 'T001' }],
+  ])
 })
 
 test('rewindTask resets rolled-back task commits into a new pending generation', async () => {
   const graph = createGraph()
   const { git, runtime, store, workspace } = createRuntime()
-  const workflow = createWorkflow(new ScriptedWorkflowProvider(
-    [createImplement('T001', 'src/greeting.ts'), createImplement('T002', 'src/farewell.ts')],
-    [
-      {
-        changedFilesReviewed: [],
-        findings: [],
-        overallRisk: 'low',
-        summary: 'ok',
-        taskId: 'T001',
-        verdict: 'pass',
-        acceptanceChecks: [
-          {
-            criterion: 'buildGreeting works',
-            note: 'ok',
-            status: 'pass',
-          },
-        ],
-      },
-      {
-        changedFilesReviewed: [],
-        findings: [],
-        overallRisk: 'low',
-        summary: 'ok',
-        taskId: 'T002',
-        verdict: 'pass',
-        acceptanceChecks: [
-          {
-            criterion: 'buildFarewell works',
-            note: 'ok',
-            status: 'pass',
-          },
-        ],
-      },
-    ],
-  ))
+  const workflow = createWorkflow(
+    new ScriptedWorkflowProvider(
+      [
+        createImplement('T001', 'src/greeting.ts'),
+        createImplement('T002', 'src/farewell.ts'),
+      ],
+      [
+        {
+          changedFilesReviewed: [],
+          findings: [],
+          overallRisk: 'low',
+          summary: 'ok',
+          taskId: 'T001',
+          verdict: 'pass',
+          acceptanceChecks: [
+            {
+              criterion: 'buildGreeting works',
+              note: 'ok',
+              status: 'pass',
+            },
+          ],
+        },
+        {
+          changedFilesReviewed: [],
+          findings: [],
+          overallRisk: 'low',
+          summary: 'ok',
+          taskId: 'T002',
+          verdict: 'pass',
+          acceptanceChecks: [
+            {
+              criterion: 'buildFarewell works',
+              note: 'ok',
+              status: 'pass',
+            },
+          ],
+        },
+      ],
+    ),
+  )
 
   await runWorkflow({
     graph,
@@ -225,8 +255,16 @@ test('rewindTask resets rolled-back task commits into a new pending generation',
   })
 
   expect(git.resetTargets).toEqual(['commit-1-parent'])
-  expect(rewound.tasks.T001).toMatchObject({ generation: 2, invalidatedBy: null, status: 'pending' })
-  expect(rewound.tasks.T002).toMatchObject({ generation: 2, invalidatedBy: 'T001', status: 'pending' })
+  expect(rewound.tasks.T001).toMatchObject({
+    generation: 2,
+    invalidatedBy: null,
+    status: 'pending',
+  })
+  expect(rewound.tasks.T002).toMatchObject({
+    generation: 2,
+    invalidatedBy: 'T001',
+    status: 'pending',
+  })
   expect(store.report?.summary.finalStatus).toBe('in_progress')
   expect(workspace.checkboxUpdates).toEqual([
     [{ checked: true, taskId: 'T001' }],
@@ -237,9 +275,11 @@ test('rewindTask resets rolled-back task commits into a new pending generation',
 test('rewindTask rejects rewinding before any workflow state exists', async () => {
   const { runtime } = createRuntime()
 
-  await expect(rewindTask({
-    runtime,
-    taskId: 'T001',
-    loadGraph: async () => createGraph(),
-  })).rejects.toThrow(/before workflow state exists/i)
+  await expect(
+    rewindTask({
+      runtime,
+      taskId: 'T001',
+      loadGraph: async () => createGraph(),
+    }),
+  ).rejects.toThrow(/before workflow state exists/i)
 })

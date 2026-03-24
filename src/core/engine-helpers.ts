@@ -12,7 +12,10 @@ export function cloneState(state: WorkflowState): WorkflowState {
   return structuredClone(state)
 }
 
-export function createBaseTaskState(): Extract<TaskState, { status: 'pending' }> {
+export function createBaseTaskState(): Extract<
+  TaskState,
+  { status: 'pending' }
+> {
   return {
     attempt: 0,
     generation: 1,
@@ -38,23 +41,36 @@ export function getTaskState(state: WorkflowState, taskId: string): TaskState {
   return taskState
 }
 
-export function canStartTask(graph: TaskGraph, state: WorkflowState, taskId: string) {
+export function canStartTask(
+  graph: TaskGraph,
+  state: WorkflowState,
+  taskId: string,
+) {
   const task = getTask(graph, taskId)
-  return task.dependsOn.every((dependency) => state.tasks[dependency]?.status === 'done')
+  return task.dependsOn.every(
+    (dependency) => state.tasks[dependency]?.status === 'done',
+  )
 }
 
-export function withReviewMetadata(taskState: TaskState, input: {
-  findings?: ReviewFinding[]
-  reviewVerdict?: ReviewOutput['verdict']
-  verifyPassed?: boolean
-}) {
+export function withReviewMetadata(
+  taskState: TaskState,
+  input: {
+    findings?: ReviewFinding[]
+    reviewVerdict?: ReviewOutput['verdict']
+    verifyPassed?: boolean
+  },
+) {
   const next = {
     attempt: taskState.attempt,
     generation: taskState.generation,
     invalidatedBy: taskState.invalidatedBy,
     lastFindings: taskState.lastFindings,
-    ...(taskState.lastReviewVerdict ? { lastReviewVerdict: taskState.lastReviewVerdict } : {}),
-    ...(typeof taskState.lastVerifyPassed === 'boolean' ? { lastVerifyPassed: taskState.lastVerifyPassed } : {}),
+    ...(taskState.lastReviewVerdict
+      ? { lastReviewVerdict: taskState.lastReviewVerdict }
+      : {}),
+    ...(typeof taskState.lastVerifyPassed === 'boolean'
+      ? { lastVerifyPassed: taskState.lastVerifyPassed }
+      : {}),
   }
   if (input.findings) {
     next.lastFindings = input.findings
@@ -72,13 +88,19 @@ export function shouldPassZeroGate(input: {
   review: ReviewOutput
   verify: VerifyResult
 }) {
-  return input.review.verdict === 'pass'
-    && input.review.findings.length === 0
-    && input.review.acceptanceChecks.every((check) => check.status === 'pass')
-    && input.verify.passed
+  return (
+    input.review.verdict === 'pass' &&
+    input.review.findings.length === 0 &&
+    input.review.acceptanceChecks.every((check) => check.status === 'pass') &&
+    input.verify.passed
+  )
 }
 
-export function collectDescendants(graph: TaskGraph, taskId: string, seen = new Set<string>()) {
+export function collectDescendants(
+  graph: TaskGraph,
+  taskId: string,
+  seen = new Set<string>(),
+) {
   for (const task of graph.tasks) {
     if (task.dependsOn.includes(taskId) && !seen.has(task.id)) {
       seen.add(task.id)

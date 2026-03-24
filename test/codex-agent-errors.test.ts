@@ -40,27 +40,29 @@ test('CodexAgentClient throws when SDK returns empty finalResponse in non-stream
     workspaceRoot: '/tmp/project',
   })
 
-  await expect(client.implement({
-    attempt: 1,
-    codeContext: '',
-    generation: 1,
-    lastFindings: [],
-    plan: '# plan',
-    spec: '# spec',
-    tasksSnippet: '- [ ] T001 Do work',
-    task: {
-      id: 'T001',
-      acceptance: ['works'],
-      dependsOn: [],
-      maxAttempts: 2,
-      parallelizable: false,
-      paths: ['src/a.ts'],
-      phase: 'Core',
-      reviewRubric: ['clear'],
-      title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
-    },
-  })).rejects.toThrow(/empty finalResponse/i)
+  await expect(
+    client.implement({
+      attempt: 1,
+      codeContext: '',
+      generation: 1,
+      lastFindings: [],
+      plan: '# plan',
+      spec: '# spec',
+      tasksSnippet: '- [ ] T001 Do work',
+      task: {
+        id: 'T001',
+        acceptance: ['works'],
+        dependsOn: [],
+        maxAttempts: 2,
+        parallelizable: false,
+        paths: ['src/a.ts'],
+        phase: 'Core',
+        reviewRubric: ['clear'],
+        title: 'Do work',
+        verifyCommands: ['node -e "process.exit(0)"'],
+      },
+    }),
+  ).rejects.toThrow(/empty finalResponse/i)
 })
 
 test('CodexAgentClient throws when SDK returns non-JSON finalResponse in non-stream mode', async () => {
@@ -80,27 +82,29 @@ test('CodexAgentClient throws when SDK returns non-JSON finalResponse in non-str
     workspaceRoot: '/tmp/project',
   })
 
-  await expect(client.implement({
-    attempt: 1,
-    codeContext: '',
-    generation: 1,
-    lastFindings: [],
-    plan: '# plan',
-    spec: '# spec',
-    tasksSnippet: '- [ ] T001 Do work',
-    task: {
-      id: 'T001',
-      acceptance: ['works'],
-      dependsOn: [],
-      maxAttempts: 2,
-      parallelizable: false,
-      paths: ['src/a.ts'],
-      phase: 'Core',
-      reviewRubric: ['clear'],
-      title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
-    },
-  })).rejects.toThrow(/non-JSON finalResponse/i)
+  await expect(
+    client.implement({
+      attempt: 1,
+      codeContext: '',
+      generation: 1,
+      lastFindings: [],
+      plan: '# plan',
+      spec: '# spec',
+      tasksSnippet: '- [ ] T001 Do work',
+      task: {
+        id: 'T001',
+        acceptance: ['works'],
+        dependsOn: [],
+        maxAttempts: 2,
+        parallelizable: false,
+        paths: ['src/a.ts'],
+        phase: 'Core',
+        reviewRubric: ['clear'],
+        title: 'Do work',
+        verifyCommands: ['node -e "process.exit(0)"'],
+      },
+    }),
+  ).rejects.toThrow(/non-JSON finalResponse/i)
 })
 
 test('CodexAgentClient surfaces streamed agent failures before any structured response is produced', async () => {
@@ -138,27 +142,29 @@ test('CodexAgentClient surfaces streamed agent failures before any structured re
     },
   })
 
-  await expect(client.implement({
-    attempt: 1,
-    codeContext: '',
-    generation: 1,
-    lastFindings: [],
-    plan: '# plan',
-    spec: '# spec',
-    tasksSnippet: '- [ ] T001 Do work',
-    task: {
-      id: 'T001',
-      acceptance: ['works'],
-      dependsOn: [],
-      maxAttempts: 2,
-      parallelizable: false,
-      paths: ['src/a.ts'],
-      phase: 'Core',
-      reviewRubric: ['clear'],
-      title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
-    },
-  })).rejects.toThrow(/model failed/i)
+  await expect(
+    client.implement({
+      attempt: 1,
+      codeContext: '',
+      generation: 1,
+      lastFindings: [],
+      plan: '# plan',
+      spec: '# spec',
+      tasksSnippet: '- [ ] T001 Do work',
+      task: {
+        id: 'T001',
+        acceptance: ['works'],
+        dependsOn: [],
+        maxAttempts: 2,
+        parallelizable: false,
+        paths: ['src/a.ts'],
+        phase: 'Core',
+        reviewRubric: ['clear'],
+        title: 'Do work',
+        verifyCommands: ['node -e "process.exit(0)"'],
+      },
+    }),
+  ).rejects.toThrow(/model failed/i)
   expect(seenEvents).toEqual(['thread.started', 'turn.failed'])
 })
 
@@ -196,25 +202,27 @@ test('CodexAgentClient throws when streamed mode completes without any final age
     onEvent() {},
   })
 
-  await expect(client.implement({
-    attempt: 1,
-    codeContext: '',
-    generation: 1,
-    lastFindings: [],
-    plan: '# plan',
-    spec: '# spec',
-    tasksSnippet: '- [ ] T001 Do work',
-    task: {
-      id: 'T001',
-      acceptance: ['works'],
-      dependsOn: [],
-      maxAttempts: 2,
-      parallelizable: false,
-      paths: ['src/a.ts'],
-      phase: 'Core',
-      reviewRubric: ['clear'],
-      title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
-    },
-  })).rejects.toThrow(/empty finalResponse/i)
+  await expect(
+    client.implement({
+      attempt: 1,
+      codeContext: '',
+      generation: 1,
+      lastFindings: [],
+      plan: '# plan',
+      spec: '# spec',
+      tasksSnippet: '- [ ] T001 Do work',
+      task: {
+        id: 'T001',
+        acceptance: ['works'],
+        dependsOn: [],
+        maxAttempts: 2,
+        parallelizable: false,
+        paths: ['src/a.ts'],
+        phase: 'Core',
+        reviewRubric: ['clear'],
+        title: 'Do work',
+        verifyCommands: ['node -e "process.exit(0)"'],
+      },
+    }),
+  ).rejects.toThrow(/empty finalResponse/i)
 })

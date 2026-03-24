@@ -13,12 +13,15 @@ function assertNoPositionalArgs(values: { _: string[] }) {
 }
 
 function parseRunOptions(args: string[]) {
-  const values = arg({
-    '--feature': String,
-    '--until-task': String,
-    '--verbose': Boolean,
-    '--workspace': String,
-  }, { argv: args })
+  const values = arg(
+    {
+      '--feature': String,
+      '--until-task': String,
+      '--verbose': Boolean,
+      '--workspace': String,
+    },
+    { argv: args },
+  )
   assertNoPositionalArgs(values)
   return {
     feature: values['--feature'],
@@ -29,11 +32,14 @@ function parseRunOptions(args: string[]) {
 }
 
 function parseRewindOptions(args: string[]) {
-  const values = arg({
-    '--feature': String,
-    '--task': String,
-    '--workspace': String,
-  }, { argv: args })
+  const values = arg(
+    {
+      '--feature': String,
+      '--task': String,
+      '--workspace': String,
+    },
+    { argv: args },
+  )
   assertNoPositionalArgs(values)
   if (!values['--task']) {
     throw new Error('Missing --task')
@@ -60,7 +66,9 @@ export async function runCli(argv = process.argv.slice(2)) {
         ...(options.untilTaskId ? { untilTaskId: options.untilTaskId } : {}),
         verbose: options.verbose,
       })
-      process.stdout.write(`${inspect(result, { colors: false, depth: null })}\n`)
+      process.stdout.write(
+        `${inspect(result, { colors: false, depth: null })}\n`,
+      )
       return
     }
     case 'rewind': {
@@ -72,7 +80,9 @@ export async function runCli(argv = process.argv.slice(2)) {
         ...(options.workspace ? { workspace: options.workspace } : {}),
       })
       const result = await rewindCommand(context, options.taskId)
-      process.stdout.write(`${inspect(result, { colors: false, depth: null })}\n`)
+      process.stdout.write(
+        `${inspect(result, { colors: false, depth: null })}\n`,
+      )
       return
     }
     default:
@@ -85,7 +95,9 @@ export async function main() {
 }
 
 export function handleFatalError(error: unknown) {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
+  process.stderr.write(
+    `${error instanceof Error ? error.message : String(error)}\n`,
+  )
   process.exitCode = 1
 }
 

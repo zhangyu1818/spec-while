@@ -9,11 +9,7 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      exclude: [
-        'bin/**',
-        'fixtures/**',
-        'test/**',
-      ],
+      exclude: ['bin/**', 'fixtures/**', 'test/**'],
     },
   },
 })

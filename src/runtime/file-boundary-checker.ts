@@ -13,13 +13,19 @@ export interface BoundaryCheckResult {
 
 const IGNORED_DIRS = new Set(['.git', 'node_modules', '.while'])
 
-async function walk(currentDir: string, rootDir: string, files: Map<string, string>) {
+async function walk(
+  currentDir: string,
+  rootDir: string,
+  files: Map<string, string>,
+) {
   const entries = await readdir(currentDir, {
     withFileTypes: true,
   })
   for (const entry of entries) {
     const fullPath = path.join(currentDir, entry.name)
-    const relativePath = path.relative(rootDir, fullPath).replaceAll(path.sep, '/')
+    const relativePath = path
+      .relative(rootDir, fullPath)
+      .replaceAll(path.sep, '/')
     if (entry.isDirectory()) {
       if (!IGNORED_DIRS.has(entry.name)) {
         await walk(fullPath, rootDir, files)
@@ -32,7 +38,9 @@ async function walk(currentDir: string, rootDir: string, files: Map<string, stri
   }
 }
 
-export async function collectWorkspaceSnapshot(workspaceRoot: string): Promise<WorkspaceSnapshot> {
+export async function collectWorkspaceSnapshot(
+  workspaceRoot: string,
+): Promise<WorkspaceSnapshot> {
   const files = new Map<string, string>()
   await walk(workspaceRoot, workspaceRoot, files)
   return { files }
@@ -53,7 +61,9 @@ export function getBoundaryViolations(input: {
       changed.add(file)
     }
   }
-  const allowed = new Set(input.allowedPaths.map((item) => item.replaceAll(path.sep, '/')))
+  const allowed = new Set(
+    input.allowedPaths.map((item) => item.replaceAll(path.sep, '/')),
+  )
   const actualChangedFiles = [...changed].sort()
   const violations = actualChangedFiles.filter((file) => !allowed.has(file))
   return {

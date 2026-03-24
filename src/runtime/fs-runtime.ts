@@ -19,9 +19,19 @@ import { ProcessVerifier } from './verify-runner'
 import type { OrchestratorRuntime } from '../core/runtime'
 import type { TaskDefinition } from '../types'
 
-function createArtifactDir(featureDir: string, taskId: string, generation: number, attempt: number) {
+function createArtifactDir(
+  featureDir: string,
+  taskId: string,
+  generation: number,
+  attempt: number,
+) {
   const runtimePaths = createRuntimePaths(featureDir)
-  return path.join(runtimePaths.tasksDir, taskId, `g${generation}`, `a${attempt}`)
+  return path.join(
+    runtimePaths.tasksDir,
+    taskId,
+    `g${generation}`,
+    `a${attempt}`,
+  )
 }
 
 async function readCodeContext(workspaceRoot: string, paths: string[]) {
@@ -31,8 +41,7 @@ async function readCodeContext(workspaceRoot: string, paths: string[]) {
     try {
       const content = await readFile(targetPath, 'utf8')
       parts.push(`## ${relativePath}\n${content}`)
-    }
-    catch {
+    } catch {
       parts.push(`## ${relativePath}\n<missing>`)
     }
   }
@@ -43,20 +52,33 @@ function buildTasksSnippet(tasksMd: string, taskId: string) {
   const lines = tasksMd.split(/\r?\n/)
   const taskHeaderPattern = new RegExp(String.raw`^- \[[ Xx]\] ${taskId}(?=\b)`)
   const taskIndex = lines.findIndex((line) => taskHeaderPattern.test(line))
-  return taskIndex >= 0 ? lines.slice(taskIndex, taskIndex + 10).join('\n') : tasksMd
+  return taskIndex >= 0
+    ? lines.slice(taskIndex, taskIndex + 10).join('\n')
+    : tasksMd
 }
 
-async function updateTaskCheckboxes(tasksPath: string, updates: { checked: boolean, taskId: string }[]) {
+async function updateTaskCheckboxes(
+  tasksPath: string,
+  updates: { checked: boolean; taskId: string }[],
+) {
   const content = await readFile(tasksPath, 'utf8')
   const updated = updates.reduce((current, update) => {
-    const pattern = new RegExp(String.raw`^- \[[ Xx]\] ${update.taskId}(?=\b)`, 'm')
-    const replacement = update.checked ? `- [X] ${update.taskId}` : `- [ ] ${update.taskId}`
+    const pattern = new RegExp(
+      String.raw`^- \[[ Xx]\] ${update.taskId}(?=\b)`,
+      'm',
+    )
+    const replacement = update.checked
+      ? `- [X] ${update.taskId}`
+      : `- [ ] ${update.taskId}`
     return current.replace(pattern, replacement)
   }, content)
   await writeFile(tasksPath, updated)
 }
 
-export function createFsRuntime(input: { featureDir: string, workspaceRoot: string }): OrchestratorRuntime {
+export function createFsRuntime(input: {
+  featureDir: string
+  workspaceRoot: string
+}): OrchestratorRuntime {
   const tasksPath = path.join(input.featureDir, 'tasks.md')
   const runtimePaths = createRuntimePaths(input.featureDir)
 
@@ -101,12 +123,28 @@ export function createFsRuntime(input: { featureDir: string, workspaceRoot: stri
       },
       async saveIntegrateArtifact(artifact) {
         const value = validateIntegrateArtifact(artifact)
-        const targetPath = path.join(createArtifactDir(input.featureDir, artifact.taskId, artifact.generation, artifact.attempt), 'integrate.json')
+        const targetPath = path.join(
+          createArtifactDir(
+            input.featureDir,
+            artifact.taskId,
+            artifact.generation,
+            artifact.attempt,
+          ),
+          'integrate.json',
+        )
         await writeJsonAtomic(targetPath, value)
       },
       async saveImplementArtifact(artifact) {
         const value = validateImplementArtifact(artifact)
-        const targetPath = path.join(createArtifactDir(input.featureDir, artifact.taskId, artifact.generation, artifact.attempt), 'implement.json')
+        const targetPath = path.join(
+          createArtifactDir(
+            input.featureDir,
+            artifact.taskId,
+            artifact.generation,
+            artifact.attempt,
+          ),
+          'implement.json',
+        )
         await writeJsonAtomic(targetPath, value)
       },
       async saveReport(report) {
@@ -114,7 +152,15 @@ export function createFsRuntime(input: { featureDir: string, workspaceRoot: stri
       },
       async saveReviewArtifact(artifact) {
         const value = validateReviewArtifact(artifact)
-        const targetPath = path.join(createArtifactDir(input.featureDir, artifact.taskId, artifact.generation, artifact.attempt), 'review.json')
+        const targetPath = path.join(
+          createArtifactDir(
+            input.featureDir,
+            artifact.taskId,
+            artifact.generation,
+            artifact.attempt,
+          ),
+          'review.json',
+        )
         await writeJsonAtomic(targetPath, value)
       },
       async saveState(state) {
@@ -122,7 +168,15 @@ export function createFsRuntime(input: { featureDir: string, workspaceRoot: stri
       },
       async saveVerifyArtifact(artifact) {
         const value = validateVerifyArtifact(artifact)
-        const targetPath = path.join(createArtifactDir(input.featureDir, artifact.taskId, artifact.generation, artifact.attempt), 'verify.json')
+        const targetPath = path.join(
+          createArtifactDir(
+            input.featureDir,
+            artifact.taskId,
+            artifact.generation,
+            artifact.attempt,
+          ),
+          'verify.json',
+        )
         await writeJsonAtomic(targetPath, value)
       },
     },

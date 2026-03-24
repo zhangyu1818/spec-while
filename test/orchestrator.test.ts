@@ -1,14 +1,28 @@
 import { expect, test } from 'vitest'
 
 import { runWorkflow } from '../src/core/orchestrator'
-import { createGraph, createImplement, createReview, createRuntime, createVerify, createWorkflow, ScriptedWorkflowProvider } from './workflow-test-helpers'
+import {
+  createGraph,
+  createImplement,
+  createReview,
+  createRuntime,
+  createVerify,
+  createWorkflow,
+  ScriptedWorkflowProvider,
+} from './workflow-test-helpers'
 
 test('runWorkflow finalizes tasks, commits each done task, and records commitSha in artifacts', async () => {
   const graph = createGraph()
   const { git, runtime, store, workspace } = createRuntime()
   const provider = new ScriptedWorkflowProvider(
-    [createImplement('T001', 'src/greeting.ts'), createImplement('T002', 'src/farewell.ts')],
-    [createReview('T001', 'buildGreeting works'), createReview('T002', 'buildFarewell works')],
+    [
+      createImplement('T001', 'src/greeting.ts'),
+      createImplement('T002', 'src/farewell.ts'),
+    ],
+    [
+      createReview('T001', 'buildGreeting works'),
+      createReview('T002', 'buildFarewell works'),
+    ],
   )
 
   const result = await runWorkflow({
@@ -30,9 +44,17 @@ test('runWorkflow finalizes tasks, commits each done task, and records commitSha
     'Task T001: Implement greeting',
     'Task T002: Implement farewell',
   ])
-  expect(store.state?.tasks.T001).toMatchObject({ commitSha: 'commit-1', status: 'done' })
-  expect(store.state?.tasks.T002).toMatchObject({ commitSha: 'commit-2', status: 'done' })
-  expect(store.integrateArtifacts[0]).toMatchObject({ result: { commitSha: 'commit-1' } })
+  expect(store.state?.tasks.T001).toMatchObject({
+    commitSha: 'commit-1',
+    status: 'done',
+  })
+  expect(store.state?.tasks.T002).toMatchObject({
+    commitSha: 'commit-2',
+    status: 'done',
+  })
+  expect(store.integrateArtifacts[0]).toMatchObject({
+    result: { commitSha: 'commit-1' },
+  })
   expect(store.implementArtifacts[0]).toMatchObject({ commitSha: 'commit-1' })
   expect(store.verifyArtifacts[1]).toMatchObject({ commitSha: 'commit-2' })
 })
@@ -57,8 +79,14 @@ test('runWorkflow loads per-task context and passes git-based changed files into
     },
   })
   const provider = new ScriptedWorkflowProvider(
-    [createImplement('T001', 'src/greeting.ts'), createImplement('T002', 'src/farewell.ts')],
-    [createReview('T001', 'buildGreeting works'), createReview('T002', 'buildFarewell works')],
+    [
+      createImplement('T001', 'src/greeting.ts'),
+      createImplement('T002', 'src/farewell.ts'),
+    ],
+    [
+      createReview('T001', 'buildGreeting works'),
+      createReview('T002', 'buildFarewell works'),
+    ],
   )
 
   await runWorkflow({
@@ -69,8 +97,12 @@ test('runWorkflow loads per-task context and passes git-based changed files into
 
   expect(provider.implementInputs[0]?.codeContext).toContain('src/greeting.ts')
   expect(provider.implementInputs[1]?.codeContext).toContain('src/farewell.ts')
-  expect(provider.reviewInputs[0]?.actualChangedFiles).toEqual(['src/greeting.ts'])
-  expect(provider.reviewInputs[1]?.actualChangedFiles).toEqual(['src/farewell.ts'])
+  expect(provider.reviewInputs[0]?.actualChangedFiles).toEqual([
+    'src/greeting.ts',
+  ])
+  expect(provider.reviewInputs[1]?.actualChangedFiles).toEqual([
+    'src/farewell.ts',
+  ])
 })
 
 test('runWorkflow carries review findings into the next implement attempt', async () => {
@@ -90,7 +122,10 @@ test('runWorkflow carries review findings into the next implement attempt', asyn
     verifierResponses: [createVerify('T001', true), createVerify('T001', true)],
   })
   const provider = new ScriptedWorkflowProvider(
-    [createImplement('T001', 'src/greeting.ts'), createImplement('T001', 'src/greeting.ts')],
+    [
+      createImplement('T001', 'src/greeting.ts'),
+      createImplement('T001', 'src/greeting.ts'),
+    ],
     [
       {
         changedFilesReviewed: ['src/greeting.ts'],
@@ -174,11 +209,20 @@ test('runWorkflow still reviews failed verify results before later retries', asy
     tasks: [createGraph().tasks[0]!],
   }
   const { runtime, store } = createRuntime({
-    verifierResponses: [createVerify('T001', false), createVerify('T001', true)],
+    verifierResponses: [
+      createVerify('T001', false),
+      createVerify('T001', true),
+    ],
   })
   const provider = new ScriptedWorkflowProvider(
-    [createImplement('T001', 'src/greeting.ts'), createImplement('T001', 'src/greeting.ts')],
-    [createReview('T001', 'buildGreeting works', 'rework'), createReview('T001', 'buildGreeting works')],
+    [
+      createImplement('T001', 'src/greeting.ts'),
+      createImplement('T001', 'src/greeting.ts'),
+    ],
+    [
+      createReview('T001', 'buildGreeting works', 'rework'),
+      createReview('T001', 'buildGreeting works'),
+    ],
   )
 
   const result = await runWorkflow({
@@ -197,8 +241,15 @@ test('runWorkflow retries after implement failure and keeps downstream tasks pen
   const graph = createGraph()
   const { runtime, store } = createRuntime()
   const provider = new ScriptedWorkflowProvider(
-    [new Error('implement crashed'), createImplement('T001', 'src/greeting.ts'), createImplement('T002', 'src/farewell.ts')],
-    [createReview('T001', 'buildGreeting works'), createReview('T002', 'buildFarewell works')],
+    [
+      new Error('implement crashed'),
+      createImplement('T001', 'src/greeting.ts'),
+      createImplement('T002', 'src/farewell.ts'),
+    ],
+    [
+      createReview('T001', 'buildGreeting works'),
+      createReview('T002', 'buildFarewell works'),
+    ],
   )
 
   const result = await runWorkflow({
@@ -209,7 +260,9 @@ test('runWorkflow retries after implement failure and keeps downstream tasks pen
 
   expect(result.summary.finalStatus).toBe('completed')
   expect(provider.implementInputs).toHaveLength(3)
-  expect(store.events.some((event) => event.type === 'implement_failed')).toBe(true)
+  expect(store.events.some((event) => event.type === 'implement_failed')).toBe(
+    true,
+  )
 })
 
 test('runWorkflow records verifier execution failures and blocks when max attempts are exhausted', async () => {
@@ -248,7 +301,9 @@ test('runWorkflow records verifier execution failures and blocks when max attemp
     reason: 'verify subprocess failed',
     status: 'blocked',
   })
-  expect(store.events.some((event) => event.type === 'verify_failed')).toBe(true)
+  expect(store.events.some((event) => event.type === 'verify_failed')).toBe(
+    true,
+  )
   expect(store.reviewArtifacts).toHaveLength(0)
 })
 
@@ -270,7 +325,9 @@ test('runWorkflow stops after untilTaskId completes and leaves downstream tasks 
   expect(result.state.tasks.T001).toMatchObject({ status: 'done' })
   expect(result.state.tasks.T002).toMatchObject({ status: 'pending' })
   expect(store.implementArtifacts).toHaveLength(1)
-  expect(workspace.checkboxUpdates).toEqual([[{ checked: true, taskId: 'T001' }]])
+  expect(workspace.checkboxUpdates).toEqual([
+    [{ checked: true, taskId: 'T001' }],
+  ])
 })
 
 test('runWorkflow returns immediately when untilTaskId is already completed in persisted state', async () => {

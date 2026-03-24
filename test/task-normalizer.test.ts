@@ -77,10 +77,12 @@ test('normalizeTaskGraph rejects invalid dependencies', async () => {
   - Max Iterations: 2
 `)
 
-  await expect(normalizeTaskGraph({
-    featureDir,
-    tasksPath: path.join(featureDir, 'tasks.md'),
-  })).rejects.toThrow(/unknown task/i)
+  await expect(
+    normalizeTaskGraph({
+      featureDir,
+      tasksPath: path.join(featureDir, 'tasks.md'),
+    }),
+  ).rejects.toThrow(/unknown task/i)
 })
 
 test('normalizeTaskGraph allows tasks without verify commands', async () => {

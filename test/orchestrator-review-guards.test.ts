@@ -1,7 +1,14 @@
 import { expect, test } from 'vitest'
 
 import { runWorkflow } from '../src/core/orchestrator'
-import { createImplement, createReview, createRuntime, createVerify, createWorkflow, ScriptedWorkflowProvider } from './workflow-test-helpers'
+import {
+  createImplement,
+  createReview,
+  createRuntime,
+  createVerify,
+  createWorkflow,
+  ScriptedWorkflowProvider,
+} from './workflow-test-helpers'
 
 test('runWorkflow stops scheduling after a task blocks the workflow', async () => {
   const graph = {
@@ -38,8 +45,14 @@ test('runWorkflow stops scheduling after a task blocks the workflow', async () =
     verifierResponses: [createVerify('T001', true), createVerify('T002', true)],
   })
   const provider = new ScriptedWorkflowProvider(
-    [createImplement('T001', 'src/greeting.ts'), createImplement('T002', 'src/farewell.ts')],
-    [createReview('T001', 'buildGreeting works', 'blocked'), createReview('T002', 'buildFarewell works')],
+    [
+      createImplement('T001', 'src/greeting.ts'),
+      createImplement('T002', 'src/farewell.ts'),
+    ],
+    [
+      createReview('T001', 'buildGreeting works', 'blocked'),
+      createReview('T002', 'buildFarewell works'),
+    ],
   )
   const workflow = createWorkflow(provider)
 

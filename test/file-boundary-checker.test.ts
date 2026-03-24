@@ -26,6 +26,9 @@ test('getBoundaryViolations reports changes outside allowed paths', async () => 
     before,
   })
 
-  expect(result.actualChangedFiles.sort()).toEqual(['src/allowed.ts', 'src/other.ts'])
+  expect(result.actualChangedFiles.sort()).toEqual([
+    'src/allowed.ts',
+    'src/other.ts',
+  ])
   expect(result.violations).toEqual(['src/other.ts'])
 })

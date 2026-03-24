@@ -4,19 +4,30 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 
-import type { ImplementAgentInput, ImplementerProvider, ReviewAgentInput, ReviewerProvider } from '../src/agents/types'
+import type {
+  ImplementAgentInput,
+  ImplementerProvider,
+  ReviewAgentInput,
+  ReviewerProvider,
+} from '../src/agents/types'
 import type { WorkspaceContext } from '../src/types'
 
 const execFileAsync = promisify(execFile)
 
-export class ScriptedWorkflowProvider implements ImplementerProvider, ReviewerProvider {
+export class ScriptedWorkflowProvider
+  implements ImplementerProvider, ReviewerProvider
+{
   public readonly implementInputs: ImplementAgentInput[] = []
   public readonly name = 'scripted'
   public readonly reviewInputs: ReviewAgentInput[] = []
 
   public constructor(
-    private readonly implementHandler: (input: ImplementAgentInput) => Promise<void>,
-    private readonly reviewHandler: (input: ReviewAgentInput) => Promise<Awaited<ReturnType<ReviewerProvider['review']>>>,
+    private readonly implementHandler: (
+      input: ImplementAgentInput,
+    ) => Promise<void>,
+    private readonly reviewHandler: (
+      input: ReviewAgentInput,
+    ) => Promise<Awaited<ReturnType<ReviewerProvider['review']>>>,
   ) {}
 
   public async implement(input: ImplementAgentInput) {
@@ -83,22 +94,36 @@ export async function createWorkspace(input?: {
   await mkdir(featureDir, { recursive: true })
   await mkdir(path.join(root, 'src'), { recursive: true })
   await writeFile(path.join(root, '.gitignore'), '.while\n')
-  await writeFile(path.join(root, 'while.yaml'), [
-    'workflow:',
-    '  mode: direct',
-    '  roles:',
-    '    implementer:',
-    '      provider: codex',
-    '    reviewer:',
-    '      provider: codex',
-    '',
-  ].join('\n'))
-  await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "broken"\n')
-  await writeFile(path.join(root, 'src', 'farewell.js'), 'exports.buildFarewell = () => "broken"\n')
-  await writeFile(path.join(root, 'src', 'shared.js'), 'exports.shared = "base"\n')
+  await writeFile(
+    path.join(root, 'while.yaml'),
+    [
+      'workflow:',
+      '  mode: direct',
+      '  roles:',
+      '    implementer:',
+      '      provider: codex',
+      '    reviewer:',
+      '      provider: codex',
+      '',
+    ].join('\n'),
+  )
+  await writeFile(
+    path.join(root, 'src', 'greeting.js'),
+    'exports.buildGreeting = () => "broken"\n',
+  )
+  await writeFile(
+    path.join(root, 'src', 'farewell.js'),
+    'exports.buildFarewell = () => "broken"\n',
+  )
+  await writeFile(
+    path.join(root, 'src', 'shared.js'),
+    'exports.shared = "base"\n',
+  )
   await writeFile(path.join(featureDir, 'spec.md'), '# spec\n')
   await writeFile(path.join(featureDir, 'plan.md'), '# plan\n')
-  await writeFile(path.join(featureDir, 'tasks.md'), `
+  await writeFile(
+    path.join(featureDir, 'tasks.md'),
+    `
 # Tasks
 
 ## Phase 1: Core
@@ -108,13 +133,18 @@ export async function createWorkspace(input?: {
   - Depends:
   - Acceptance:
     - buildGreeting returns Hello, world!
-${omitVerify.has('T001') ? '' : `  - Verify:
+${
+  omitVerify.has('T001')
+    ? ''
+    : `  - Verify:
     - node -e "const { buildGreeting } = require('./src/greeting.js'); if (buildGreeting() !== 'Hello, world!') process.exit(1)"
-`}
+`
+}
   - Review Rubric:
     - simple and scoped
   - Max Iterations: ${maxAttempts}
-${includeSecondTask
+${
+  includeSecondTask
     ? `
 
 - [ ] T002 Implement farewell in src/farewell.js
@@ -122,15 +152,21 @@ ${includeSecondTask
   - Depends: T001
   - Acceptance:
     - buildFarewell returns Bye, world!
-${omitVerify.has('T002') ? '' : `  - Verify:
+${
+  omitVerify.has('T002')
+    ? ''
+    : `  - Verify:
     - node -e "const { buildFarewell } = require('./src/farewell.js'); if (buildFarewell() !== 'Bye, world!') process.exit(1)"
-`}
+`
+}
   - Review Rubric:
     - simple and scoped
   - Max Iterations: ${maxAttempts}
 `
-    : ''}
-`)
+    : ''
+}
+`,
+  )
 
   const context: WorkspaceContext = {
     featureDir,

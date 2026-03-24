@@ -33,8 +33,12 @@ test('buildImplementerPrompt makes while task boundaries explicit', async () => 
   })
 
   expect(prompt).toContain('Implement only the current task.')
-  expect(prompt).toContain('Use spec.md, plan.md, and the provided tasks snippet as the source of truth.')
-  expect(prompt).toContain('Modify only the files that are reasonably required for the current task, starting with task.paths.')
+  expect(prompt).toContain(
+    'Use spec.md, plan.md, and the provided tasks snippet as the source of truth.',
+  )
+  expect(prompt).toContain(
+    'Modify only the files that are reasonably required for the current task, starting with task.paths.',
+  )
   expect(prompt).toContain('Do not modify tasks.md.')
   expect(prompt).toContain('Do not move to the next task.')
   expect(prompt).toContain('Do not declare the task finalized.')

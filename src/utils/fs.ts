@@ -8,8 +8,7 @@ export async function ensureDir(targetDir: string) {
 export async function readTextIfExists(filePath: string) {
   try {
     return await readFile(filePath, 'utf8')
-  }
-  catch (error) {
+  } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return ''
     }
@@ -27,7 +26,10 @@ export function parsePorcelainPath(line: string) {
   return renamedSegments.at(-1) ?? rawPath
 }
 
-export function filterPorcelainStatus(lines: string[], ignoredBasePath: string) {
+export function filterPorcelainStatus(
+  lines: string[],
+  ignoredBasePath: string,
+) {
   return lines.filter((line) => {
     const filePath = parsePorcelainPath(line)
     return !isWithinRelativePath(filePath, ignoredBasePath)
