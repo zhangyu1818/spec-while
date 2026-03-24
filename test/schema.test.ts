@@ -1,8 +1,10 @@
 import { expect, test } from 'vitest'
 
 import {
+  integrateArtifactSchema,
   implementArtifactSchema,
   reviewOutputSchema,
+  validateWorkflowEvent,
   validateReviewOutput,
   validateTaskGraph,
   validateWorkflowState,
@@ -34,6 +36,28 @@ test('validateWorkflowState accepts discriminated task states', () => {
   })
 
   expect(state.tasks.T001?.status).toBe('running')
+})
+
+test('validateWorkflowState accepts integrate as a running stage', () => {
+  const state = validateWorkflowState({
+    currentTaskId: 'T001',
+    featureId: '001-demo',
+    tasks: {
+      T001: {
+        attempt: 1,
+        generation: 1,
+        invalidatedBy: null,
+        lastFindings: [],
+        stage: 'integrate',
+        status: 'running',
+      },
+    },
+  })
+
+  expect(state.tasks.T001).toMatchObject({
+    stage: 'integrate',
+    status: 'running',
+  })
 })
 
 test('validateWorkflowState rejects running task without stage', () => {
@@ -74,6 +98,33 @@ test('implementArtifactSchema captures generation and attempt metadata', () => {
   })
 
   expect(result.success).toBe(true)
+})
+
+test('integrateArtifactSchema captures commit metadata', () => {
+  const result = integrateArtifactSchema.safeParse({
+    attempt: 1,
+    createdAt: '2026-03-24T00:00:00.000Z',
+    generation: 2,
+    taskId: 'T001',
+    result: {
+      commitSha: 'commit-1',
+      summary: 'integrated',
+    },
+  })
+
+  expect(result.success).toBe(true)
+})
+
+test('validateWorkflowEvent accepts integrate lifecycle events', () => {
+  for (const type of ['integrate_started', 'integrate_completed', 'integrate_failed'] as const) {
+    expect(validateWorkflowEvent({
+      attempt: 1,
+      generation: 2,
+      taskId: 'T001',
+      timestamp: '2026-03-24T00:00:00.000Z',
+      type,
+    }).type).toBe(type)
+  }
 })
 
 test('reviewOutputSchema remains compatible with structured outputs', () => {

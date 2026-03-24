@@ -30,8 +30,17 @@ export interface ReviewAgentInput {
   verify: VerifyResult
 }
 
-export interface AgentClient {
+export interface ImplementerProvider {
   implement: (input: ImplementAgentInput) => Promise<ImplementOutput>
   readonly name: string
+}
+
+export interface ReviewerProvider {
+  readonly name: string
   review: (input: ReviewAgentInput) => Promise<ReviewOutput>
+}
+
+export interface WorkflowRoleProviders {
+  implementer: ImplementerProvider
+  reviewer: ReviewerProvider
 }

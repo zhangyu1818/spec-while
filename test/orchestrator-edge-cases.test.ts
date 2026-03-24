@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 
 import { runWorkflow } from '../src/core/orchestrator'
-import { createGraph, createImplement, createReview, createRuntime, createVerify, FakeAgentClient } from './workflow-test-helpers'
+import { createGraph, createImplement, createReview, createRuntime, createVerify, createWorkflow, ScriptedWorkflowProvider } from './workflow-test-helpers'
 
 test('runWorkflow does not mechanically block when changed files extend beyond task.paths', async () => {
   const graph = {
@@ -25,7 +25,7 @@ test('runWorkflow does not mechanically block when changed files extend beyond t
     changedFiles: [['src/greeting.ts', 'src/outside.ts']],
     verifierResponses: [createVerify('T001', true)],
   })
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [
       {
@@ -45,14 +45,15 @@ test('runWorkflow does not mechanically block when changed files extend beyond t
       },
     ],
   )
+  const workflow = createWorkflow(provider)
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow,
   })
 
-  expect(agent.reviewInputs[0]?.actualChangedFiles).toEqual(['src/greeting.ts', 'src/outside.ts'])
+  expect(provider.reviewInputs[0]?.actualChangedFiles).toEqual(['src/greeting.ts', 'src/outside.ts'])
   expect(result.summary.finalStatus).toBe('completed')
   expect(result.state.tasks.T001).toMatchObject({
     commitSha: 'commit-1',
@@ -86,15 +87,16 @@ test('runWorkflow preserves implement artifacts when review fails and blocks aft
   const { runtime, store } = createRuntime({
     verifierResponses: [createVerify('T001', true)],
   })
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [new Error('review output invalid')],
   )
+  const workflow = createWorkflow(provider)
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow,
   })
 
   expect(result.state.tasks.T001).toMatchObject({ reason: 'review output invalid', status: 'blocked' })
@@ -129,15 +131,16 @@ test('runWorkflow treats task checkbox write failures as recoverable commit fail
     }
     workspace.checkboxUpdates.push(updates)
   }
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [createReview('T001', 'buildGreeting works')],
   )
+  const workflow = createWorkflow(provider)
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow,
   })
 
   expect(result.state.tasks.T001).toMatchObject({
@@ -168,15 +171,16 @@ test('runWorkflow aligns persisted state with newly added tasks before saving re
       },
     },
   }
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T002', 'src/farewell.ts')],
     [createReview('T002', 'buildFarewell works')],
   )
+  const workflow = createWorkflow(provider)
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow,
   })
 
   expect(result.state.tasks.T001).toMatchObject({ status: 'done' })
@@ -219,15 +223,16 @@ test('runWorkflow requeues persisted running tasks so interrupted attempts can r
       },
     },
   }
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [createReview('T001', 'buildGreeting works')],
   )
+  const workflow = createWorkflow(provider)
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow,
   })
 
   expect(result.summary.finalStatus).toBe('completed')
@@ -235,5 +240,5 @@ test('runWorkflow requeues persisted running tasks so interrupted attempts can r
     commitSha: 'commit-1',
     status: 'done',
   })
-  expect(agent.implementInputs).toHaveLength(1)
+  expect(provider.implementInputs).toHaveLength(1)
 })

@@ -1,16 +1,40 @@
 import { chmod, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { expect, test } from 'vitest'
+import { beforeEach, expect, test, vi } from 'vitest'
 
 import { rewindCommand } from '../src/commands/rewind'
-import { runCommand } from '../src/commands/run'
-import { createPassingReview, createWorkspace, currentHead, gitLogMessages, initGitRepo, ScriptedAgentClient, trackedFilesInHead } from './command-test-helpers'
+import { createPassingReview, createWorkspace, currentHead, gitLogMessages, initGitRepo, ScriptedWorkflowProvider, trackedFilesInHead } from './command-test-helpers'
+
+const providerState = vi.hoisted(() => ({
+  createdOptions: [] as { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string }[],
+  queue: [] as ScriptedWorkflowProvider[],
+}))
+
+vi.mock('../src/agents/codex', () => {
+  return {
+    createCodexProvider: vi.fn((options: { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string }) => {
+      providerState.createdOptions.push(options)
+      const provider = providerState.queue.shift()
+      if (!provider) {
+        throw new Error('Missing scripted workflow provider')
+      }
+      return provider
+    }),
+  }
+})
+
+const { runCommand } = await import('../src/commands/run')
+
+beforeEach(() => {
+  providerState.createdOptions = []
+  providerState.queue = []
+})
 
 test('runCommand creates one git commit per completed task and records commitSha without committing .while', async () => {
   const { context, featureDir, root } = await createWorkspace()
   await initGitRepo(root)
-  const agent = new ScriptedAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     async (input) => {
       if (input.task.id === 'T001') {
         await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
@@ -20,11 +44,12 @@ test('runCommand creates one git commit per completed task and records commitSha
     },
     async (input) => createPassingReview(input),
   )
+  providerState.queue.push(provider)
 
-  const result = await runCommand(context, { agent })
+  const result = await runCommand(context)
 
   expect(result.summary.finalStatus).toBe('completed')
-  expect(agent.reviewInputs.map((input) => input.actualChangedFiles)).toEqual([
+  expect(provider.reviewInputs.map((input) => input.actualChangedFiles)).toEqual([
     ['src/greeting.js'],
     ['src/farewell.js'],
   ])
@@ -60,12 +85,12 @@ test('runCommand rejects a dirty worktree before starting', async () => {
   })
   await initGitRepo(root)
   await writeFile(path.join(root, 'draft.txt'), 'temporary\n')
-  const agent = new ScriptedAgentClient(
+  providerState.queue.push(new ScriptedWorkflowProvider(
     async () => {},
     async (input) => createPassingReview(input),
-  )
+  ))
 
-  await expect(runCommand(context, { agent })).rejects.toThrow(/worktree.*clean/i)
+  await expect(runCommand(context)).rejects.toThrow(/worktree.*clean/i)
 })
 
 test('runCommand keeps soft path boundaries and lets reviewer judge extra changed files', async () => {
@@ -73,7 +98,7 @@ test('runCommand keeps soft path boundaries and lets reviewer judge extra change
     includeSecondTask: false,
   })
   await initGitRepo(root)
-  const agent = new ScriptedAgentClient(
+  providerState.queue.push(new ScriptedWorkflowProvider(
     async () => {
       await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
       await writeFile(path.join(root, 'src', 'shared.js'), 'exports.shared = "updated"\n')
@@ -82,9 +107,9 @@ test('runCommand keeps soft path boundaries and lets reviewer judge extra change
       expect(input.actualChangedFiles).toEqual(['src/greeting.js', 'src/shared.js'])
       return createPassingReview(input)
     },
-  )
+  ))
 
-  const result = await runCommand(context, { agent })
+  const result = await runCommand(context)
 
   expect(result.summary.finalStatus).toBe('completed')
 })
@@ -95,7 +120,7 @@ test('runCommand treats tasks without verify commands as passing no-op verify', 
     omitVerifyForTaskIds: ['T001'],
   })
   await initGitRepo(root)
-  const agent = new ScriptedAgentClient(
+  providerState.queue.push(new ScriptedWorkflowProvider(
     async () => {
       await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
     },
@@ -108,9 +133,9 @@ test('runCommand treats tasks without verify commands as passing no-op verify', 
       })
       return createPassingReview(input)
     },
-  )
+  ))
 
-  const result = await runCommand(context, { agent })
+  const result = await runCommand(context)
 
   expect(result.summary.finalStatus).toBe('completed')
 })
@@ -118,7 +143,7 @@ test('runCommand treats tasks without verify commands as passing no-op verify', 
 test('runCommand resumes remaining tasks and keeps task-to-commit mapping linear', async () => {
   const { context, root } = await createWorkspace()
   await initGitRepo(root)
-  const firstAgent = new ScriptedAgentClient(
+  const firstProvider = new ScriptedWorkflowProvider(
     async (input) => {
       if (input.task.id === 'T001') {
         await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
@@ -126,21 +151,21 @@ test('runCommand resumes remaining tasks and keeps task-to-commit mapping linear
     },
     async (input) => createPassingReview(input),
   )
+  providerState.queue.push(firstProvider)
 
   const partial = await runCommand(context, {
-    agent: firstAgent,
     untilTaskId: 'T001',
   })
   const partialMessages = await gitLogMessages(root)
 
   expect(partial.summary.finalStatus).toBe('in_progress')
-  expect(firstAgent.implementInputs.map((input) => input.task.id)).toEqual(['T001'])
+  expect(firstProvider.implementInputs.map((input) => input.task.id)).toEqual(['T001'])
   expect(partialMessages.slice(0, 2)).toEqual([
     'Task T001: Implement greeting in src/greeting.js',
     'Initial commit',
   ])
 
-  const secondAgent = new ScriptedAgentClient(
+  const secondProvider = new ScriptedWorkflowProvider(
     async (input) => {
       if (input.task.id === 'T002') {
         await writeFile(path.join(root, 'src', 'farewell.js'), 'exports.buildFarewell = () => "Bye, world!"\n')
@@ -148,12 +173,13 @@ test('runCommand resumes remaining tasks and keeps task-to-commit mapping linear
     },
     async (input) => createPassingReview(input),
   )
+  providerState.queue.push(secondProvider)
 
-  const resumed = await runCommand(context, { agent: secondAgent })
+  const resumed = await runCommand(context)
   const resumedMessages = await gitLogMessages(root)
 
   expect(resumed.summary.finalStatus).toBe('completed')
-  expect(secondAgent.implementInputs.map((input) => input.task.id)).toEqual(['T002'])
+  expect(secondProvider.implementInputs.map((input) => input.task.id)).toEqual(['T002'])
   expect(resumedMessages.slice(0, 3)).toEqual([
     'Task T002: Implement farewell in src/farewell.js',
     'Task T001: Implement greeting in src/greeting.js',
@@ -170,14 +196,14 @@ test('runCommand reverts the tasks.md checkbox and blocks when the task commit f
   const hookPath = path.join(root, '.git', 'hooks', 'pre-commit')
   await writeFile(hookPath, '#!/bin/sh\nexit 1\n')
   await chmod(hookPath, 0o755)
-  const agent = new ScriptedAgentClient(
+  providerState.queue.push(new ScriptedWorkflowProvider(
     async () => {
       await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
     },
     async (input) => createPassingReview(input),
-  )
+  ))
 
-  const result = await runCommand(context, { agent })
+  const result = await runCommand(context)
   const messages = await gitLogMessages(root)
 
   expect(result.summary.finalStatus).toBe('blocked')
@@ -198,7 +224,7 @@ test('runCommand reverts the tasks.md checkbox and blocks when the task commit f
 test('rewindCommand hard-resets code and rebuilds runtime from surviving commits', async () => {
   const { context, featureDir, root } = await createWorkspace()
   await initGitRepo(root)
-  const agent = new ScriptedAgentClient(
+  providerState.queue.push(new ScriptedWorkflowProvider(
     async (input) => {
       if (input.task.id === 'T001') {
         await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
@@ -207,9 +233,9 @@ test('rewindCommand hard-resets code and rebuilds runtime from surviving commits
       await writeFile(path.join(root, 'src', 'farewell.js'), 'exports.buildFarewell = () => "Bye, world!"\n')
     },
     async (input) => createPassingReview(input),
-  )
+  ))
 
-  await runCommand(context, { agent })
+  await runCommand(context)
   const initialHead = await currentHead(root)
   const initialMessages = await gitLogMessages(root)
   expect(initialMessages.slice(0, 3)).toEqual([

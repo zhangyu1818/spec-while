@@ -1,5 +1,10 @@
 import type { ImplementOutput, ReviewOutput } from '../types'
-import type { AgentClient, ImplementAgentInput, ReviewAgentInput } from './types'
+import type {
+  ImplementAgentInput,
+  ImplementerProvider,
+  ReviewAgentInput,
+  ReviewerProvider,
+} from './types'
 
 export interface ClaudeAgentAdapter {
   implement: (input: ImplementAgentInput) => Promise<ImplementOutput>
@@ -16,7 +21,7 @@ class MissingAdapter implements ClaudeAgentAdapter {
   }
 }
 
-export class ClaudeAgentClient implements AgentClient {
+export class ClaudeAgentClient implements ImplementerProvider, ReviewerProvider {
   public readonly name = 'claude'
 
   public constructor(private readonly adapter: ClaudeAgentAdapter = new MissingAdapter()) {}
@@ -28,4 +33,10 @@ export class ClaudeAgentClient implements AgentClient {
   public async review(input: ReviewAgentInput) {
     return this.adapter.review(input)
   }
+}
+
+export function createClaudeProvider(
+  adapter?: ClaudeAgentAdapter,
+): ImplementerProvider & ReviewerProvider {
+  return new ClaudeAgentClient(adapter)
 }

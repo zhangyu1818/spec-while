@@ -5,6 +5,8 @@ import {
   createInitialWorkflowState,
   recordImplementFailure,
   recordImplementSuccess,
+  recordIntegrateResult,
+  recordReviewApproved,
   recordReviewFailure,
   recordReviewResult,
   recordVerifyFailure,
@@ -100,7 +102,10 @@ test('engine advances task phases and unlocks dependents from derived readiness'
   const reviewing = recordVerifyResult(verifying, 'T001', createVerifyResult('T001', true))
   expect(reviewing.tasks.T001).toMatchObject({ stage: 'review', status: 'running' })
 
-  const done = recordReviewResult(graph, reviewing, 'T001', {
+  const integrating = recordReviewApproved(reviewing, 'T001', createPassingReview('T001', 'buildGreeting works'))
+  expect(integrating.tasks.T001).toMatchObject({ stage: 'integrate', status: 'running' })
+
+  const done = recordIntegrateResult(graph, integrating, 'T001', {
     commitSha: 'commit-1',
     review: createPassingReview('T001', 'buildGreeting works'),
     verify: createVerifyResult('T001', true),
@@ -108,6 +113,42 @@ test('engine advances task phases and unlocks dependents from derived readiness'
 
   expect(done.tasks.T001).toMatchObject({ commitSha: 'commit-1', status: 'done' })
   expect(selectNextRunnableTask(graph, done)?.id).toBe('T002')
+})
+
+test('engine moves approved reviews into integrate instead of done', () => {
+  const graph = createGraph()
+  const initial = createInitialWorkflowState(graph)
+  const verifying = recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001')
+  const reviewing = recordVerifyResult(verifying, 'T001', createVerifyResult('T001', true))
+
+  const integrating = recordReviewApproved(reviewing, 'T001', createPassingReview('T001', 'buildGreeting works'))
+
+  expect(integrating.tasks.T001).toMatchObject({
+    lastReviewVerdict: 'pass',
+    stage: 'integrate',
+    status: 'running',
+  })
+  expect('commitSha' in integrating.tasks.T001!).toBe(false)
+})
+
+test('integrate result is the only path that produces done', () => {
+  const graph = createGraph()
+  const initial = createInitialWorkflowState(graph)
+  const reviewing = recordVerifyResult(
+    recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
+    'T001',
+    createVerifyResult('T001', true),
+  )
+  const integrating = recordReviewApproved(reviewing, 'T001', createPassingReview('T001', 'buildGreeting works'))
+  const done = recordIntegrateResult(graph, integrating, 'T001', {
+    commitSha: 'commit-1',
+    review: createPassingReview('T001', 'buildGreeting works'),
+    verify: createVerifyResult('T001', true),
+  })
+
+  expect(reviewing.tasks.T001).toMatchObject({ stage: 'review', status: 'running' })
+  expect(integrating.tasks.T001).toMatchObject({ stage: 'integrate', status: 'running' })
+  expect(done.tasks.T001).toMatchObject({ commitSha: 'commit-1', status: 'done' })
 })
 
 test('engine blocks after exceeding max attempts', () => {
@@ -218,12 +259,16 @@ test('engine records review execution failures as rework before max attempts', (
 test('rewindTaskGeneration starts a fresh generation for target and descendants', () => {
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
-  const firstRun = recordReviewResult(
+  const firstRun = recordIntegrateResult(
     graph,
-    recordVerifyResult(
-      recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
+    recordReviewApproved(
+      recordVerifyResult(
+        recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
+        'T001',
+        createVerifyResult('T001', true),
+      ),
       'T001',
-      createVerifyResult('T001', true),
+      createPassingReview('T001', 'buildGreeting works'),
     ),
     'T001',
     {
@@ -232,12 +277,16 @@ test('rewindTaskGeneration starts a fresh generation for target and descendants'
       verify: createVerifyResult('T001', true),
     },
   )
-  const secondRun = recordReviewResult(
+  const secondRun = recordIntegrateResult(
     graph,
-    recordVerifyResult(
-      recordImplementSuccess(startAttempt(graph, firstRun, 'T002'), 'T002'),
+    recordReviewApproved(
+      recordVerifyResult(
+        recordImplementSuccess(startAttempt(graph, firstRun, 'T002'), 'T002'),
+        'T002',
+        createVerifyResult('T002', true),
+      ),
       'T002',
-      createVerifyResult('T002', true),
+      createPassingReview('T002', 'buildFarewell works'),
     ),
     'T002',
     {

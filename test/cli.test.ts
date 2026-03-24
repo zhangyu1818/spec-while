@@ -10,47 +10,10 @@ import { expect, test } from 'vitest'
 import { runWorkflow } from '../src/core/orchestrator'
 import { normalizeTaskGraph } from '../src/core/task-normalizer'
 import { createFsRuntime } from '../src/runtime/fs-runtime'
-
-import type { AgentClient } from '../src/agents/types'
+import { createWorkflow, ScriptedWorkflowProvider } from './workflow-test-helpers'
 
 const execFileAsync = promisify(execFile)
 const cliEntry = fileURLToPath(new URL('../bin/spec-while.mjs', import.meta.url))
-
-class FakeAgentClient implements AgentClient {
-  public readonly name = 'fake'
-
-  public async implement() {
-    return {
-      assumptions: [],
-      changedFiles: ['src/parser.ts'],
-      needsHumanAttention: false,
-      notes: [],
-      requestedAdditionalPaths: [],
-      status: 'implemented' as const,
-      summary: 'done',
-      taskId: 'T001',
-      unresolvedItems: [],
-    }
-  }
-
-  public async review() {
-    return {
-      changedFilesReviewed: ['src/parser.ts'],
-      findings: [],
-      overallRisk: 'low' as const,
-      summary: 'ok',
-      taskId: 'T001',
-      verdict: 'pass' as const,
-      acceptanceChecks: [
-        {
-          criterion: 'parser exists',
-          note: 'ok',
-          status: 'pass' as const,
-        },
-      ],
-    }
-  }
-}
 
 async function createWorkspace() {
   const root = await mkdtemp(path.join(tmpdir(), 'while-cli-'))
@@ -125,9 +88,40 @@ test('spec-while rewind resolves workspace from the actual current directory and
     tasksPath: path.join(featureDir, 'tasks.md'),
   })
   await runWorkflow({
-    agent: new FakeAgentClient(),
     graph,
     runtime,
+    workflow: createWorkflow(new ScriptedWorkflowProvider(
+      [
+        {
+          assumptions: [],
+          changedFiles: ['src/parser.ts'],
+          needsHumanAttention: false,
+          notes: [],
+          requestedAdditionalPaths: [],
+          status: 'implemented',
+          summary: 'done',
+          taskId: 'T001',
+          unresolvedItems: [],
+        },
+      ],
+      [
+        {
+          changedFilesReviewed: ['src/parser.ts'],
+          findings: [],
+          overallRisk: 'low',
+          summary: 'ok',
+          taskId: 'T001',
+          verdict: 'pass',
+          acceptanceChecks: [
+            {
+              criterion: 'parser exists',
+              note: 'ok',
+              status: 'pass',
+            },
+          ],
+        },
+      ],
+    )),
   })
 
   const result = await runCli(['rewind', '--task', 'T001'], path.join(root, 'src'))

@@ -11,7 +11,29 @@ It consumes:
 - `tasks.md`
 - the `specs/<feature>/...` directory layout
 
+The only public workflow configuration entry is `while.yaml`.
+
 It does not execute the Spec Kit command runtime. It does not run Spec Kit hooks, checklists, or skill installations.
+
+## Workflow Preset
+
+An optional `while.yaml` at the workspace root configures workflow behavior. Public runtime selection is workflow-only and comes from this file.
+
+Current configuration surface:
+
+```yaml
+workflow:
+  mode: direct
+  roles:
+    implementer:
+      provider: codex
+    reviewer:
+      provider: codex
+```
+
+Current support level:
+
+- `direct` is implemented
 
 ## Workspace Resolution
 
@@ -110,7 +132,8 @@ For each runnable task:
 2. run implement
 3. run optional verify commands
 4. run review
-5. if the task passes, update `tasks.md`, create a git commit, and then mark the task as `done`
+5. if review is approved, enter integrate
+6. if integrate succeeds, update `tasks.md`, create a git commit, mark the task as `done`, and record integrate artifacts in `.while`
 
 The zero gate for completion requires:
 
@@ -126,7 +149,7 @@ If no verify commands are configured, verify is treated as a successful no-op re
 `done` means:
 
 - the task passed implement, verify, and review
-- the task commit succeeded
+- the integrate stage succeeded
 
 Each completed task creates one commit with this message format:
 
@@ -185,5 +208,6 @@ The runtime layout includes:
 - `tasks/<taskId>/g<generation>/a<attempt>/implement.json`
 - `tasks/<taskId>/g<generation>/a<attempt>/verify.json`
 - `tasks/<taskId>/g<generation>/a<attempt>/review.json`
+- `tasks/<taskId>/g<generation>/a<attempt>/integrate.json`
 
 `.while` is runtime state, not the long-term source of truth.

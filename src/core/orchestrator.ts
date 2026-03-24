@@ -1,17 +1,18 @@
-import { alignStateWithGraph, createInitialWorkflowState, recordImplementFailure, recordImplementSuccess, recordReviewFailure, recordReviewResult, recordVerifyFailure, recordVerifyResult, selectNextRunnableTask, startAttempt } from './engine'
+import { alignStateWithGraph, createInitialWorkflowState, recordCommitFailure, recordImplementFailure, recordImplementSuccess, recordIntegrateResult, recordReviewApproved, recordReviewFailure, recordReviewResult, recordVerifyFailure, recordVerifyResult, selectNextRunnableTask, startAttempt } from './engine'
 import { shouldPassZeroGate } from './engine-helpers'
-import { appendEvent, finalizePassedTask, now, persistCommittedArtifacts, persistState } from './orchestrator-helpers'
+import { appendEvent, createTaskCommitMessage, now, persistCommittedArtifacts, persistState } from './orchestrator-helpers'
 
-import type { AgentClient } from '../agents/types'
-import type { FinalReport, ImplementArtifact, ReviewArtifact, TaskGraph, VerifyArtifact, WorkflowState } from '../types'
+import type { FinalReport, ImplementArtifact, IntegrateArtifact, ReviewArtifact, TaskGraph, VerifyArtifact, WorkflowState } from '../types'
 import type { OrchestratorRuntime } from './runtime'
+import type { WorkflowRuntime } from '../workflow/preset'
 
 export async function runWorkflow(input: {
-  agent: AgentClient
   graph: TaskGraph
   runtime: OrchestratorRuntime
   untilTaskId?: string
+  workflow: WorkflowRuntime
 }): Promise<{ state: WorkflowState, summary: FinalReport['summary'] }> {
+  const workflow = input.workflow
   await input.runtime.store.saveGraph(input.graph)
   let state = alignStateWithGraph(
     input.graph,
@@ -50,7 +51,7 @@ export async function runWorkflow(input: {
 
     let implement
     try {
-      implement = await input.agent.implement({
+      implement = await workflow.roles.implementer.implement({
         attempt: taskState.attempt,
         codeContext: taskContext.codeContext,
         generation: taskState.generation,
@@ -155,19 +156,24 @@ export async function runWorkflow(input: {
     const actualChangedFiles = await input.runtime.git.getChangedFilesSinceHead()
 
     let review
+    let reviewPhaseKind: 'approved' | 'rejected'
     try {
-      review = await input.agent.review({
-        actualChangedFiles,
-        attempt: taskState.attempt,
-        generation: taskState.generation,
-        implement,
-        lastFindings: taskState.lastFindings,
-        plan: taskContext.plan,
-        spec: taskContext.spec,
-        task,
-        tasksSnippet: taskContext.tasksSnippet,
-        verify,
+      const reviewPhase = await workflow.preset.review({
+        reviewInput: {
+          actualChangedFiles,
+          attempt: taskState.attempt,
+          generation: taskState.generation,
+          implement,
+          lastFindings: taskState.lastFindings,
+          plan: taskContext.plan,
+          spec: taskContext.spec,
+          task,
+          tasksSnippet: taskContext.tasksSnippet,
+          verify,
+        },
       })
+      reviewPhaseKind = reviewPhase.kind
+      review = reviewPhase.review
       if (review.taskId !== task.id) {
         throw new Error(`Review taskId mismatch: expected ${task.id}, received ${review.taskId}`)
       }
@@ -204,26 +210,68 @@ export async function runWorkflow(input: {
       type: 'review_completed',
     })
 
-    if (shouldPassZeroGate({ review, verify })) {
-      const finalized = await finalizePassedTask({
-        graph: input.graph,
-        review,
-        runtime: input.runtime,
-        state,
+    if (reviewPhaseKind === 'approved' && shouldPassZeroGate({ review, verify })) {
+      state = recordReviewApproved(state, task.id, review)
+      await appendEvent(input.runtime, {
+        attempt: taskState.attempt,
+        generation: taskState.generation,
         taskId: task.id,
-        taskTitle: task.title,
-        verify,
+        timestamp: now(),
+        type: 'integrate_started',
       })
-      state = finalized.state
       report = await persistState(input.runtime, input.graph, state)
-      if ('commitSha' in finalized) {
-        await persistCommittedArtifacts(input.runtime, {
-          commitSha: finalized.commitSha,
-          implementArtifact,
-          reviewArtifact,
-          verifyArtifact,
+
+      let integrateResult
+      try {
+        integrateResult = await workflow.preset.integrate({
+          commitMessage: createTaskCommitMessage(task.id, task.title),
+          runtime: input.runtime,
+          taskId: task.id,
         })
       }
+      catch (error) {
+        const reason = error instanceof Error ? error.message : String(error)
+        state = recordCommitFailure(input.graph, state, task.id, reason)
+        await appendEvent(input.runtime, {
+          attempt: taskState.attempt,
+          detail: reason,
+          generation: taskState.generation,
+          taskId: task.id,
+          timestamp: now(),
+          type: 'integrate_failed',
+        })
+        report = await persistState(input.runtime, input.graph, state)
+        continue
+      }
+
+      const integrateArtifact: IntegrateArtifact = {
+        attempt: taskState.attempt,
+        createdAt: now(),
+        generation: taskState.generation,
+        result: integrateResult.result,
+        taskId: task.id,
+      }
+      state = recordIntegrateResult(input.graph, state, task.id, {
+        commitSha: integrateResult.result.commitSha,
+        review,
+        verify,
+      })
+      report = await persistState(input.runtime, input.graph, state)
+      await appendEvent(input.runtime, {
+        attempt: taskState.attempt,
+        detail: integrateResult.result.summary,
+        generation: taskState.generation,
+        taskId: task.id,
+        timestamp: now(),
+        type: 'integrate_completed',
+      })
+      await input.runtime.store.saveIntegrateArtifact(integrateArtifact)
+      await persistCommittedArtifacts(input.runtime, {
+        commitSha: integrateResult.result.commitSha,
+        implementArtifact,
+        reviewArtifact,
+        verifyArtifact,
+      })
       continue
     }
     else {

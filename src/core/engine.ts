@@ -153,7 +153,6 @@ export function recordReviewResult(
   state: WorkflowState,
   taskId: string,
   input: {
-    commitSha?: string
     review: ReviewOutput
     verify: VerifyResult
   },
@@ -169,15 +168,7 @@ export function recordReviewResult(
   })
 
   if (shouldPassZeroGate(input)) {
-    if (!input.commitSha) {
-      throw new Error(`Task ${taskId} requires commitSha before completion`)
-    }
-    next.tasks[taskId] = {
-      ...metadata,
-      commitSha: input.commitSha,
-      status: 'done',
-    }
-    return next
+    throw new Error(`Task ${taskId} requires integrate result after approved review`)
   }
 
   if (input.review.verdict === 'replan') {
@@ -208,6 +199,57 @@ export function recordReviewResult(
         ...metadata,
         status: 'rework',
       }
+  return next
+}
+
+export function recordReviewApproved(state: WorkflowState, taskId: string, review: ReviewOutput): WorkflowState {
+  const next = cloneState(state)
+  const taskState = getTaskState(next, taskId)
+  if (taskState.status !== 'running' || taskState.stage !== 'review') {
+    throw new Error(`Task ${taskId} is not reviewing`)
+  }
+  if (review.verdict !== 'pass') {
+    throw new Error(`Task ${taskId} review is not approved`)
+  }
+  next.tasks[taskId] = {
+    ...withReviewMetadata(taskState, {
+      findings: review.findings,
+      reviewVerdict: review.verdict,
+    }),
+    stage: 'integrate',
+    status: 'running',
+  }
+  return next
+}
+
+export function recordIntegrateResult(
+  _graph: TaskGraph,
+  state: WorkflowState,
+  taskId: string,
+  input: {
+    commitSha: string
+    review: ReviewOutput
+    verify: VerifyResult
+  },
+): WorkflowState {
+  const next = cloneState(state)
+  const taskState = getTaskState(next, taskId)
+  if (taskState.status !== 'running' || taskState.stage !== 'integrate') {
+    throw new Error(`Task ${taskId} is not integrating`)
+  }
+  if (!shouldPassZeroGate(input)) {
+    throw new Error(`Task ${taskId} integration requires an approved review and passing verify result`)
+  }
+  next.currentTaskId = null
+  next.tasks[taskId] = {
+    ...withReviewMetadata(taskState, {
+      findings: input.review.findings,
+      reviewVerdict: input.review.verdict,
+      verifyPassed: input.verify.passed,
+    }),
+    commitSha: input.commitSha,
+    status: 'done',
+  }
   return next
 }
 

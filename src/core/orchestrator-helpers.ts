@@ -1,4 +1,4 @@
-import { buildReport, recordCommitFailure, recordReviewResult } from './engine'
+import { buildReport, recordCommitFailure, recordIntegrateResult, recordReviewApproved } from './engine'
 
 import type { FinalReport, ImplementArtifact, ReviewArtifact, TaskGraph, VerifyArtifact, WorkflowEvent, WorkflowState } from '../types'
 import type { OrchestratorRuntime } from './runtime'
@@ -31,6 +31,7 @@ export async function finalizePassedTask(input: {
   taskTitle: string
   verify: VerifyArtifact['result']
 }) {
+  const integratingState = recordReviewApproved(input.state, input.taskId, input.review)
   let taskChecked = false
   try {
     await input.runtime.workspace.updateTaskChecks([{ checked: true, taskId: input.taskId }])
@@ -38,10 +39,10 @@ export async function finalizePassedTask(input: {
     const { commitSha } = await input.runtime.git.commitTask({
       message: createTaskCommitMessage(input.taskId, input.taskTitle),
     })
-    return { commitSha, state: recordReviewResult(input.graph, input.state, input.taskId, {
-      commitSha,
+    return { commitSha, state: recordIntegrateResult(input.graph, integratingState, input.taskId, {
       review: input.review,
       verify: input.verify,
+      commitSha,
     }) }
   }
   catch (error) {
@@ -54,7 +55,7 @@ export async function finalizePassedTask(input: {
         reason = `${reason}; checkbox rollback failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`
       }
     }
-    return { state: recordCommitFailure(input.graph, input.state, input.taskId, reason) }
+    return { state: recordCommitFailure(input.graph, integratingState, input.taskId, reason) }
   }
 }
 

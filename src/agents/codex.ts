@@ -7,7 +7,12 @@ import {
   validateReviewOutput,
 } from '../schema/index'
 
-import type { AgentClient, ImplementAgentInput, ReviewAgentInput } from './types'
+import type {
+  ImplementAgentInput,
+  ImplementerProvider,
+  ReviewAgentInput,
+  ReviewerProvider,
+} from './types'
 
 export interface CodexRunResult {
   finalResponse: string
@@ -72,7 +77,7 @@ async function defaultClientFactory(): Promise<CodexClientLike> {
   return new Codex()
 }
 
-export class CodexAgentClient implements AgentClient {
+export class CodexAgentClient implements ImplementerProvider, ReviewerProvider {
   private clientPromise: null | Promise<CodexClientLike> = null
   public readonly name = 'codex'
 
@@ -169,4 +174,10 @@ export class CodexAgentClient implements AgentClient {
     })
     return validateReviewOutput(output)
   }
+}
+
+export function createCodexProvider(
+  options: CodexAgentClientOptions,
+): ImplementerProvider & ReviewerProvider {
+  return new CodexAgentClient(options)
 }

@@ -278,6 +278,17 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
       ],
     },
   })
+  expect(runtime.store.saveIntegrateArtifact).toBeTypeOf('function')
+  await runtime.store.saveIntegrateArtifact({
+    attempt: 1,
+    createdAt: '2026-03-22T00:00:03.000Z',
+    generation: 2,
+    taskId: 'T001',
+    result: {
+      commitSha: 'commit-1',
+      summary: 'integrated',
+    },
+  })
 
   await expect(runtime.store.loadGraph()).resolves.toEqual(graph)
   await expect(runtime.store.loadState()).resolves.toEqual(state)
@@ -289,6 +300,7 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
   const implementJson = await readFile(path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'implement.json'), 'utf8')
   const verifyJson = await readFile(path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'verify.json'), 'utf8')
   const reviewJson = await readFile(path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'review.json'), 'utf8')
+  const integrateJson = await readFile(path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'integrate.json'), 'utf8')
 
   expect(graphJson).toContain('"featureId": "001-demo"')
   expect(stateJson).toContain('"status": "done"')
@@ -296,4 +308,5 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
   expect(implementJson).toContain('"summary": "implemented"')
   expect(verifyJson).toContain('"passed": true')
   expect(reviewJson).toContain('"verdict": "pass"')
+  expect(integrateJson).toContain('"summary": "integrated"')
 })

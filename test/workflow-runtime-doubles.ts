@@ -1,5 +1,6 @@
 import type {
   FinalReport,
+  IntegrateArtifact,
   ImplementArtifact,
   ReviewArtifact,
   TaskContext,
@@ -10,6 +11,7 @@ import type {
   WorkflowEvent,
   WorkflowState,
 } from '../src/types'
+import type { WorkflowStore } from '../src/core/runtime'
 
 export type TaskContextSource =
   | {
@@ -83,9 +85,10 @@ export class FakeGit {
   }
 }
 
-export class InMemoryStore {
+export class InMemoryStore implements WorkflowStore {
   public events: WorkflowEvent[] = []
   public graph: null | TaskGraph = null
+  public integrateArtifacts: IntegrateArtifact[] = []
   public implementArtifacts: ImplementArtifact[] = []
   public report: FinalReport | null = null
   public reviewArtifacts: ReviewArtifact[] = []
@@ -111,6 +114,7 @@ export class InMemoryStore {
   public async reset() {
     this.events = []
     this.graph = null
+    this.integrateArtifacts = []
     this.implementArtifacts = []
     this.report = null
     this.reviewArtifacts = []
@@ -120,6 +124,15 @@ export class InMemoryStore {
 
   public async saveGraph(graph: TaskGraph) {
     this.graph = graph
+  }
+
+  public async saveIntegrateArtifact(artifact: IntegrateArtifact) {
+    const index = this.integrateArtifacts.findIndex((item) => item.taskId === artifact.taskId && item.generation === artifact.generation && item.attempt === artifact.attempt)
+    if (index >= 0) {
+      this.integrateArtifacts[index] = artifact
+      return
+    }
+    this.integrateArtifacts.push(artifact)
   }
 
   public async saveImplementArtifact(artifact: ImplementArtifact) {

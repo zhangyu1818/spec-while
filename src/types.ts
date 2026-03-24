@@ -2,6 +2,7 @@ export type {
   AcceptanceCheck,
   FinalReport,
   FinalReportTask,
+  IntegrateArtifact,
   ImplementArtifact,
   ImplementOutput,
   PendingTaskState,
