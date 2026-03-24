@@ -29,7 +29,9 @@ export interface WorkflowStore {
 
 export interface WorkspacePort {
   loadTaskContext: (task: TaskDefinition) => Promise<TaskContext>
-  updateTaskChecks: (updates: { checked: boolean, taskId: string }[]) => Promise<void>
+  updateTaskChecks: (
+    updates: { checked: boolean; taskId: string }[],
+  ) => Promise<void>
 }
 
 export interface GitPort {
@@ -42,7 +44,10 @@ export interface GitPort {
 }
 
 export interface Verifier {
-  verify: (input: { commands: string[], taskId: string }) => Promise<VerifyResult>
+  verify: (input: {
+    commands: string[]
+    taskId: string
+  }) => Promise<VerifyResult>
 }
 
 export interface OrchestratorRuntime {

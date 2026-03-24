@@ -1,7 +1,15 @@
 import { expect, test } from 'vitest'
 
 import { runWorkflow } from '../src/core/orchestrator'
-import { createGraph, createImplement, createReview, createRuntime, createVerify, createWorkflow, ScriptedWorkflowProvider } from './workflow-test-helpers'
+import {
+  createGraph,
+  createImplement,
+  createReview,
+  createRuntime,
+  createVerify,
+  createWorkflow,
+  ScriptedWorkflowProvider,
+} from './workflow-test-helpers'
 
 test('runWorkflow does not mechanically block when changed files extend beyond task.paths', async () => {
   const graph = {
@@ -53,7 +61,10 @@ test('runWorkflow does not mechanically block when changed files extend beyond t
     workflow,
   })
 
-  expect(provider.reviewInputs[0]?.actualChangedFiles).toEqual(['src/greeting.ts', 'src/outside.ts'])
+  expect(provider.reviewInputs[0]?.actualChangedFiles).toEqual([
+    'src/greeting.ts',
+    'src/outside.ts',
+  ])
   expect(result.summary.finalStatus).toBe('completed')
   expect(result.state.tasks.T001).toMatchObject({
     commitSha: 'commit-1',
@@ -61,7 +72,9 @@ test('runWorkflow does not mechanically block when changed files extend beyond t
     lastVerifyPassed: true,
     status: 'done',
   })
-  expect(workspace.checkboxUpdates).toEqual([[{ checked: true, taskId: 'T001' }]])
+  expect(workspace.checkboxUpdates).toEqual([
+    [{ checked: true, taskId: 'T001' }],
+  ])
   expect(git.commitMessages).toEqual(['Task T001: Implement greeting'])
   expect(store.reviewArtifacts).toHaveLength(1)
 })
@@ -99,7 +112,10 @@ test('runWorkflow preserves implement artifacts when review fails and blocks aft
     workflow,
   })
 
-  expect(result.state.tasks.T001).toMatchObject({ reason: 'review output invalid', status: 'blocked' })
+  expect(result.state.tasks.T001).toMatchObject({
+    reason: 'review output invalid',
+    status: 'blocked',
+  })
   expect(store.implementArtifacts).toHaveLength(1)
   expect(store.reviewArtifacts).toHaveLength(0)
 })

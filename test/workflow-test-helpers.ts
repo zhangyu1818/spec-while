@@ -1,8 +1,18 @@
-import { FakeGit, FakeVerifier, InMemoryStore, InMemoryWorkspace } from './workflow-runtime-doubles'
+import {
+  FakeGit,
+  FakeVerifier,
+  InMemoryStore,
+  InMemoryWorkspace,
+} from './workflow-runtime-doubles'
 
 import { createDirectWorkflowPreset } from '../src/workflow/direct-preset'
 
-import type { ImplementAgentInput, ImplementerProvider, ReviewAgentInput, ReviewerProvider } from '../src/agents/types'
+import type {
+  ImplementAgentInput,
+  ImplementerProvider,
+  ReviewAgentInput,
+  ReviewerProvider,
+} from '../src/agents/types'
 import type { OrchestratorRuntime } from '../src/core/runtime'
 import type {
   ImplementOutput,
@@ -13,7 +23,9 @@ import type {
 } from '../src/types'
 import type { WorkflowRuntime } from '../src/workflow/preset'
 
-export class ScriptedWorkflowProvider implements ImplementerProvider, ReviewerProvider {
+export class ScriptedWorkflowProvider
+  implements ImplementerProvider, ReviewerProvider
+{
   public readonly implementInputs: ImplementAgentInput[] = []
   public readonly name = 'scripted'
   public readonly reviewInputs: ReviewAgentInput[] = []
@@ -48,7 +60,9 @@ export class ScriptedWorkflowProvider implements ImplementerProvider, ReviewerPr
   }
 }
 
-export function createWorkflow(provider: ImplementerProvider & ReviewerProvider): WorkflowRuntime {
+export function createWorkflow(
+  provider: ImplementerProvider & ReviewerProvider,
+): WorkflowRuntime {
   return {
     preset: createDirectWorkflowPreset({
       reviewer: provider,
@@ -106,7 +120,11 @@ export function createImplement(taskId: string, file: string): ImplementOutput {
   }
 }
 
-export function createReview(taskId: string, criterion: string, verdict: ReviewOutput['verdict'] = 'pass'): ReviewOutput {
+export function createReview(
+  taskId: string,
+  criterion: string,
+  verdict: ReviewOutput['verdict'] = 'pass',
+): ReviewOutput {
   return {
     changedFilesReviewed: [],
     overallRisk: verdict === 'pass' ? 'low' : 'medium',
@@ -120,16 +138,17 @@ export function createReview(taskId: string, criterion: string, verdict: ReviewO
         status: verdict === 'pass' ? 'pass' : 'fail',
       },
     ],
-    findings: verdict === 'pass'
-      ? []
-      : [
-          {
-            file: 'src/greeting.ts',
-            fixHint: 'retry',
-            issue: 'needs work',
-            severity: 'medium',
-          },
-        ],
+    findings:
+      verdict === 'pass'
+        ? []
+        : [
+            {
+              file: 'src/greeting.ts',
+              fixHint: 'retry',
+              issue: 'needs work',
+              severity: 'medium',
+            },
+          ],
   }
 }
 
@@ -182,10 +201,12 @@ export function createRuntime(input?: {
       },
     },
   })
-  const verifier = new FakeVerifier(input?.verifierResponses ?? [
-    createVerify('T001', true),
-    createVerify('T002', true),
-  ])
+  const verifier = new FakeVerifier(
+    input?.verifierResponses ?? [
+      createVerify('T001', true),
+      createVerify('T002', true),
+    ],
+  )
   const git = new FakeGit(
     input?.changedFiles ?? [['src/greeting.ts'], ['src/farewell.ts']],
     new Set(input?.ancestorCommits ?? []),

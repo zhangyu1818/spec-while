@@ -21,10 +21,14 @@ class MissingAdapter implements ClaudeAgentAdapter {
   }
 }
 
-export class ClaudeAgentClient implements ImplementerProvider, ReviewerProvider {
+export class ClaudeAgentClient
+  implements ImplementerProvider, ReviewerProvider
+{
   public readonly name = 'claude'
 
-  public constructor(private readonly adapter: ClaudeAgentAdapter = new MissingAdapter()) {}
+  public constructor(
+    private readonly adapter: ClaudeAgentAdapter = new MissingAdapter(),
+  ) {}
 
   public async implement(input: ImplementAgentInput) {
     return this.adapter.implement(input)

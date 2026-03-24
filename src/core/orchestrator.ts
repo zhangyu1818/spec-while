@@ -1,8 +1,36 @@
-import { alignStateWithGraph, createInitialWorkflowState, recordCommitFailure, recordImplementFailure, recordImplementSuccess, recordIntegrateResult, recordReviewApproved, recordReviewFailure, recordReviewResult, recordVerifyFailure, recordVerifyResult, selectNextRunnableTask, startAttempt } from './engine'
+import {
+  alignStateWithGraph,
+  createInitialWorkflowState,
+  recordCommitFailure,
+  recordImplementFailure,
+  recordImplementSuccess,
+  recordIntegrateResult,
+  recordReviewApproved,
+  recordReviewFailure,
+  recordReviewResult,
+  recordVerifyFailure,
+  recordVerifyResult,
+  selectNextRunnableTask,
+  startAttempt,
+} from './engine'
 import { shouldPassZeroGate } from './engine-helpers'
-import { appendEvent, createTaskCommitMessage, now, persistCommittedArtifacts, persistState } from './orchestrator-helpers'
+import {
+  appendEvent,
+  createTaskCommitMessage,
+  now,
+  persistCommittedArtifacts,
+  persistState,
+} from './orchestrator-helpers'
 
-import type { FinalReport, ImplementArtifact, IntegrateArtifact, ReviewArtifact, TaskGraph, VerifyArtifact, WorkflowState } from '../types'
+import type {
+  FinalReport,
+  ImplementArtifact,
+  IntegrateArtifact,
+  ReviewArtifact,
+  TaskGraph,
+  VerifyArtifact,
+  WorkflowState,
+} from '../types'
 import type { OrchestratorRuntime } from './runtime'
 import type { WorkflowRuntime } from '../workflow/preset'
 
@@ -11,20 +39,27 @@ export async function runWorkflow(input: {
   runtime: OrchestratorRuntime
   untilTaskId?: string
   workflow: WorkflowRuntime
-}): Promise<{ state: WorkflowState, summary: FinalReport['summary'] }> {
+}): Promise<{ state: WorkflowState; summary: FinalReport['summary'] }> {
   const workflow = input.workflow
   await input.runtime.store.saveGraph(input.graph)
   let state = alignStateWithGraph(
     input.graph,
-    await input.runtime.store.loadState() ?? createInitialWorkflowState(input.graph),
+    (await input.runtime.store.loadState()) ??
+      createInitialWorkflowState(input.graph),
   )
   let report = await persistState(input.runtime, input.graph, state)
 
   for (;;) {
-    if (input.untilTaskId && state.tasks[input.untilTaskId]?.status === 'done') {
+    if (
+      input.untilTaskId &&
+      state.tasks[input.untilTaskId]?.status === 'done'
+    ) {
       break
     }
-    if (report.summary.finalStatus === 'blocked' || report.summary.finalStatus === 'replan_required') {
+    if (
+      report.summary.finalStatus === 'blocked' ||
+      report.summary.finalStatus === 'replan_required'
+    ) {
       break
     }
 
@@ -62,10 +97,11 @@ export async function runWorkflow(input: {
         tasksSnippet: taskContext.tasksSnippet,
       })
       if (implement.taskId !== task.id) {
-        throw new Error(`Implement taskId mismatch: expected ${task.id}, received ${implement.taskId}`)
+        throw new Error(
+          `Implement taskId mismatch: expected ${task.id}, received ${implement.taskId}`,
+        )
       }
-    }
-    catch (error) {
+    } catch (error) {
       const reason = error instanceof Error ? error.message : String(error)
       state = recordImplementFailure(input.graph, state, task.id, reason)
       await appendEvent(input.runtime, {
@@ -111,8 +147,7 @@ export async function runWorkflow(input: {
         commands: task.verifyCommands,
         taskId: task.id,
       })
-    }
-    catch (error) {
+    } catch (error) {
       const reason = error instanceof Error ? error.message : String(error)
       state = recordVerifyFailure(input.graph, state, task.id, reason)
       await appendEvent(input.runtime, {
@@ -153,7 +188,8 @@ export async function runWorkflow(input: {
     })
     report = await persistState(input.runtime, input.graph, state)
 
-    const actualChangedFiles = await input.runtime.git.getChangedFilesSinceHead()
+    const actualChangedFiles =
+      await input.runtime.git.getChangedFilesSinceHead()
 
     let review
     let reviewPhaseKind: 'approved' | 'rejected'
@@ -175,10 +211,11 @@ export async function runWorkflow(input: {
       reviewPhaseKind = reviewPhase.kind
       review = reviewPhase.review
       if (review.taskId !== task.id) {
-        throw new Error(`Review taskId mismatch: expected ${task.id}, received ${review.taskId}`)
+        throw new Error(
+          `Review taskId mismatch: expected ${task.id}, received ${review.taskId}`,
+        )
       }
-    }
-    catch (error) {
+    } catch (error) {
       const reason = error instanceof Error ? error.message : String(error)
       state = recordReviewFailure(input.graph, state, task.id, reason)
       await appendEvent(input.runtime, {
@@ -210,7 +247,10 @@ export async function runWorkflow(input: {
       type: 'review_completed',
     })
 
-    if (reviewPhaseKind === 'approved' && shouldPassZeroGate({ review, verify })) {
+    if (
+      reviewPhaseKind === 'approved' &&
+      shouldPassZeroGate({ review, verify })
+    ) {
       state = recordReviewApproved(state, task.id, review)
       await appendEvent(input.runtime, {
         attempt: taskState.attempt,
@@ -228,8 +268,7 @@ export async function runWorkflow(input: {
           runtime: input.runtime,
           taskId: task.id,
         })
-      }
-      catch (error) {
+      } catch (error) {
         const reason = error instanceof Error ? error.message : String(error)
         state = recordCommitFailure(input.graph, state, task.id, reason)
         await appendEvent(input.runtime, {
@@ -273,8 +312,7 @@ export async function runWorkflow(input: {
         verifyArtifact,
       })
       continue
-    }
-    else {
+    } else {
       state = recordReviewResult(input.graph, state, task.id, {
         review,
         verify,
@@ -300,10 +338,14 @@ export async function rewindTask(input: {
   }
   const targetTask = state.tasks[input.taskId]
   if (targetTask?.status !== 'done') {
-    throw new Error(`Task ${input.taskId} is not completed and cannot be rewound`)
+    throw new Error(
+      `Task ${input.taskId} is not completed and cannot be rewound`,
+    )
   }
 
-  const parentCommit = await input.runtime.git.getParentCommit(targetTask.commitSha)
+  const parentCommit = await input.runtime.git.getParentCommit(
+    targetTask.commitSha,
+  )
   await input.runtime.git.resetHard(parentCommit)
   await input.runtime.store.reset()
 
@@ -316,7 +358,10 @@ export async function rewindTask(input: {
     if (!previousTask) {
       continue
     }
-    if (previousTask.status === 'done' && await input.runtime.git.isAncestorOfHead(previousTask.commitSha)) {
+    if (
+      previousTask.status === 'done' &&
+      (await input.runtime.git.isAncestorOfHead(previousTask.commitSha))
+    ) {
       nextState.tasks[task.id] = previousTask
       continue
     }
@@ -337,7 +382,10 @@ export async function rewindTask(input: {
     const taskState = nextState.tasks[taskId]!
     await appendEvent(input.runtime, {
       attempt: taskState.attempt,
-      detail: taskId === input.taskId ? 'rewound manually' : `invalidated by rewind of ${input.taskId}`,
+      detail:
+        taskId === input.taskId
+          ? 'rewound manually'
+          : `invalidated by rewind of ${input.taskId}`,
       generation: taskState.generation,
       taskId,
       timestamp: now(),

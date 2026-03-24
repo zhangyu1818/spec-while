@@ -9,7 +9,9 @@ import { readTextIfExists } from '../src/utils/fs'
 test('readTextIfExists returns an empty string for missing files', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'while-fs-utils-'))
 
-  await expect(readTextIfExists(path.join(root, 'missing.txt'))).resolves.toBe('')
+  await expect(readTextIfExists(path.join(root, 'missing.txt'))).resolves.toBe(
+    '',
+  )
 })
 
 test('readTextIfExists re-throws non-ENOENT read errors', async () => {

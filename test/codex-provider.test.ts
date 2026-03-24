@@ -1,6 +1,10 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 
-import { CodexAgentClient, createCodexProvider, type CodexClientLike } from '../src/agents/codex'
+import {
+  CodexAgentClient,
+  createCodexProvider,
+  type CodexClientLike,
+} from '../src/agents/codex'
 import type { ImplementerProvider, ReviewerProvider } from '../src/agents/types'
 
 const mockState = vi.hoisted(() => {
@@ -103,33 +107,35 @@ test('CodexAgentClient creates a fresh thread for each role invocation', async (
             : []
           const isReview = required.includes('verdict')
           return {
-            finalResponse: JSON.stringify(isReview
-              ? {
-                  changedFilesReviewed: [],
-                  findings: [],
-                  overallRisk: 'low',
-                  summary: 'ok',
-                  taskId: 'T001',
-                  verdict: 'pass',
-                  acceptanceChecks: [
-                    {
-                      criterion: 'works',
-                      note: 'ok',
-                      status: 'pass',
-                    },
-                  ],
-                }
-              : {
-                  assumptions: [],
-                  changedFiles: ['src/a.ts'],
-                  needsHumanAttention: false,
-                  notes: [],
-                  requestedAdditionalPaths: [],
-                  status: 'implemented',
-                  summary: 'ok',
-                  taskId: 'T001',
-                  unresolvedItems: [],
-                }),
+            finalResponse: JSON.stringify(
+              isReview
+                ? {
+                    changedFilesReviewed: [],
+                    findings: [],
+                    overallRisk: 'low',
+                    summary: 'ok',
+                    taskId: 'T001',
+                    verdict: 'pass',
+                    acceptanceChecks: [
+                      {
+                        criterion: 'works',
+                        note: 'ok',
+                        status: 'pass',
+                      },
+                    ],
+                  }
+                : {
+                    assumptions: [],
+                    changedFiles: ['src/a.ts'],
+                    needsHumanAttention: false,
+                    notes: [],
+                    requestedAdditionalPaths: [],
+                    status: 'implemented',
+                    summary: 'ok',
+                    taskId: 'T001',
+                    unresolvedItems: [],
+                  },
+            ),
           }
         },
       }
@@ -297,7 +303,12 @@ test('CodexAgentClient streams events when progress callback is enabled', async 
 
   expect(runCallCount).toBe(0)
   expect(runStreamedCallCount).toBe(1)
-  expect(seenEvents).toEqual(['thread.started', 'turn.started', 'item.completed', 'turn.completed'])
+  expect(seenEvents).toEqual([
+    'thread.started',
+    'turn.started',
+    'item.completed',
+    'turn.completed',
+  ])
   expect(result.taskId).toBe('T001')
 })
 

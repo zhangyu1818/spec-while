@@ -2,7 +2,10 @@ import { spawn } from 'node:child_process'
 
 import type { VerifyCommandResult, VerifyResult } from '../types'
 
-async function runVerifyCommand(command: string, workspaceRoot: string): Promise<VerifyCommandResult> {
+async function runVerifyCommand(
+  command: string,
+  workspaceRoot: string,
+): Promise<VerifyCommandResult> {
   const startedAt = new Date().toISOString()
   return new Promise((resolve, reject) => {
     const child = spawn(command, {
@@ -30,7 +33,9 @@ async function runVerifyCommand(command: string, workspaceRoot: string): Promise
         finishedAt,
         passed: exitCode === 0,
         startedAt,
-        stderr: signal ? `${stderr}${stderr ? '\n' : ''}Process exited with signal ${signal}` : stderr,
+        stderr: signal
+          ? `${stderr}${stderr ? '\n' : ''}Process exited with signal ${signal}`
+          : stderr,
         stdout,
       })
     })
@@ -61,7 +66,9 @@ export class ProcessVerifier {
     return {
       commands,
       passed,
-      summary: passed ? 'All verify commands passed' : 'One or more verify commands failed',
+      summary: passed
+        ? 'All verify commands passed'
+        : 'One or more verify commands failed',
       taskId: input.taskId,
     }
   }

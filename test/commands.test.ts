@@ -4,23 +4,39 @@ import path from 'node:path'
 import { beforeEach, expect, test, vi } from 'vitest'
 
 import { rewindCommand } from '../src/commands/rewind'
-import { createPassingReview, createWorkspace, currentHead, gitLogMessages, initGitRepo, ScriptedWorkflowProvider, trackedFilesInHead } from './command-test-helpers'
+import {
+  createPassingReview,
+  createWorkspace,
+  currentHead,
+  gitLogMessages,
+  initGitRepo,
+  ScriptedWorkflowProvider,
+  trackedFilesInHead,
+} from './command-test-helpers'
 
 const providerState = vi.hoisted(() => ({
-  createdOptions: [] as { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string }[],
+  createdOptions: [] as {
+    onEvent?: (event: { item?: { type?: string }; type: string }) => void
+    workspaceRoot: string
+  }[],
   queue: [] as ScriptedWorkflowProvider[],
 }))
 
 vi.mock('../src/agents/codex', () => {
   return {
-    createCodexProvider: vi.fn((options: { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string }) => {
-      providerState.createdOptions.push(options)
-      const provider = providerState.queue.shift()
-      if (!provider) {
-        throw new Error('Missing scripted workflow provider')
-      }
-      return provider
-    }),
+    createCodexProvider: vi.fn(
+      (options: {
+        onEvent?: (event: { item?: { type?: string }; type: string }) => void
+        workspaceRoot: string
+      }) => {
+        providerState.createdOptions.push(options)
+        const provider = providerState.queue.shift()
+        if (!provider) {
+          throw new Error('Missing scripted workflow provider')
+        }
+        return provider
+      },
+    ),
   }
 })
 
@@ -37,10 +53,16 @@ test('runCommand creates one git commit per completed task and records commitSha
   const provider = new ScriptedWorkflowProvider(
     async (input) => {
       if (input.task.id === 'T001') {
-        await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
+        await writeFile(
+          path.join(root, 'src', 'greeting.js'),
+          'exports.buildGreeting = () => "Hello, world!"\n',
+        )
         return
       }
-      await writeFile(path.join(root, 'src', 'farewell.js'), 'exports.buildFarewell = () => "Bye, world!"\n')
+      await writeFile(
+        path.join(root, 'src', 'farewell.js'),
+        'exports.buildFarewell = () => "Bye, world!"\n',
+      )
     },
     async (input) => createPassingReview(input),
   )
@@ -49,10 +71,9 @@ test('runCommand creates one git commit per completed task and records commitSha
   const result = await runCommand(context)
 
   expect(result.summary.finalStatus).toBe('completed')
-  expect(provider.reviewInputs.map((input) => input.actualChangedFiles)).toEqual([
-    ['src/greeting.js'],
-    ['src/farewell.js'],
-  ])
+  expect(
+    provider.reviewInputs.map((input) => input.actualChangedFiles),
+  ).toEqual([['src/greeting.js'], ['src/farewell.js']])
 
   const messages = await gitLogMessages(root)
   expect(messages.slice(0, 3)).toEqual([
@@ -61,11 +82,15 @@ test('runCommand creates one git commit per completed task and records commitSha
     'Initial commit',
   ])
 
-  const state = JSON.parse(await readFile(path.join(featureDir, '.while', 'state.json'), 'utf8')) as {
-    tasks: Record<string, { commitSha?: string, status: string }>
+  const state = JSON.parse(
+    await readFile(path.join(featureDir, '.while', 'state.json'), 'utf8'),
+  ) as {
+    tasks: Record<string, { commitSha?: string; status: string }>
   }
-  const report = JSON.parse(await readFile(path.join(featureDir, '.while', 'report.json'), 'utf8')) as {
-    tasks: { commitSha?: string, id: string, status: string }[]
+  const report = JSON.parse(
+    await readFile(path.join(featureDir, '.while', 'report.json'), 'utf8'),
+  ) as {
+    tasks: { commitSha?: string; id: string; status: string }[]
   }
   const headFiles = await trackedFilesInHead(root)
 
@@ -73,7 +98,11 @@ test('runCommand creates one git commit per completed task and records commitSha
   expect(state.tasks.T001?.commitSha).toBeTruthy()
   expect(state.tasks.T002?.status).toBe('done')
   expect(state.tasks.T002?.commitSha).toBeTruthy()
-  expect(report.tasks.every((task) => task.status === 'done' && typeof task.commitSha === 'string')).toBe(true)
+  expect(
+    report.tasks.every(
+      (task) => task.status === 'done' && typeof task.commitSha === 'string',
+    ),
+  ).toBe(true)
   expect(headFiles).toContain('src/farewell.js')
   expect(headFiles).toContain('specs/001-demo/tasks.md')
   expect(headFiles.some((file) => file.includes('.while'))).toBe(false)
@@ -85,10 +114,12 @@ test('runCommand rejects a dirty worktree before starting', async () => {
   })
   await initGitRepo(root)
   await writeFile(path.join(root, 'draft.txt'), 'temporary\n')
-  providerState.queue.push(new ScriptedWorkflowProvider(
-    async () => {},
-    async (input) => createPassingReview(input),
-  ))
+  providerState.queue.push(
+    new ScriptedWorkflowProvider(
+      async () => {},
+      async (input) => createPassingReview(input),
+    ),
+  )
 
   await expect(runCommand(context)).rejects.toThrow(/worktree.*clean/i)
 })
@@ -98,16 +129,27 @@ test('runCommand keeps soft path boundaries and lets reviewer judge extra change
     includeSecondTask: false,
   })
   await initGitRepo(root)
-  providerState.queue.push(new ScriptedWorkflowProvider(
-    async () => {
-      await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
-      await writeFile(path.join(root, 'src', 'shared.js'), 'exports.shared = "updated"\n')
-    },
-    async (input) => {
-      expect(input.actualChangedFiles).toEqual(['src/greeting.js', 'src/shared.js'])
-      return createPassingReview(input)
-    },
-  ))
+  providerState.queue.push(
+    new ScriptedWorkflowProvider(
+      async () => {
+        await writeFile(
+          path.join(root, 'src', 'greeting.js'),
+          'exports.buildGreeting = () => "Hello, world!"\n',
+        )
+        await writeFile(
+          path.join(root, 'src', 'shared.js'),
+          'exports.shared = "updated"\n',
+        )
+      },
+      async (input) => {
+        expect(input.actualChangedFiles).toEqual([
+          'src/greeting.js',
+          'src/shared.js',
+        ])
+        return createPassingReview(input)
+      },
+    ),
+  )
 
   const result = await runCommand(context)
 
@@ -120,20 +162,25 @@ test('runCommand treats tasks without verify commands as passing no-op verify', 
     omitVerifyForTaskIds: ['T001'],
   })
   await initGitRepo(root)
-  providerState.queue.push(new ScriptedWorkflowProvider(
-    async () => {
-      await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
-    },
-    async (input) => {
-      expect(input.verify).toEqual({
-        commands: [],
-        passed: true,
-        summary: 'No verify commands configured.',
-        taskId: 'T001',
-      })
-      return createPassingReview(input)
-    },
-  ))
+  providerState.queue.push(
+    new ScriptedWorkflowProvider(
+      async () => {
+        await writeFile(
+          path.join(root, 'src', 'greeting.js'),
+          'exports.buildGreeting = () => "Hello, world!"\n',
+        )
+      },
+      async (input) => {
+        expect(input.verify).toEqual({
+          commands: [],
+          passed: true,
+          summary: 'No verify commands configured.',
+          taskId: 'T001',
+        })
+        return createPassingReview(input)
+      },
+    ),
+  )
 
   const result = await runCommand(context)
 
@@ -146,7 +193,10 @@ test('runCommand resumes remaining tasks and keeps task-to-commit mapping linear
   const firstProvider = new ScriptedWorkflowProvider(
     async (input) => {
       if (input.task.id === 'T001') {
-        await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
+        await writeFile(
+          path.join(root, 'src', 'greeting.js'),
+          'exports.buildGreeting = () => "Hello, world!"\n',
+        )
       }
     },
     async (input) => createPassingReview(input),
@@ -159,7 +209,9 @@ test('runCommand resumes remaining tasks and keeps task-to-commit mapping linear
   const partialMessages = await gitLogMessages(root)
 
   expect(partial.summary.finalStatus).toBe('in_progress')
-  expect(firstProvider.implementInputs.map((input) => input.task.id)).toEqual(['T001'])
+  expect(firstProvider.implementInputs.map((input) => input.task.id)).toEqual([
+    'T001',
+  ])
   expect(partialMessages.slice(0, 2)).toEqual([
     'Task T001: Implement greeting in src/greeting.js',
     'Initial commit',
@@ -168,7 +220,10 @@ test('runCommand resumes remaining tasks and keeps task-to-commit mapping linear
   const secondProvider = new ScriptedWorkflowProvider(
     async (input) => {
       if (input.task.id === 'T002') {
-        await writeFile(path.join(root, 'src', 'farewell.js'), 'exports.buildFarewell = () => "Bye, world!"\n')
+        await writeFile(
+          path.join(root, 'src', 'farewell.js'),
+          'exports.buildFarewell = () => "Bye, world!"\n',
+        )
       }
     },
     async (input) => createPassingReview(input),
@@ -179,7 +234,9 @@ test('runCommand resumes remaining tasks and keeps task-to-commit mapping linear
   const resumedMessages = await gitLogMessages(root)
 
   expect(resumed.summary.finalStatus).toBe('completed')
-  expect(secondProvider.implementInputs.map((input) => input.task.id)).toEqual(['T002'])
+  expect(secondProvider.implementInputs.map((input) => input.task.id)).toEqual([
+    'T002',
+  ])
   expect(resumedMessages.slice(0, 3)).toEqual([
     'Task T002: Implement farewell in src/farewell.js',
     'Task T001: Implement greeting in src/greeting.js',
@@ -196,12 +253,17 @@ test('runCommand reverts the tasks.md checkbox and blocks when the task commit f
   const hookPath = path.join(root, '.git', 'hooks', 'pre-commit')
   await writeFile(hookPath, '#!/bin/sh\nexit 1\n')
   await chmod(hookPath, 0o755)
-  providerState.queue.push(new ScriptedWorkflowProvider(
-    async () => {
-      await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
-    },
-    async (input) => createPassingReview(input),
-  ))
+  providerState.queue.push(
+    new ScriptedWorkflowProvider(
+      async () => {
+        await writeFile(
+          path.join(root, 'src', 'greeting.js'),
+          'exports.buildGreeting = () => "Hello, world!"\n',
+        )
+      },
+      async (input) => createPassingReview(input),
+    ),
+  )
 
   const result = await runCommand(context)
   const messages = await gitLogMessages(root)
@@ -210,8 +272,10 @@ test('runCommand reverts the tasks.md checkbox and blocks when the task commit f
   expect(messages[0]).toBe('Initial commit')
 
   const tasksMd = await readFile(path.join(featureDir, 'tasks.md'), 'utf8')
-  const state = JSON.parse(await readFile(path.join(featureDir, '.while', 'state.json'), 'utf8')) as {
-    tasks: Record<string, { reason?: string, status: string }>
+  const state = JSON.parse(
+    await readFile(path.join(featureDir, '.while', 'state.json'), 'utf8'),
+  ) as {
+    tasks: Record<string, { reason?: string; status: string }>
   }
 
   expect(tasksMd).toMatch(/- \[ \] T001/)
@@ -224,16 +288,24 @@ test('runCommand reverts the tasks.md checkbox and blocks when the task commit f
 test('rewindCommand hard-resets code and rebuilds runtime from surviving commits', async () => {
   const { context, featureDir, root } = await createWorkspace()
   await initGitRepo(root)
-  providerState.queue.push(new ScriptedWorkflowProvider(
-    async (input) => {
-      if (input.task.id === 'T001') {
-        await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "Hello, world!"\n')
-        return
-      }
-      await writeFile(path.join(root, 'src', 'farewell.js'), 'exports.buildFarewell = () => "Bye, world!"\n')
-    },
-    async (input) => createPassingReview(input),
-  ))
+  providerState.queue.push(
+    new ScriptedWorkflowProvider(
+      async (input) => {
+        if (input.task.id === 'T001') {
+          await writeFile(
+            path.join(root, 'src', 'greeting.js'),
+            'exports.buildGreeting = () => "Hello, world!"\n',
+          )
+          return
+        }
+        await writeFile(
+          path.join(root, 'src', 'farewell.js'),
+          'exports.buildFarewell = () => "Bye, world!"\n',
+        )
+      },
+      async (input) => createPassingReview(input),
+    ),
+  )
 
   await runCommand(context)
   const initialHead = await currentHead(root)
@@ -250,12 +322,24 @@ test('rewindCommand hard-resets code and rebuilds runtime from surviving commits
   const greeting = await readFile(path.join(root, 'src', 'greeting.js'), 'utf8')
   const farewell = await readFile(path.join(root, 'src', 'farewell.js'), 'utf8')
   const tasksMd = await readFile(path.join(featureDir, 'tasks.md'), 'utf8')
-  const state = JSON.parse(await readFile(path.join(featureDir, '.while', 'state.json'), 'utf8')) as {
-    tasks: Record<string, { attempt: number, generation: number, status: string }>
+  const state = JSON.parse(
+    await readFile(path.join(featureDir, '.while', 'state.json'), 'utf8'),
+  ) as {
+    tasks: Record<
+      string,
+      { attempt: number; generation: number; status: string }
+    >
   }
-  const report = JSON.parse(await readFile(path.join(featureDir, '.while', 'report.json'), 'utf8')) as {
+  const report = JSON.parse(
+    await readFile(path.join(featureDir, '.while', 'report.json'), 'utf8'),
+  ) as {
     summary: { finalStatus: string }
-    tasks: { commitSha?: string, generation: number, id: string, status: string }[]
+    tasks: {
+      commitSha?: string
+      generation: number
+      id: string
+      status: string
+    }[]
   }
 
   expect(messages).toEqual(['Initial commit'])
@@ -264,8 +348,16 @@ test('rewindCommand hard-resets code and rebuilds runtime from surviving commits
   expect(farewell).toContain('broken')
   expect(tasksMd).toMatch(/- \[ \] T001/)
   expect(tasksMd).toMatch(/- \[ \] T002/)
-  expect(state.tasks.T001).toMatchObject({ attempt: 0, generation: 2, status: 'pending' })
-  expect(state.tasks.T002).toMatchObject({ attempt: 0, generation: 2, status: 'pending' })
+  expect(state.tasks.T001).toMatchObject({
+    attempt: 0,
+    generation: 2,
+    status: 'pending',
+  })
+  expect(state.tasks.T002).toMatchObject({
+    attempt: 0,
+    generation: 2,
+    status: 'pending',
+  })
   expect(report.summary.finalStatus).toBe('in_progress')
   expect(report.tasks).toEqual([
     { id: 'T001', attempt: 0, generation: 2, status: 'pending' },
@@ -280,5 +372,7 @@ test('rewindCommand rejects dirty worktrees', async () => {
   await initGitRepo(root)
   await writeFile(path.join(root, 'draft.txt'), 'temporary\n')
 
-  await expect(rewindCommand(context, 'T001')).rejects.toThrow(/worktree.*clean/i)
+  await expect(rewindCommand(context, 'T001')).rejects.toThrow(
+    /worktree.*clean/i,
+  )
 })

@@ -11,7 +11,9 @@ export interface NormalizeTaskGraphInput {
 }
 
 function createTask(line: string, phase: string): TaskDefinition {
-  const match = line.match(/^- \[[ xX]\] (T\d{3,})(?: \[P\])?(?: \[(US\d+)\])? (.+)$/)
+  const match = line.match(
+    /^- \[[ xX]\] (T\d{3,})(?: \[P\])?(?: \[(US\d+)\])? (.+)$/,
+  )
   if (!match) {
     throw new Error(`Invalid task line: ${line}`)
   }
@@ -41,7 +43,14 @@ function splitList(value: string) {
     .filter(Boolean)
 }
 
-function ensureTaskField(task: TaskDefinition, field: keyof Pick<TaskDefinition, 'acceptance' | 'paths' | 'reviewRubric' | 'verifyCommands'>, label: string) {
+function ensureTaskField(
+  task: TaskDefinition,
+  field: keyof Pick<
+    TaskDefinition,
+    'acceptance' | 'paths' | 'reviewRubric' | 'verifyCommands'
+  >,
+  label: string,
+) {
   if (task[field].length === 0) {
     throw new Error(`${task.id} is missing ${label}`)
   }
@@ -107,13 +116,16 @@ function parseFieldLine(line: string) {
   }
 }
 
-export async function normalizeTaskGraph(input: NormalizeTaskGraphInput): Promise<TaskGraph> {
+export async function normalizeTaskGraph(
+  input: NormalizeTaskGraphInput,
+): Promise<TaskGraph> {
   const content = await readFile(input.tasksPath, 'utf8')
   const lines = content.split(/\r?\n/)
   const tasks: TaskDefinition[] = []
   let currentPhase = 'unknown'
   let currentTask: null | TaskDefinition = null
-  let currentList: 'acceptance' | 'reviewRubric' | 'verifyCommands' | null = null
+  let currentList: 'acceptance' | 'reviewRubric' | 'verifyCommands' | null =
+    null
 
   for (const rawLine of lines) {
     const line = rawLine.trimEnd()
@@ -141,26 +153,23 @@ export async function normalizeTaskGraph(input: NormalizeTaskGraphInput): Promis
 
       if (field.label === 'Goal' && field.value) {
         currentTask.goal = field.value
-      }
-      else if (field.label === 'Paths') {
+      } else if (field.label === 'Paths') {
         currentTask.paths = splitList(field.value)
-      }
-      else if (field.label === 'Depends') {
+      } else if (field.label === 'Depends') {
         currentTask.dependsOn = splitList(field.value)
-      }
-      else if (field.label === 'Acceptance') {
+      } else if (field.label === 'Acceptance') {
         currentTask.acceptance = field.value ? [field.value] : []
         currentList = 'acceptance'
-      }
-      else if (field.label === 'Verify') {
+      } else if (field.label === 'Verify') {
         currentTask.verifyCommands = field.value ? [field.value] : []
         currentList = 'verifyCommands'
-      }
-      else if (field.label === 'Review Rubric') {
+      } else if (field.label === 'Review Rubric') {
         currentTask.reviewRubric = field.value ? [field.value] : []
         currentList = 'reviewRubric'
-      }
-      else if (field.label === 'Max Iterations' || field.label === 'Max Attempts') {
+      } else if (
+        field.label === 'Max Iterations' ||
+        field.label === 'Max Attempts'
+      ) {
         currentTask.maxAttempts = Number(field.value)
       }
       continue

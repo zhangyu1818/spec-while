@@ -14,7 +14,7 @@
     "noEmit": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*.ts",
@@ -27,5 +27,5 @@
     "bin/**/*.mjs",
     "vitest.config.ts"
   ],
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist", "node_modules"]
 }

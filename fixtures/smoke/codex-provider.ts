@@ -4,14 +4,19 @@ import { fileURLToPath } from 'node:url'
 
 import { CodexAgentClient } from '../../src/agents/codex'
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..',
+)
 
 async function runAgentSmoke() {
   const client = new CodexAgentClient({
     workspaceRoot: repoRoot,
     onEvent(event) {
       const itemType = 'item' in event ? event.item.type : undefined
-      process.stderr.write(`[smoke:codex] ${event.type}${itemType ? ` ${itemType}` : ''}\n`)
+      process.stderr.write(
+        `[smoke:codex] ${event.type}${itemType ? ` ${itemType}` : ''}\n`,
+      )
     },
   })
   const result = await client.implement({
@@ -41,9 +46,13 @@ async function runAgentSmoke() {
   return result
 }
 
-void runAgentSmoke().then((result) => {
-  process.stdout.write(`${JSON.stringify({ repoRoot, result }, null, 2)}\n`)
-}).catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`)
-  process.exitCode = 1
-})
+void runAgentSmoke()
+  .then((result) => {
+    process.stdout.write(`${JSON.stringify({ repoRoot, result }, null, 2)}\n`)
+  })
+  .catch((error) => {
+    process.stderr.write(
+      `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+    )
+    process.exitCode = 1
+  })

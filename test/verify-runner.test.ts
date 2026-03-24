@@ -50,7 +50,9 @@ test('ProcessVerifier reports shell termination signals in stderr', async () => 
 
   expect(result.passed).toBe(false)
   expect(result.commands[0]?.passed).toBe(false)
-  expect(result.commands[0]?.stderr).toMatch(/Process exited with signal SIGTERM/)
+  expect(result.commands[0]?.stderr).toMatch(
+    /Process exited with signal SIGTERM/,
+  )
 })
 
 test('ProcessVerifier treats missing verify commands as a passing no-op', async () => {

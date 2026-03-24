@@ -5,7 +5,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..',
+)
 const templateRoot = path.join(repoRoot, 'fixtures', 'e2e', 'simple-task')
 const whileEntry = path.join(repoRoot, 'src', 'index.ts')
 const execFileAsync = promisify(execFile)
@@ -74,7 +77,7 @@ async function trackedFilesInHead(root: string) {
 }
 
 async function runWhileE2e(input: CreateWhileE2eArgsInput) {
-  return new Promise<{ stderr: string, stdout: string }>((resolve, reject) => {
+  return new Promise<{ stderr: string; stdout: string }>((resolve, reject) => {
     const child = spawn(process.execPath, createWhileE2eArgs(input), {
       cwd: repoRoot,
       env: process.env,
@@ -84,14 +87,22 @@ async function runWhileE2e(input: CreateWhileE2eArgsInput) {
     let stderr = ''
     let stdout = ''
     child.stdout.on('data', (chunk) => {
-      relayChunk(chunk, (text) => process.stdout.write(text), (text) => {
-        stdout += text
-      })
+      relayChunk(
+        chunk,
+        (text) => process.stdout.write(text),
+        (text) => {
+          stdout += text
+        },
+      )
     })
     child.stderr.on('data', (chunk) => {
-      relayChunk(chunk, (text) => process.stderr.write(text), (text) => {
-        stderr += text
-      })
+      relayChunk(
+        chunk,
+        (text) => process.stderr.write(text),
+        (text) => {
+          stderr += text
+        },
+      )
     })
     child.on('error', reject)
     child.on('close', (code) => {
@@ -99,7 +110,9 @@ async function runWhileE2e(input: CreateWhileE2eArgsInput) {
         resolve({ stderr, stdout })
         return
       }
-      reject(new Error(`while e2e process exited with code ${code ?? 'unknown'}`))
+      reject(
+        new Error(`while e2e process exited with code ${code ?? 'unknown'}`),
+      )
     })
   })
 }
@@ -118,13 +131,32 @@ async function main() {
       workspaceRoot,
     })
 
-    const tasksMdAfterRun = await readFile(path.join(workspaceRoot, 'specs', '001-simple', 'tasks.md'), 'utf8')
-    const stateAfterRun = JSON.parse(await readFile(path.join(workspaceRoot, 'specs', '001-simple', '.while', 'state.json'), 'utf8')) as {
-      tasks: Record<string, { commitSha?: string, status: string }>
+    const tasksMdAfterRun = await readFile(
+      path.join(workspaceRoot, 'specs', '001-simple', 'tasks.md'),
+      'utf8',
+    )
+    const stateAfterRun = JSON.parse(
+      await readFile(
+        path.join(workspaceRoot, 'specs', '001-simple', '.while', 'state.json'),
+        'utf8',
+      ),
+    ) as {
+      tasks: Record<string, { commitSha?: string; status: string }>
     }
-    const reportAfterRun = JSON.parse(await readFile(path.join(workspaceRoot, 'specs', '001-simple', '.while', 'report.json'), 'utf8')) as {
+    const reportAfterRun = JSON.parse(
+      await readFile(
+        path.join(
+          workspaceRoot,
+          'specs',
+          '001-simple',
+          '.while',
+          'report.json',
+        ),
+        'utf8',
+      ),
+    ) as {
       summary: { finalStatus: string }
-      tasks: { commitSha?: string, id: string, status: string }[]
+      tasks: { commitSha?: string; id: string; status: string }[]
     }
     const messagesAfterRun = await gitLogMessages(workspaceRoot)
     const trackedFiles = await trackedFilesInHead(workspaceRoot)
@@ -140,13 +172,21 @@ async function main() {
     assert.equal(farewellTaskAfterRun.status, 'done')
     assert.match(greetingTaskAfterRun.commitSha ?? '', /\S+/)
     assert.match(farewellTaskAfterRun.commitSha ?? '', /\S+/)
-    assert.equal(reportAfterRun.tasks.every((task) => task.status === 'done' && typeof task.commitSha === 'string'), true)
+    assert.equal(
+      reportAfterRun.tasks.every(
+        (task) => task.status === 'done' && typeof task.commitSha === 'string',
+      ),
+      true,
+    )
     assert.deepEqual(messagesAfterRun.slice(0, 3), [
       'Task T002: Implement buildFarewell in src/farewell.ts',
       'Task T001: Implement buildGreeting in src/greeting.ts',
       'Initial commit',
     ])
-    assert.equal(trackedFiles.some((file) => file.includes('.while')), false)
+    assert.equal(
+      trackedFiles.some((file) => file.includes('.while')),
+      false,
+    )
 
     await runWhileE2e({
       command: 'rewind',
@@ -154,16 +194,44 @@ async function main() {
       workspaceRoot,
     })
 
-    const tasksMdAfterReopen = await readFile(path.join(workspaceRoot, 'specs', '001-simple', 'tasks.md'), 'utf8')
-    const stateAfterReopen = JSON.parse(await readFile(path.join(workspaceRoot, 'specs', '001-simple', '.while', 'state.json'), 'utf8')) as {
-      tasks: Record<string, { attempt: number, generation: number, status: string }>
+    const tasksMdAfterReopen = await readFile(
+      path.join(workspaceRoot, 'specs', '001-simple', 'tasks.md'),
+      'utf8',
+    )
+    const stateAfterReopen = JSON.parse(
+      await readFile(
+        path.join(workspaceRoot, 'specs', '001-simple', '.while', 'state.json'),
+        'utf8',
+      ),
+    ) as {
+      tasks: Record<
+        string,
+        { attempt: number; generation: number; status: string }
+      >
     }
-    const reportAfterReopen = JSON.parse(await readFile(path.join(workspaceRoot, 'specs', '001-simple', '.while', 'report.json'), 'utf8')) as {
+    const reportAfterReopen = JSON.parse(
+      await readFile(
+        path.join(
+          workspaceRoot,
+          'specs',
+          '001-simple',
+          '.while',
+          'report.json',
+        ),
+        'utf8',
+      ),
+    ) as {
       summary: { finalStatus: string }
-      tasks: { generation: number, id: string, status: string }[]
+      tasks: { generation: number; id: string; status: string }[]
     }
-    const greetingSource = await readFile(path.join(workspaceRoot, 'src', 'greeting.ts'), 'utf8')
-    const farewellSource = await readFile(path.join(workspaceRoot, 'src', 'farewell.ts'), 'utf8')
+    const greetingSource = await readFile(
+      path.join(workspaceRoot, 'src', 'greeting.ts'),
+      'utf8',
+    )
+    const farewellSource = await readFile(
+      path.join(workspaceRoot, 'src', 'farewell.ts'),
+      'utf8',
+    )
     const messagesAfterReopen = await gitLogMessages(workspaceRoot)
 
     assert.match(tasksMdAfterReopen, /- \[ \] T001/)
@@ -192,13 +260,14 @@ async function main() {
     ])
 
     process.stdout.write(`${JSON.stringify({ workspaceRoot }, null, 2)}\n`)
-  }
-  finally {
+  } finally {
     await rm(tempRoot, { force: true, recursive: true })
   }
 }
 
 void main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`)
+  process.stderr.write(
+    `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+  )
   process.exitCode = 1
 })

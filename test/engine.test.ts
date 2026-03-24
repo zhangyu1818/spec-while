@@ -97,13 +97,30 @@ test('engine advances task phases and unlocks dependents from derived readiness'
   expect(executing.tasks.T001?.status).toBe('running')
 
   const verifying = recordImplementSuccess(executing, 'T001')
-  expect(verifying.tasks.T001).toMatchObject({ stage: 'verify', status: 'running' })
+  expect(verifying.tasks.T001).toMatchObject({
+    stage: 'verify',
+    status: 'running',
+  })
 
-  const reviewing = recordVerifyResult(verifying, 'T001', createVerifyResult('T001', true))
-  expect(reviewing.tasks.T001).toMatchObject({ stage: 'review', status: 'running' })
+  const reviewing = recordVerifyResult(
+    verifying,
+    'T001',
+    createVerifyResult('T001', true),
+  )
+  expect(reviewing.tasks.T001).toMatchObject({
+    stage: 'review',
+    status: 'running',
+  })
 
-  const integrating = recordReviewApproved(reviewing, 'T001', createPassingReview('T001', 'buildGreeting works'))
-  expect(integrating.tasks.T001).toMatchObject({ stage: 'integrate', status: 'running' })
+  const integrating = recordReviewApproved(
+    reviewing,
+    'T001',
+    createPassingReview('T001', 'buildGreeting works'),
+  )
+  expect(integrating.tasks.T001).toMatchObject({
+    stage: 'integrate',
+    status: 'running',
+  })
 
   const done = recordIntegrateResult(graph, integrating, 'T001', {
     commitSha: 'commit-1',
@@ -111,17 +128,31 @@ test('engine advances task phases and unlocks dependents from derived readiness'
     verify: createVerifyResult('T001', true),
   })
 
-  expect(done.tasks.T001).toMatchObject({ commitSha: 'commit-1', status: 'done' })
+  expect(done.tasks.T001).toMatchObject({
+    commitSha: 'commit-1',
+    status: 'done',
+  })
   expect(selectNextRunnableTask(graph, done)?.id).toBe('T002')
 })
 
 test('engine moves approved reviews into integrate instead of done', () => {
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
-  const verifying = recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001')
-  const reviewing = recordVerifyResult(verifying, 'T001', createVerifyResult('T001', true))
+  const verifying = recordImplementSuccess(
+    startAttempt(graph, initial, 'T001'),
+    'T001',
+  )
+  const reviewing = recordVerifyResult(
+    verifying,
+    'T001',
+    createVerifyResult('T001', true),
+  )
 
-  const integrating = recordReviewApproved(reviewing, 'T001', createPassingReview('T001', 'buildGreeting works'))
+  const integrating = recordReviewApproved(
+    reviewing,
+    'T001',
+    createPassingReview('T001', 'buildGreeting works'),
+  )
 
   expect(integrating.tasks.T001).toMatchObject({
     lastReviewVerdict: 'pass',
@@ -139,16 +170,29 @@ test('integrate result is the only path that produces done', () => {
     'T001',
     createVerifyResult('T001', true),
   )
-  const integrating = recordReviewApproved(reviewing, 'T001', createPassingReview('T001', 'buildGreeting works'))
+  const integrating = recordReviewApproved(
+    reviewing,
+    'T001',
+    createPassingReview('T001', 'buildGreeting works'),
+  )
   const done = recordIntegrateResult(graph, integrating, 'T001', {
     commitSha: 'commit-1',
     review: createPassingReview('T001', 'buildGreeting works'),
     verify: createVerifyResult('T001', true),
   })
 
-  expect(reviewing.tasks.T001).toMatchObject({ stage: 'review', status: 'running' })
-  expect(integrating.tasks.T001).toMatchObject({ stage: 'integrate', status: 'running' })
-  expect(done.tasks.T001).toMatchObject({ commitSha: 'commit-1', status: 'done' })
+  expect(reviewing.tasks.T001).toMatchObject({
+    stage: 'review',
+    status: 'running',
+  })
+  expect(integrating.tasks.T001).toMatchObject({
+    stage: 'integrate',
+    status: 'running',
+  })
+  expect(done.tasks.T001).toMatchObject({
+    commitSha: 'commit-1',
+    status: 'done',
+  })
 })
 
 test('engine blocks after exceeding max attempts', () => {
@@ -172,15 +216,31 @@ test('engine returns rework then blocked when verify execution itself fails repe
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
 
-  const attemptOne = recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001')
-  const rework = recordVerifyFailure(graph, attemptOne, 'T001', 'verify crashed')
+  const attemptOne = recordImplementSuccess(
+    startAttempt(graph, initial, 'T001'),
+    'T001',
+  )
+  const rework = recordVerifyFailure(
+    graph,
+    attemptOne,
+    'T001',
+    'verify crashed',
+  )
   expect(rework.tasks.T001).toMatchObject({
     lastVerifyPassed: false,
     status: 'rework',
   })
 
-  const attemptTwo = recordImplementSuccess(startAttempt(graph, rework, 'T001'), 'T001')
-  const blocked = recordVerifyFailure(graph, attemptTwo, 'T001', 'verify crashed again')
+  const attemptTwo = recordImplementSuccess(
+    startAttempt(graph, rework, 'T001'),
+    'T001',
+  )
+  const blocked = recordVerifyFailure(
+    graph,
+    attemptTwo,
+    'T001',
+    'verify crashed again',
+  )
   expect(blocked.tasks.T001).toMatchObject({
     lastVerifyPassed: false,
     reason: 'verify crashed again',
@@ -235,7 +295,9 @@ test('engine rejects attempts to start dependent tasks before prerequisites comp
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
 
-  expect(() => startAttempt(graph, initial, 'T002')).toThrow(/dependencies are not completed/i)
+  expect(() => startAttempt(graph, initial, 'T002')).toThrow(
+    /dependencies are not completed/i,
+  )
 })
 
 test('engine records review execution failures as rework before max attempts', () => {

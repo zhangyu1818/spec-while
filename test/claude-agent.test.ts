@@ -108,82 +108,40 @@ test('ClaudeAgentClient forwards implement and review to injected adapter', asyn
 test('ClaudeAgentClient default adapter throws explicit configuration errors', async () => {
   const client = new ClaudeAgentClient()
 
-  await expect(client.implement({
-    attempt: 1,
-    codeContext: '',
-    generation: 1,
-    lastFindings: [],
-    plan: '# plan',
-    spec: '# spec',
-    tasksSnippet: '- [ ] T001 Do work',
-    task: {
-      id: 'T001',
-      acceptance: ['works'],
-      dependsOn: [],
-      maxAttempts: 1,
-      parallelizable: false,
-      paths: ['src/a.ts'],
-      phase: 'Core',
-      reviewRubric: ['clear'],
-      title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
-    },
-  })).rejects.toThrow(/claude agent adapter is not configured/i)
+  await expect(
+    client.implement({
+      attempt: 1,
+      codeContext: '',
+      generation: 1,
+      lastFindings: [],
+      plan: '# plan',
+      spec: '# spec',
+      tasksSnippet: '- [ ] T001 Do work',
+      task: {
+        id: 'T001',
+        acceptance: ['works'],
+        dependsOn: [],
+        maxAttempts: 1,
+        parallelizable: false,
+        paths: ['src/a.ts'],
+        phase: 'Core',
+        reviewRubric: ['clear'],
+        title: 'Do work',
+        verifyCommands: ['node -e "process.exit(0)"'],
+      },
+    }),
+  ).rejects.toThrow(/claude agent adapter is not configured/i)
 
-  await expect(client.review({
-    actualChangedFiles: ['src/a.ts'],
-    attempt: 1,
-    generation: 1,
-    lastFindings: [],
-    plan: '# plan',
-    spec: '# spec',
-    tasksSnippet: '- [ ] T001 Do work',
-    implement: {
-      assumptions: [],
-      changedFiles: ['src/a.ts'],
-      needsHumanAttention: false,
-      notes: [],
-      requestedAdditionalPaths: [],
-      status: 'implemented',
-      summary: 'ok',
-      taskId: 'T001',
-      unresolvedItems: [],
-    },
-    task: {
-      id: 'T001',
-      acceptance: ['works'],
-      dependsOn: [],
-      maxAttempts: 1,
-      parallelizable: false,
-      paths: ['src/a.ts'],
-      phase: 'Core',
-      reviewRubric: ['clear'],
-      title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
-    },
-    verify: {
-      passed: true,
-      summary: 'ok',
-      taskId: 'T001',
-      commands: [
-        {
-          command: 'node -e "process.exit(0)"',
-          exitCode: 0,
-          finishedAt: '2026-03-22T00:00:00.000Z',
-          passed: true,
-          startedAt: '2026-03-22T00:00:00.000Z',
-          stderr: '',
-          stdout: '',
-        },
-      ],
-    },
-  })).rejects.toThrow(/claude agent adapter is not configured/i)
-})
-
-test('createClaudeProvider returns a role-scoped claude provider', async () => {
-  const provider: ImplementerProvider & ReviewerProvider = createClaudeProvider({
-    async implement(input) {
-      return {
+  await expect(
+    client.review({
+      actualChangedFiles: ['src/a.ts'],
+      attempt: 1,
+      generation: 1,
+      lastFindings: [],
+      plan: '# plan',
+      spec: '# spec',
+      tasksSnippet: '- [ ] T001 Do work',
+      implement: {
         assumptions: [],
         changedFiles: ['src/a.ts'],
         needsHumanAttention: false,
@@ -191,28 +149,76 @@ test('createClaudeProvider returns a role-scoped claude provider', async () => {
         requestedAdditionalPaths: [],
         status: 'implemented',
         summary: 'ok',
-        taskId: input.task.id,
+        taskId: 'T001',
         unresolvedItems: [],
-      }
-    },
-    async review(input) {
-      return {
-        changedFilesReviewed: input.actualChangedFiles,
-        findings: [],
-        overallRisk: 'low',
+      },
+      task: {
+        id: 'T001',
+        acceptance: ['works'],
+        dependsOn: [],
+        maxAttempts: 1,
+        parallelizable: false,
+        paths: ['src/a.ts'],
+        phase: 'Core',
+        reviewRubric: ['clear'],
+        title: 'Do work',
+        verifyCommands: ['node -e "process.exit(0)"'],
+      },
+      verify: {
+        passed: true,
         summary: 'ok',
-        taskId: input.task.id,
-        verdict: 'pass',
-        acceptanceChecks: [
+        taskId: 'T001',
+        commands: [
           {
-            criterion: 'works',
-            note: 'ok',
-            status: 'pass',
+            command: 'node -e "process.exit(0)"',
+            exitCode: 0,
+            finishedAt: '2026-03-22T00:00:00.000Z',
+            passed: true,
+            startedAt: '2026-03-22T00:00:00.000Z',
+            stderr: '',
+            stdout: '',
           },
         ],
-      }
+      },
+    }),
+  ).rejects.toThrow(/claude agent adapter is not configured/i)
+})
+
+test('createClaudeProvider returns a role-scoped claude provider', async () => {
+  const provider: ImplementerProvider & ReviewerProvider = createClaudeProvider(
+    {
+      async implement(input) {
+        return {
+          assumptions: [],
+          changedFiles: ['src/a.ts'],
+          needsHumanAttention: false,
+          notes: [],
+          requestedAdditionalPaths: [],
+          status: 'implemented',
+          summary: 'ok',
+          taskId: input.task.id,
+          unresolvedItems: [],
+        }
+      },
+      async review(input) {
+        return {
+          changedFilesReviewed: input.actualChangedFiles,
+          findings: [],
+          overallRisk: 'low',
+          summary: 'ok',
+          taskId: input.task.id,
+          verdict: 'pass',
+          acceptanceChecks: [
+            {
+              criterion: 'works',
+              note: 'ok',
+              status: 'pass',
+            },
+          ],
+        }
+      },
     },
-  })
+  )
 
   const implement = await provider.implement({
     attempt: 1,

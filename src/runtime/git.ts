@@ -24,13 +24,20 @@ export class GitRuntime implements GitPort {
     private readonly workspaceRoot: string,
     runtimeDir: string,
   ) {
-    this.runtimeDirRelative = normalizeRelativePath(path.relative(this.workspaceRoot, runtimeDir))
+    this.runtimeDirRelative = normalizeRelativePath(
+      path.relative(this.workspaceRoot, runtimeDir),
+    )
   }
 
   public async commitTask(input: { message: string }) {
     await runGit(this.workspaceRoot, ['add', '-A', '.'])
     await runGit(this.workspaceRoot, ['reset', '--', this.runtimeDirRelative])
-    await runGit(this.workspaceRoot, ['commit', '--allow-empty', '-m', input.message])
+    await runGit(this.workspaceRoot, [
+      'commit',
+      '--allow-empty',
+      '-m',
+      input.message,
+    ])
     const commitSha = await runGit(this.workspaceRoot, ['rev-parse', 'HEAD'])
     return { commitSha }
   }
@@ -38,13 +45,21 @@ export class GitRuntime implements GitPort {
   public async getChangedFilesSinceHead() {
     const [changed, untracked] = await Promise.all([
       runGit(this.workspaceRoot, ['diff', '--name-only', 'HEAD']),
-      runGit(this.workspaceRoot, ['ls-files', '--others', '--exclude-standard']),
+      runGit(this.workspaceRoot, [
+        'ls-files',
+        '--others',
+        '--exclude-standard',
+      ]),
     ])
     const files = new Set(
       [...changed.split('\n'), ...untracked.split('\n')]
         .map((item) => item.trim())
         .filter(Boolean)
-        .filter((item) => item !== this.runtimeDirRelative && !item.startsWith(`${this.runtimeDirRelative}/`)),
+        .filter(
+          (item) =>
+            item !== this.runtimeDirRelative &&
+            !item.startsWith(`${this.runtimeDirRelative}/`),
+        ),
     )
     return [...files].sort()
   }
@@ -55,12 +70,15 @@ export class GitRuntime implements GitPort {
 
   public async isAncestorOfHead(commitSha: string) {
     try {
-      await execFileAsync('git', ['merge-base', '--is-ancestor', commitSha, 'HEAD'], {
-        cwd: this.workspaceRoot,
-      })
+      await execFileAsync(
+        'git',
+        ['merge-base', '--is-ancestor', commitSha, 'HEAD'],
+        {
+          cwd: this.workspaceRoot,
+        },
+      )
       return true
-    }
-    catch {
+    } catch {
       return false
     }
   }

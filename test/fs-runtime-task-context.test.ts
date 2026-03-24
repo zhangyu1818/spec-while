@@ -11,10 +11,15 @@ test('FsRuntime task snippet starts from the matching task header instead of dep
   const featureDir = path.join(root, 'specs', '001-demo')
   await mkdir(featureDir, { recursive: true })
   await mkdir(path.join(root, 'src'), { recursive: true })
-  await writeFile(path.join(root, 'src', 'greeting.ts'), 'export const greeting = "hi"\n')
+  await writeFile(
+    path.join(root, 'src', 'greeting.ts'),
+    'export const greeting = "hi"\n',
+  )
   await writeFile(path.join(featureDir, 'spec.md'), '# spec\n')
   await writeFile(path.join(featureDir, 'plan.md'), '# plan\n')
-  await writeFile(path.join(featureDir, 'tasks.md'), `
+  await writeFile(
+    path.join(featureDir, 'tasks.md'),
+    `
 # Tasks
 
 ## Phase 1: Core
@@ -36,7 +41,8 @@ test('FsRuntime task snippet starts from the matching task header instead of dep
   - Review Rubric:
     - clear
   - Max Iterations: 1
-`)
+`,
+  )
 
   const runtime = createFsRuntime({
     featureDir,
@@ -55,6 +61,8 @@ test('FsRuntime task snippet starts from the matching task header instead of dep
     verifyCommands: [],
   })
 
-  expect(context.tasksSnippet.trimStart()).toMatch(/^- \[ \] T002 Implement follow-up/m)
+  expect(context.tasksSnippet.trimStart()).toMatch(
+    /^- \[ \] T002 Implement follow-up/m,
+  )
   expect(context.tasksSnippet).not.toContain('- Depends: T002')
 })

@@ -9,7 +9,9 @@ export function createDirectWorkflowPreset(input: {
     async integrate(context) {
       let taskChecked = false
       try {
-        await context.runtime.workspace.updateTaskChecks([{ checked: true, taskId: context.taskId }])
+        await context.runtime.workspace.updateTaskChecks([
+          { checked: true, taskId: context.taskId },
+        ])
         taskChecked = true
         const { commitSha } = await context.runtime.git.commitTask({
           message: context.commitMessage,
@@ -21,14 +23,14 @@ export function createDirectWorkflowPreset(input: {
             summary: 'integrated',
           },
         }
-      }
-      catch (error) {
+      } catch (error) {
         let reason = `Task commit failed: ${error instanceof Error ? error.message : String(error)}`
         if (taskChecked) {
           try {
-            await context.runtime.workspace.updateTaskChecks([{ checked: false, taskId: context.taskId }])
-          }
-          catch (rollbackError) {
+            await context.runtime.workspace.updateTaskChecks([
+              { checked: false, taskId: context.taskId },
+            ])
+          } catch (rollbackError) {
             reason = `${reason}; checkbox rollback failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`
           }
         }

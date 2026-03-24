@@ -20,10 +20,15 @@ async function createWorkspace() {
   const featureDir = path.join(root, 'specs', '001-demo')
   await mkdir(featureDir, { recursive: true })
   await mkdir(path.join(root, 'src'), { recursive: true })
-  await writeFile(path.join(root, 'src', 'existing.ts'), 'export const value = 1\n')
+  await writeFile(
+    path.join(root, 'src', 'existing.ts'),
+    'export const value = 1\n',
+  )
   await writeFile(path.join(featureDir, 'spec.md'), '# spec\n')
   await writeFile(path.join(featureDir, 'plan.md'), '# plan\n')
-  await writeFile(path.join(featureDir, 'tasks.md'), `
+  await writeFile(
+    path.join(featureDir, 'tasks.md'),
+    `
 # Tasks
 
 ## Phase 1: Core
@@ -38,7 +43,8 @@ async function createWorkspace() {
   - Review Rubric:
     - clear
   - Max Iterations: 1
-`)
+`,
+  )
   return { featureDir, root }
 }
 
@@ -89,14 +95,22 @@ test('FsRuntime exposes git helpers, requires a fully clean worktree, and keeps 
   })
 
   await writeFile(path.join(root, 'notes.txt'), 'keep me untracked\n')
-  await expect(runtime.git.requireCleanWorktree()).rejects.toThrow(/worktree must be clean/i)
+  await expect(runtime.git.requireCleanWorktree()).rejects.toThrow(
+    /worktree must be clean/i,
+  )
   await git(root, ['add', 'notes.txt'])
   await git(root, ['commit', '-m', 'Add notes'])
 
-  await writeFile(path.join(root, 'src', 'existing.ts'), 'export const value = 2\n')
+  await writeFile(
+    path.join(root, 'src', 'existing.ts'),
+    'export const value = 2\n',
+  )
   await runtime.workspace.updateTaskChecks([{ checked: true, taskId: 'T001' }])
 
-  expect(await runtime.git.getChangedFilesSinceHead()).toEqual(['specs/001-demo/tasks.md', 'src/existing.ts'])
+  expect(await runtime.git.getChangedFilesSinceHead()).toEqual([
+    'specs/001-demo/tasks.md',
+    'src/existing.ts',
+  ])
 
   const { commitSha } = await runtime.git.commitTask({
     message: 'Task T001: Do work',
@@ -145,7 +159,10 @@ test('FsRuntime loads task context, marks missing code, updates checkboxes and a
     timestamp: '2026-03-22T00:00:00.000Z',
     type: 'attempt_started',
   })
-  const events = await readFile(path.join(featureDir, '.while', 'events.jsonl'), 'utf8')
+  const events = await readFile(
+    path.join(featureDir, '.while', 'events.jsonl'),
+    'utf8',
+  )
   expect(events).toContain('"type":"attempt_started"')
 })
 
@@ -294,13 +311,50 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
   await expect(runtime.store.loadState()).resolves.toEqual(state)
   await expect(runtime.store.readReport()).resolves.toEqual(report)
 
-  const graphJson = await readFile(path.join(featureDir, '.while', 'graph.json'), 'utf8')
-  const stateJson = await readFile(path.join(featureDir, '.while', 'state.json'), 'utf8')
-  const reportJson = await readFile(path.join(featureDir, '.while', 'report.json'), 'utf8')
-  const implementJson = await readFile(path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'implement.json'), 'utf8')
-  const verifyJson = await readFile(path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'verify.json'), 'utf8')
-  const reviewJson = await readFile(path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'review.json'), 'utf8')
-  const integrateJson = await readFile(path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'integrate.json'), 'utf8')
+  const graphJson = await readFile(
+    path.join(featureDir, '.while', 'graph.json'),
+    'utf8',
+  )
+  const stateJson = await readFile(
+    path.join(featureDir, '.while', 'state.json'),
+    'utf8',
+  )
+  const reportJson = await readFile(
+    path.join(featureDir, '.while', 'report.json'),
+    'utf8',
+  )
+  const implementJson = await readFile(
+    path.join(
+      featureDir,
+      '.while',
+      'tasks',
+      'T001',
+      'g2',
+      'a1',
+      'implement.json',
+    ),
+    'utf8',
+  )
+  const verifyJson = await readFile(
+    path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'verify.json'),
+    'utf8',
+  )
+  const reviewJson = await readFile(
+    path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'review.json'),
+    'utf8',
+  )
+  const integrateJson = await readFile(
+    path.join(
+      featureDir,
+      '.while',
+      'tasks',
+      'T001',
+      'g2',
+      'a1',
+      'integrate.json',
+    ),
+    'utf8',
+  )
 
   expect(graphJson).toContain('"featureId": "001-demo"')
   expect(stateJson).toContain('"status": "done"')

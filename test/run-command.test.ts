@@ -9,7 +9,10 @@ const mockState = vi.hoisted(() => {
   return {
     callSequence: [] as string[],
     codexInstances: [] as {
-      options: { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string }
+      options: {
+        onEvent?: (event: { item?: { type?: string }; type: string }) => void
+        workspaceRoot: string
+      }
       provider: ImplementerProvider & ReviewerProvider
     }[],
     config: {
@@ -54,46 +57,51 @@ vi.mock('../src/workflow/config', () => {
 
 vi.mock('../src/agents/codex', () => {
   return {
-    createCodexProvider: vi.fn((options: { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string }) => {
-      const provider: ImplementerProvider & ReviewerProvider = {
-        name: 'codex',
-        async implement() {
-          return {
-            assumptions: [],
-            changedFiles: [],
-            needsHumanAttention: false,
-            notes: [],
-            requestedAdditionalPaths: [],
-            status: 'implemented' as const,
-            summary: 'unused',
-            taskId: 'T001',
-            unresolvedItems: [],
-          }
-        },
-        async review() {
-          return {
-            changedFilesReviewed: [],
-            findings: [],
-            overallRisk: 'low' as const,
-            summary: 'unused',
-            taskId: 'T001',
-            verdict: 'pass' as const,
-            acceptanceChecks: [
-              {
-                criterion: 'unused',
-                note: 'unused',
-                status: 'pass' as const,
-              },
-            ],
-          }
-        },
-      }
-      mockState.codexInstances.push({
-        options,
-        provider,
-      })
-      return provider
-    }),
+    createCodexProvider: vi.fn(
+      (options: {
+        onEvent?: (event: { item?: { type?: string }; type: string }) => void
+        workspaceRoot: string
+      }) => {
+        const provider: ImplementerProvider & ReviewerProvider = {
+          name: 'codex',
+          async implement() {
+            return {
+              assumptions: [],
+              changedFiles: [],
+              needsHumanAttention: false,
+              notes: [],
+              requestedAdditionalPaths: [],
+              status: 'implemented' as const,
+              summary: 'unused',
+              taskId: 'T001',
+              unresolvedItems: [],
+            }
+          },
+          async review() {
+            return {
+              changedFilesReviewed: [],
+              findings: [],
+              overallRisk: 'low' as const,
+              summary: 'unused',
+              taskId: 'T001',
+              verdict: 'pass' as const,
+              acceptanceChecks: [
+                {
+                  criterion: 'unused',
+                  note: 'unused',
+                  status: 'pass' as const,
+                },
+              ],
+            }
+          },
+        }
+        mockState.codexInstances.push({
+          options,
+          provider,
+        })
+        return provider
+      },
+    ),
   }
 })
 
@@ -138,7 +146,8 @@ vi.mock('../src/core/orchestrator', () => {
   }
 })
 
-const { loadWorkflowExecution, runCommand } = await import('../src/commands/run')
+const { loadWorkflowExecution, runCommand } =
+  await import('../src/commands/run')
 
 function createContext(): WorkspaceContext {
   return {
@@ -226,7 +235,9 @@ test('loadWorkflowExecution rejects claude providers before runtime setup becaus
     },
   }
 
-  await expect(loadWorkflowExecution(context)).rejects.toThrow(/claude provider is not available in cli mode/i)
+  await expect(loadWorkflowExecution(context)).rejects.toThrow(
+    /claude provider is not available in cli mode/i,
+  )
 
   expect(mockState.callSequence).toEqual(['config'])
   expect(mockState.codexInstances).toHaveLength(0)
@@ -248,7 +259,9 @@ test('loadWorkflowExecution resolves a direct workflow from while.yaml role prov
       reviewer: expect.objectContaining({ name: 'codex' }),
     },
   })
-  expect(execution.workflow.roles.implementer).toBe(execution.workflow.roles.reviewer)
+  expect(execution.workflow.roles.implementer).toBe(
+    execution.workflow.roles.reviewer,
+  )
 })
 
 test('runCommand loads workflow config before creating runtime', async () => {
@@ -257,7 +270,12 @@ test('runCommand loads workflow config before creating runtime', async () => {
   await runCommand(context)
 
   expect(mockState.workflowConfigCalls).toEqual(['/tmp'])
-  expect(mockState.callSequence).toEqual(['config', 'runtime', 'graph', 'workflow'])
+  expect(mockState.callSequence).toEqual([
+    'config',
+    'runtime',
+    'graph',
+    'workflow',
+  ])
 })
 
 test('loadWorkflowExecution returns an executable plan with resolved config', async () => {
