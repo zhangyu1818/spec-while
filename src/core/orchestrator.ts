@@ -256,6 +256,7 @@ export async function runWorkflow(input: {
         review,
         verify,
       })
+      report = await persistState(input.runtime, input.graph, state)
       await appendEvent(input.runtime, {
         attempt: taskState.attempt,
         detail: integrateResult.result.summary,
@@ -264,7 +265,6 @@ export async function runWorkflow(input: {
         timestamp: now(),
         type: 'integrate_completed',
       })
-      report = await persistState(input.runtime, input.graph, state)
       await input.runtime.store.saveIntegrateArtifact(integrateArtifact)
       await persistCommittedArtifacts(input.runtime, {
         commitSha: integrateResult.result.commitSha,
