@@ -1,6 +1,8 @@
 import { FakeGit, FakeVerifier, InMemoryStore, InMemoryWorkspace } from './workflow-runtime-doubles'
 
-import type { AgentClient, ImplementAgentInput, ReviewAgentInput } from '../src/agents/types'
+import { createDirectWorkflowPreset } from '../src/workflow/direct-preset'
+
+import type { ImplementAgentInput, ImplementerProvider, ReviewAgentInput, ReviewerProvider } from '../src/agents/types'
 import type { OrchestratorRuntime } from '../src/core/runtime'
 import type {
   ImplementOutput,
@@ -9,10 +11,11 @@ import type {
   TaskGraph,
   VerifyResult,
 } from '../src/types'
+import type { WorkflowRuntime } from '../src/workflow/preset'
 
-export class FakeAgentClient implements AgentClient {
+export class ScriptedWorkflowProvider implements ImplementerProvider, ReviewerProvider {
   public readonly implementInputs: ImplementAgentInput[] = []
-  public readonly name = 'fake'
+  public readonly name = 'scripted'
   public readonly reviewInputs: ReviewAgentInput[] = []
 
   public constructor(
@@ -42,6 +45,18 @@ export class FakeAgentClient implements AgentClient {
       throw next
     }
     return next
+  }
+}
+
+export function createWorkflow(provider: ImplementerProvider & ReviewerProvider): WorkflowRuntime {
+  return {
+    preset: createDirectWorkflowPreset({
+      reviewer: provider,
+    }),
+    roles: {
+      implementer: provider,
+      reviewer: provider,
+    },
   }
 }
 

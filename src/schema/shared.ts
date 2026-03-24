@@ -8,7 +8,7 @@ export const storyIdSchema = z.string().regex(storyIdPattern, 'Story id must mat
 export const dateTimeSchema = z.string().datetime({ offset: true })
 
 export const taskStatusValues = ['pending', 'running', 'rework', 'done', 'blocked', 'replan'] as const
-export const runningStageValues = ['implement', 'verify', 'review'] as const
+export const runningStageValues = ['implement', 'verify', 'review', 'integrate'] as const
 export const reviewVerdictValues = ['blocked', 'pass', 'replan', 'rework'] as const
 export const implementStatusValues = ['blocked', 'implemented', 'partial'] as const
 export const findingSeverityValues = ['high', 'low', 'medium'] as const
@@ -24,6 +24,9 @@ export const workflowEventTypeValues = [
   'review_started',
   'review_completed',
   'review_failed',
+  'integrate_started',
+  'integrate_completed',
+  'integrate_failed',
   'task_rewound',
   'task_invalidated',
 ] as const

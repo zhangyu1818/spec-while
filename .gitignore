@@ -12,6 +12,7 @@ dist/
 .spec-kit/
 spec-kit/
 .vscode/
+docs/superpowers/plans/
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*

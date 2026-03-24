@@ -1,16 +1,33 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 
-import type { AgentClient } from '../src/agents/types'
-import type { WorkspaceContext } from '../src/types'
+import type { OrchestratorRuntime } from '../src/core/runtime'
+import type { ImplementerProvider, ReviewerProvider } from '../src/agents/types'
+import type { TaskGraph, WorkspaceContext } from '../src/types'
+import type { WorkflowConfig } from '../src/workflow/config'
 
 const mockState = vi.hoisted(() => {
   return {
-    codexInstances: [] as { options: { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string } }[],
+    callSequence: [] as string[],
+    codexInstances: [] as {
+      options: { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string }
+      provider: ImplementerProvider & ReviewerProvider
+    }[],
+    config: {
+      workflow: {
+        mode: 'direct',
+        roles: {
+          implementer: { provider: 'codex' },
+          reviewer: { provider: 'codex' },
+        },
+      },
+    } as WorkflowConfig,
+    workflowConfigError: null as Error | null,
+    workflowConfigCalls: [] as string[],
     runWorkflowCalls: [] as unknown[],
     graph: {
       featureId: '001-demo',
       tasks: [],
-    } as { featureId: string, tasks: unknown[] },
+    } as TaskGraph,
     runtime: {
       store: {},
       verifier: {},
@@ -18,69 +35,90 @@ const mockState = vi.hoisted(() => {
       git: {
         requireCleanWorktree: vi.fn(async () => {}),
       },
-    },
+    } as unknown as OrchestratorRuntime,
+  }
+})
+
+vi.mock('../src/workflow/config', () => {
+  return {
+    loadWorkflowConfig: vi.fn(async (workspaceRoot: string) => {
+      mockState.workflowConfigCalls.push(workspaceRoot)
+      mockState.callSequence.push('config')
+      if (mockState.workflowConfigError) {
+        throw mockState.workflowConfigError
+      }
+      return mockState.config
+    }),
   }
 })
 
 vi.mock('../src/agents/codex', () => {
   return {
-    CodexAgentClient: class MockCodexAgentClient implements AgentClient {
-      public readonly name = 'codex'
-
-      public constructor(public readonly options: { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string }) {
-        mockState.codexInstances.push({ options })
+    createCodexProvider: vi.fn((options: { onEvent?: (event: { item?: { type?: string }, type: string }) => void, workspaceRoot: string }) => {
+      const provider: ImplementerProvider & ReviewerProvider = {
+        name: 'codex',
+        async implement() {
+          return {
+            assumptions: [],
+            changedFiles: [],
+            needsHumanAttention: false,
+            notes: [],
+            requestedAdditionalPaths: [],
+            status: 'implemented' as const,
+            summary: 'unused',
+            taskId: 'T001',
+            unresolvedItems: [],
+          }
+        },
+        async review() {
+          return {
+            changedFilesReviewed: [],
+            findings: [],
+            overallRisk: 'low' as const,
+            summary: 'unused',
+            taskId: 'T001',
+            verdict: 'pass' as const,
+            acceptanceChecks: [
+              {
+                criterion: 'unused',
+                note: 'unused',
+                status: 'pass' as const,
+              },
+            ],
+          }
+        },
       }
-
-      public async implement() {
-        return {
-          assumptions: [],
-          changedFiles: [],
-          needsHumanAttention: false,
-          notes: [],
-          requestedAdditionalPaths: [],
-          status: 'implemented' as const,
-          summary: 'unused',
-          taskId: 'T001',
-          unresolvedItems: [],
-        }
-      }
-
-      public async review() {
-        return {
-          changedFilesReviewed: [],
-          findings: [],
-          overallRisk: 'low' as const,
-          summary: 'unused',
-          taskId: 'T001',
-          verdict: 'pass' as const,
-          acceptanceChecks: [
-            {
-              criterion: 'unused',
-              note: 'unused',
-              status: 'pass' as const,
-            },
-          ],
-        }
-      }
-    },
+      mockState.codexInstances.push({
+        options,
+        provider,
+      })
+      return provider
+    }),
   }
 })
 
 vi.mock('../src/core/task-normalizer', () => {
   return {
-    normalizeTaskGraph: vi.fn(async () => mockState.graph),
+    normalizeTaskGraph: vi.fn(async () => {
+      mockState.callSequence.push('graph')
+      return mockState.graph
+    }),
   }
 })
 
 vi.mock('../src/runtime/fs-runtime', () => {
   return {
-    createFsRuntime: vi.fn(() => mockState.runtime),
+    createFsRuntime: vi.fn(() => {
+      mockState.callSequence.push('runtime')
+      return mockState.runtime
+    }),
   }
 })
 
 vi.mock('../src/core/orchestrator', () => {
   return {
     runWorkflow: vi.fn(async (input) => {
+      mockState.callSequence.push('workflow')
       mockState.runWorkflowCalls.push(input)
       return {
         state: {
@@ -100,7 +138,7 @@ vi.mock('../src/core/orchestrator', () => {
   }
 })
 
-const { runCommand } = await import('../src/commands/run')
+const { loadWorkflowExecution, runCommand } = await import('../src/commands/run')
 
 function createContext(): WorkspaceContext {
   return {
@@ -115,11 +153,23 @@ function createContext(): WorkspaceContext {
 }
 
 beforeEach(() => {
+  mockState.callSequence = []
   mockState.codexInstances = []
+  mockState.config = {
+    workflow: {
+      mode: 'direct',
+      roles: {
+        implementer: { provider: 'codex' },
+        reviewer: { provider: 'codex' },
+      },
+    },
+  }
   mockState.runWorkflowCalls = []
+  mockState.workflowConfigError = null
+  mockState.workflowConfigCalls = []
 })
 
-test('runCommand creates default Codex agent and forwards untilTaskId', async () => {
+test('runCommand resolves default Codex workflow and forwards untilTaskId', async () => {
   const context = createContext()
 
   await runCommand(context, {
@@ -133,10 +183,19 @@ test('runCommand creates default Codex agent and forwards untilTaskId', async ()
     graph: mockState.graph,
     runtime: mockState.runtime,
     untilTaskId: 'T002',
+    workflow: {
+      preset: {
+        mode: 'direct',
+      },
+      roles: {
+        implementer: expect.objectContaining({ name: 'codex' }),
+        reviewer: expect.objectContaining({ name: 'codex' }),
+      },
+    },
   })
 })
 
-test('runCommand enables Codex progress callback when verbose is true', async () => {
+test('runCommand enables Codex progress callback on workflow providers when verbose is true', async () => {
   const context = createContext()
   const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
 
@@ -155,24 +214,88 @@ test('runCommand enables Codex progress callback when verbose is true', async ()
   expect(stderr).toHaveBeenCalledWith('[codex] item.completed agent_message\n')
 })
 
-test('runCommand respects an injected agent instead of creating Codex client', async () => {
+test('loadWorkflowExecution rejects claude providers before runtime setup because CLI has no adapter path', async () => {
   const context = createContext()
-  const injectedAgent: AgentClient = {
-    name: 'fake',
-    async implement() {
-      throw new Error('not used in this test')
-    },
-    async review() {
-      throw new Error('not used in this test')
+  mockState.config = {
+    workflow: {
+      mode: 'direct',
+      roles: {
+        implementer: { provider: 'claude' },
+        reviewer: { provider: 'codex' },
+      },
     },
   }
 
-  await runCommand(context, {
-    agent: injectedAgent,
+  await expect(loadWorkflowExecution(context)).rejects.toThrow(/claude provider is not available in cli mode/i)
+
+  expect(mockState.callSequence).toEqual(['config'])
+  expect(mockState.codexInstances).toHaveLength(0)
+  expect(mockState.runWorkflowCalls).toHaveLength(0)
+})
+
+test('loadWorkflowExecution resolves a direct workflow from while.yaml role providers', async () => {
+  const context = createContext()
+
+  const execution = await loadWorkflowExecution(context)
+
+  expect(mockState.codexInstances).toHaveLength(1)
+  expect(execution.workflow).toMatchObject({
+    preset: {
+      mode: 'direct',
+    },
+    roles: {
+      implementer: expect.objectContaining({ name: 'codex' }),
+      reviewer: expect.objectContaining({ name: 'codex' }),
+    },
+  })
+  expect(execution.workflow.roles.implementer).toBe(execution.workflow.roles.reviewer)
+})
+
+test('runCommand loads workflow config before creating runtime', async () => {
+  const context = createContext()
+
+  await runCommand(context)
+
+  expect(mockState.workflowConfigCalls).toEqual(['/tmp'])
+  expect(mockState.callSequence).toEqual(['config', 'runtime', 'graph', 'workflow'])
+})
+
+test('loadWorkflowExecution returns an executable plan with resolved config', async () => {
+  const context = createContext()
+
+  const execution = await loadWorkflowExecution(context, {
+    untilTaskId: 'T003',
   })
 
-  expect(mockState.codexInstances).toHaveLength(0)
-  expect(mockState.runWorkflowCalls[0]).toMatchObject({
-    agent: injectedAgent,
+  expect(execution.config).toEqual(mockState.config)
+  expect(execution.workflow).toMatchObject({
+    preset: {
+      mode: 'direct',
+    },
+    roles: {
+      implementer: expect.objectContaining({ name: 'codex' }),
+      reviewer: expect.objectContaining({ name: 'codex' }),
+    },
   })
+
+  await execution.execute()
+
+  expect(mockState.runWorkflowCalls[0]).toMatchObject({
+    graph: mockState.graph,
+    runtime: mockState.runtime,
+    untilTaskId: 'T003',
+    workflow: execution.workflow,
+  })
+  expect(mockState.runWorkflowCalls[0]).not.toHaveProperty('agent')
+})
+
+test('runCommand short-circuits when workflow config loading fails', async () => {
+  const context = createContext()
+  mockState.workflowConfigError = new Error('bad config')
+
+  await expect(runCommand(context)).rejects.toThrow('bad config')
+
+  expect(mockState.callSequence).toEqual(['config'])
+  expect(mockState.codexInstances).toHaveLength(0)
+  expect(mockState.runWorkflowCalls).toHaveLength(0)
 })

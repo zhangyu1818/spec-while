@@ -214,6 +214,17 @@ export const reviewArtifactSchema = z.object({
   taskId: taskIdSchema,
 }).strict()
 
+export const integrateArtifactSchema = z.object({
+  attempt: z.number().int().min(1),
+  createdAt: dateTimeSchema,
+  generation: z.number().int().min(1),
+  result: z.object({
+    commitSha: nonEmptyStringSchema,
+    summary: nonEmptyStringSchema,
+  }).strict(),
+  taskId: taskIdSchema,
+}).strict()
+
 export const workflowEventSchema = z.object({
   attempt: z.number().int().min(0),
   detail: z.string().optional(),

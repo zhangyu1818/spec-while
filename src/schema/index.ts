@@ -2,6 +2,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import {
   finalReportSchema,
+  integrateArtifactSchema,
   implementArtifactSchema,
   implementOutputSchemaInternal,
   reviewArtifactSchema,
@@ -62,6 +63,10 @@ export function validateImplementArtifact(value: unknown) {
   return parseWithSchema(implementArtifactSchema, value)
 }
 
+export function validateIntegrateArtifact(value: unknown) {
+  return parseWithSchema(integrateArtifactSchema, value)
+}
+
 export function validateVerifyArtifact(value: unknown) {
   return parseWithSchema(verifyArtifactSchema, value)
 }
@@ -83,6 +88,7 @@ export type BlockedTaskState = typeof import('./model').blockedTaskStateSchema['
 export type DoneTaskState = typeof import('./model').doneTaskStateSchema['_output']
 export type FinalReport = typeof finalReportSchema['_output']
 export type FinalReportTask = typeof import('./model').finalReportTaskSchema['_output']
+export type IntegrateArtifact = typeof integrateArtifactSchema['_output']
 export type ImplementArtifact = typeof implementArtifactSchema['_output']
 export type ImplementOutput = typeof implementOutputSchemaInternal['_output']
 export type PendingTaskState = typeof import('./model').pendingTaskStateSchema['_output']

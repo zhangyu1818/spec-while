@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import {
   validateFinalReport,
+  validateIntegrateArtifact,
   validateImplementArtifact,
   validateReviewArtifact,
   validateTaskGraph,
@@ -97,6 +98,11 @@ export function createFsRuntime(input: { featureDir: string, workspaceRoot: stri
       },
       async saveGraph(graph) {
         await writeJsonAtomic(runtimePaths.graph, validateTaskGraph(graph))
+      },
+      async saveIntegrateArtifact(artifact) {
+        const value = validateIntegrateArtifact(artifact)
+        const targetPath = path.join(createArtifactDir(input.featureDir, artifact.taskId, artifact.generation, artifact.attempt), 'integrate.json')
+        await writeJsonAtomic(targetPath, value)
       },
       async saveImplementArtifact(artifact) {
         const value = validateImplementArtifact(artifact)

@@ -1,6 +1,7 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 
-import { CodexAgentClient, type CodexClientLike } from '../src/agents/codex'
+import { CodexAgentClient, createCodexProvider, type CodexClientLike } from '../src/agents/codex'
+import type { ImplementerProvider, ReviewerProvider } from '../src/agents/types'
 
 const mockState = vi.hoisted(() => {
   return {
@@ -298,4 +299,57 @@ test('CodexAgentClient streams events when progress callback is enabled', async 
   expect(runStreamedCallCount).toBe(1)
   expect(seenEvents).toEqual(['thread.started', 'turn.started', 'item.completed', 'turn.completed'])
   expect(result.taskId).toBe('T001')
+})
+
+test('createCodexProvider returns a role-scoped codex provider', async () => {
+  mockState.client = {
+    startThread() {
+      return {
+        async run() {
+          return {
+            finalResponse: JSON.stringify({
+              assumptions: [],
+              changedFiles: ['src/a.ts'],
+              needsHumanAttention: false,
+              notes: [],
+              requestedAdditionalPaths: [],
+              status: 'implemented',
+              summary: 'ok',
+              taskId: 'T001',
+              unresolvedItems: [],
+            }),
+          }
+        },
+      }
+    },
+  }
+
+  const provider: ImplementerProvider & ReviewerProvider = createCodexProvider({
+    workspaceRoot: '/tmp/project',
+  })
+
+  const implement = await provider.implement({
+    attempt: 1,
+    codeContext: '',
+    generation: 1,
+    lastFindings: [],
+    plan: '# plan',
+    spec: '# spec',
+    tasksSnippet: '- [ ] T001 Do work',
+    task: {
+      id: 'T001',
+      acceptance: ['works'],
+      dependsOn: [],
+      maxAttempts: 2,
+      parallelizable: false,
+      paths: ['src/a.ts'],
+      phase: 'Core',
+      reviewRubric: ['clear'],
+      title: 'Do work',
+      verifyCommands: ['node -e "process.exit(0)"'],
+    },
+  })
+
+  expect(provider.name).toBe('codex')
+  expect(implement.taskId).toBe('T001')
 })

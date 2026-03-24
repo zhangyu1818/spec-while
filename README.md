@@ -2,7 +2,7 @@
 
 `spec-while` is a git-first task orchestrator for Spec Kit workspaces.
 
-It reads `spec.md`, `plan.md`, and `tasks.md`, executes one task at a time with an agent, runs optional verify commands, reviews the result, and creates one git commit per completed task.
+It reads workflow settings from `while.yaml`, consumes `spec.md`, `plan.md`, and `tasks.md`, executes one task at a time, runs optional verify commands, reviews the result, integrates approved work, and creates one git commit per completed task.
 
 ## Requirements
 
@@ -22,6 +22,24 @@ Run it with:
 ```bash
 pnpm exec spec-while run
 ```
+
+## Configuration
+
+`while.yaml` is the only public workflow configuration entry. When it is absent, the CLI runs `workflow.mode: direct` with `codex` for both roles.
+
+```yaml
+workflow:
+  mode: direct
+  roles:
+    implementer:
+      provider: codex
+    reviewer:
+      provider: codex
+```
+
+Current status:
+
+- `workflow.mode: direct` is implemented
 
 ## Commands
 
@@ -54,10 +72,10 @@ pnpm exec spec-while rewind --workspace /path/to/workspace --feature 001-demo --
 
 Each task follows this lifecycle:
 
-1. The implement agent receives the current task plus `spec.md`, `plan.md`, `tasksSnippet`, and scoped code context.
+1. The implement role receives the current task plus `spec.md`, `plan.md`, `tasksSnippet`, and scoped code context.
 2. Optional verify commands run.
-3. The review agent evaluates acceptance, spec/plan alignment, verify results, changed files, and overall risk.
-4. If the task passes, `spec-while` updates `tasks.md`, creates a git commit, and only then marks the task as `done`.
+3. The reviewer evaluates acceptance, spec/plan alignment, verify results, changed files, and overall risk.
+4. If review is approved, `spec-while` updates `tasks.md`, creates a git commit, marks the task as `done`, and records integrate artifacts under `.while`.
 
 Completion is git-first:
 
@@ -124,6 +142,7 @@ Important files:
 - `tasks/<taskId>/g<generation>/a<attempt>/implement.json`
 - `tasks/<taskId>/g<generation>/a<attempt>/verify.json`
 - `tasks/<taskId>/g<generation>/a<attempt>/review.json`
+- `tasks/<taskId>/g<generation>/a<attempt>/integrate.json`
 
 ## Publishing
 

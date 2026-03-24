@@ -1,5 +1,6 @@
 import type {
   FinalReport,
+  IntegrateArtifact,
   ImplementArtifact,
   ReviewArtifact,
   TaskContext,
@@ -18,6 +19,7 @@ export interface WorkflowStore {
   readReport: () => Promise<FinalReport | null>
   reset: () => Promise<void>
   saveGraph: (graph: TaskGraph) => Promise<void>
+  saveIntegrateArtifact: (artifact: IntegrateArtifact) => Promise<void>
   saveImplementArtifact: (artifact: ImplementArtifact) => Promise<void>
   saveReport: (report: FinalReport) => Promise<void>
   saveReviewArtifact: (artifact: ReviewArtifact) => Promise<void>

@@ -1,23 +1,24 @@
 import { expect, test } from 'vitest'
 
 import { runWorkflow } from '../src/core/orchestrator'
-import { createGraph, createImplement, createReview, createRuntime, createVerify, FakeAgentClient } from './workflow-test-helpers'
+import { createGraph, createImplement, createReview, createRuntime, createVerify, createWorkflow, ScriptedWorkflowProvider } from './workflow-test-helpers'
 
 test('runWorkflow finalizes tasks, commits each done task, and records commitSha in artifacts', async () => {
   const graph = createGraph()
   const { git, runtime, store, workspace } = createRuntime()
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts'), createImplement('T002', 'src/farewell.ts')],
     [createReview('T001', 'buildGreeting works'), createReview('T002', 'buildFarewell works')],
   )
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow: createWorkflow(provider),
   })
 
   expect(result.summary.finalStatus).toBe('completed')
+  expect(store.integrateArtifacts).toHaveLength(2)
   expect(store.implementArtifacts).toHaveLength(2)
   expect(store.verifyArtifacts).toHaveLength(2)
   expect(store.reviewArtifacts).toHaveLength(2)
@@ -31,6 +32,7 @@ test('runWorkflow finalizes tasks, commits each done task, and records commitSha
   ])
   expect(store.state?.tasks.T001).toMatchObject({ commitSha: 'commit-1', status: 'done' })
   expect(store.state?.tasks.T002).toMatchObject({ commitSha: 'commit-2', status: 'done' })
+  expect(store.integrateArtifacts[0]).toMatchObject({ result: { commitSha: 'commit-1' } })
   expect(store.implementArtifacts[0]).toMatchObject({ commitSha: 'commit-1' })
   expect(store.verifyArtifacts[1]).toMatchObject({ commitSha: 'commit-2' })
 })
@@ -54,21 +56,21 @@ test('runWorkflow loads per-task context and passes git-based changed files into
       },
     },
   })
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts'), createImplement('T002', 'src/farewell.ts')],
     [createReview('T001', 'buildGreeting works'), createReview('T002', 'buildFarewell works')],
   )
 
   await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow: createWorkflow(provider),
   })
 
-  expect(agent.implementInputs[0]?.codeContext).toContain('src/greeting.ts')
-  expect(agent.implementInputs[1]?.codeContext).toContain('src/farewell.ts')
-  expect(agent.reviewInputs[0]?.actualChangedFiles).toEqual(['src/greeting.ts'])
-  expect(agent.reviewInputs[1]?.actualChangedFiles).toEqual(['src/farewell.ts'])
+  expect(provider.implementInputs[0]?.codeContext).toContain('src/greeting.ts')
+  expect(provider.implementInputs[1]?.codeContext).toContain('src/farewell.ts')
+  expect(provider.reviewInputs[0]?.actualChangedFiles).toEqual(['src/greeting.ts'])
+  expect(provider.reviewInputs[1]?.actualChangedFiles).toEqual(['src/farewell.ts'])
 })
 
 test('runWorkflow carries review findings into the next implement attempt', async () => {
@@ -87,7 +89,7 @@ test('runWorkflow carries review findings into the next implement attempt', asyn
   const { runtime } = createRuntime({
     verifierResponses: [createVerify('T001', true), createVerify('T001', true)],
   })
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts'), createImplement('T001', 'src/greeting.ts')],
     [
       {
@@ -110,14 +112,14 @@ test('runWorkflow carries review findings into the next implement attempt', asyn
   )
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow: createWorkflow(provider),
   })
 
   expect(result.state.tasks.T001).toMatchObject({ status: 'done' })
-  expect(agent.implementInputs[0]?.lastFindings).toEqual([])
-  expect(agent.implementInputs[1]?.lastFindings).toEqual(findings)
+  expect(provider.implementInputs[0]?.lastFindings).toEqual([])
+  expect(provider.implementInputs[1]?.lastFindings).toEqual(findings)
 })
 
 test('runWorkflow resumes a persisted rework task with its last findings', async () => {
@@ -151,19 +153,19 @@ test('runWorkflow resumes a persisted rework task with its last findings', async
       },
     },
   }
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [createReview('T001', 'buildGreeting works')],
   )
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow: createWorkflow(provider),
   })
 
   expect(result.state.tasks.T001).toMatchObject({ attempt: 2, status: 'done' })
-  expect(agent.implementInputs[0]?.lastFindings).toEqual(findings)
+  expect(provider.implementInputs[0]?.lastFindings).toEqual(findings)
 })
 
 test('runWorkflow still reviews failed verify results before later retries', async () => {
@@ -174,19 +176,19 @@ test('runWorkflow still reviews failed verify results before later retries', asy
   const { runtime, store } = createRuntime({
     verifierResponses: [createVerify('T001', false), createVerify('T001', true)],
   })
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts'), createImplement('T001', 'src/greeting.ts')],
     [createReview('T001', 'buildGreeting works', 'rework'), createReview('T001', 'buildGreeting works')],
   )
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow: createWorkflow(provider),
   })
 
-  expect(agent.reviewInputs).toHaveLength(2)
-  expect(agent.reviewInputs[0]?.verify.passed).toBe(false)
+  expect(provider.reviewInputs).toHaveLength(2)
+  expect(provider.reviewInputs[0]?.verify.passed).toBe(false)
   expect(result.state.tasks.T001).toMatchObject({ status: 'done' })
   expect(store.report?.tasks[0]?.lastVerifyPassed).toBe(true)
 })
@@ -194,19 +196,19 @@ test('runWorkflow still reviews failed verify results before later retries', asy
 test('runWorkflow retries after implement failure and keeps downstream tasks pending until the target succeeds', async () => {
   const graph = createGraph()
   const { runtime, store } = createRuntime()
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [new Error('implement crashed'), createImplement('T001', 'src/greeting.ts'), createImplement('T002', 'src/farewell.ts')],
     [createReview('T001', 'buildGreeting works'), createReview('T002', 'buildFarewell works')],
   )
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow: createWorkflow(provider),
   })
 
   expect(result.summary.finalStatus).toBe('completed')
-  expect(agent.implementInputs).toHaveLength(3)
+  expect(provider.implementInputs).toHaveLength(3)
   expect(store.events.some((event) => event.type === 'implement_failed')).toBe(true)
 })
 
@@ -231,15 +233,15 @@ test('runWorkflow records verifier execution failures and blocks when max attemp
   const { runtime, store } = createRuntime({
     verifierResponses: [new Error('verify subprocess failed')],
   })
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [],
   )
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow: createWorkflow(provider),
   })
 
   expect(result.state.tasks.T001).toMatchObject({
@@ -253,16 +255,16 @@ test('runWorkflow records verifier execution failures and blocks when max attemp
 test('runWorkflow stops after untilTaskId completes and leaves downstream tasks untouched', async () => {
   const graph = createGraph()
   const { runtime, store, workspace } = createRuntime()
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [createReview('T001', 'buildGreeting works')],
   )
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
     untilTaskId: 'T001',
+    workflow: createWorkflow(provider),
   })
 
   expect(result.state.tasks.T001).toMatchObject({ status: 'done' })
@@ -297,18 +299,18 @@ test('runWorkflow returns immediately when untilTaskId is already completed in p
       },
     },
   }
-  const agent = new FakeAgentClient([], [])
+  const provider = new ScriptedWorkflowProvider([], [])
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
     untilTaskId: 'T001',
+    workflow: createWorkflow(provider),
   })
 
   expect(result.summary.finalStatus).toBe('in_progress')
   expect(result.state.tasks.T001).toMatchObject({ status: 'done' })
   expect(result.state.tasks.T002).toMatchObject({ status: 'pending' })
-  expect(agent.implementInputs).toEqual([])
-  expect(agent.reviewInputs).toEqual([])
+  expect(provider.implementInputs).toEqual([])
+  expect(provider.reviewInputs).toEqual([])
 })

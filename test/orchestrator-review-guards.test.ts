@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 
 import { runWorkflow } from '../src/core/orchestrator'
-import { createImplement, createReview, createRuntime, createVerify, FakeAgentClient } from './workflow-test-helpers'
+import { createImplement, createReview, createRuntime, createVerify, createWorkflow, ScriptedWorkflowProvider } from './workflow-test-helpers'
 
 test('runWorkflow stops scheduling after a task blocks the workflow', async () => {
   const graph = {
@@ -37,15 +37,16 @@ test('runWorkflow stops scheduling after a task blocks the workflow', async () =
     changedFiles: [['src/greeting.ts'], ['src/farewell.ts']],
     verifierResponses: [createVerify('T001', true), createVerify('T002', true)],
   })
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts'), createImplement('T002', 'src/farewell.ts')],
     [createReview('T001', 'buildGreeting works', 'blocked'), createReview('T002', 'buildFarewell works')],
   )
+  const workflow = createWorkflow(provider)
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow,
   })
 
   expect(result.summary.finalStatus).toBe('blocked')
@@ -56,7 +57,7 @@ test('runWorkflow stops scheduling after a task blocks the workflow', async () =
   expect(result.state.tasks.T002).toMatchObject({
     status: 'pending',
   })
-  expect(agent.implementInputs).toHaveLength(1)
+  expect(provider.implementInputs).toHaveLength(1)
   expect(git.commitMessages).toEqual([])
 })
 
@@ -81,15 +82,16 @@ test('runWorkflow rejects review outputs whose taskId does not match the current
   const { git, runtime, store } = createRuntime({
     verifierResponses: [createVerify('T001', true)],
   })
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [createReview('T999', 'buildGreeting works')],
   )
+  const workflow = createWorkflow(provider)
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow,
   })
 
   expect(result.summary.finalStatus).toBe('blocked')
@@ -122,15 +124,16 @@ test('runWorkflow rejects implement outputs whose taskId does not match the curr
   const { git, runtime, store } = createRuntime({
     verifierResponses: [createVerify('T001', true)],
   })
-  const agent = new FakeAgentClient(
+  const provider = new ScriptedWorkflowProvider(
     [createImplement('T999', 'src/greeting.ts')],
     [createReview('T001', 'buildGreeting works')],
   )
+  const workflow = createWorkflow(provider)
 
   const result = await runWorkflow({
-    agent,
     graph,
     runtime,
+    workflow,
   })
 
   expect(result.summary.finalStatus).toBe('blocked')
@@ -139,6 +142,6 @@ test('runWorkflow rejects implement outputs whose taskId does not match the curr
     status: 'blocked',
   })
   expect(store.implementArtifacts).toHaveLength(0)
-  expect(agent.reviewInputs).toHaveLength(0)
+  expect(provider.reviewInputs).toHaveLength(0)
   expect(git.commitMessages).toEqual([])
 })

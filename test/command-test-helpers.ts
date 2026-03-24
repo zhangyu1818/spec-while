@@ -4,19 +4,19 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 
-import type { AgentClient, ImplementAgentInput, ReviewAgentInput } from '../src/agents/types'
+import type { ImplementAgentInput, ImplementerProvider, ReviewAgentInput, ReviewerProvider } from '../src/agents/types'
 import type { WorkspaceContext } from '../src/types'
 
 const execFileAsync = promisify(execFile)
 
-export class ScriptedAgentClient implements AgentClient {
+export class ScriptedWorkflowProvider implements ImplementerProvider, ReviewerProvider {
   public readonly implementInputs: ImplementAgentInput[] = []
   public readonly name = 'scripted'
   public readonly reviewInputs: ReviewAgentInput[] = []
 
   public constructor(
     private readonly implementHandler: (input: ImplementAgentInput) => Promise<void>,
-    private readonly reviewHandler: (input: ReviewAgentInput) => Promise<Awaited<ReturnType<AgentClient['review']>>>,
+    private readonly reviewHandler: (input: ReviewAgentInput) => Promise<Awaited<ReturnType<ReviewerProvider['review']>>>,
   ) {}
 
   public async implement(input: ImplementAgentInput) {
@@ -83,6 +83,16 @@ export async function createWorkspace(input?: {
   await mkdir(featureDir, { recursive: true })
   await mkdir(path.join(root, 'src'), { recursive: true })
   await writeFile(path.join(root, '.gitignore'), '.while\n')
+  await writeFile(path.join(root, 'while.yaml'), [
+    'workflow:',
+    '  mode: direct',
+    '  roles:',
+    '    implementer:',
+    '      provider: codex',
+    '    reviewer:',
+    '      provider: codex',
+    '',
+  ].join('\n'))
   await writeFile(path.join(root, 'src', 'greeting.js'), 'exports.buildGreeting = () => "broken"\n')
   await writeFile(path.join(root, 'src', 'farewell.js'), 'exports.buildFarewell = () => "broken"\n')
   await writeFile(path.join(root, 'src', 'shared.js'), 'exports.shared = "base"\n')
