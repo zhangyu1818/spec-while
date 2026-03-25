@@ -140,7 +140,7 @@ export interface GitHubPort {
   squashMergePullRequest: (input: {
     pullRequestNumber: number
     subject: string
-  }) => Promise<void>
+  }) => Promise<{ commitSha: string }>
 }
 
 export interface Verifier {

@@ -155,3 +155,31 @@ test('PullRequestSnapshot no longer exposes reviewComments', () => {
 
   expectTypeOf<SnapshotHasReviewComments>().toEqualTypeOf<false>()
 })
+
+test('GitHubRuntime merges pull requests via API and returns the merge commit sha', async () => {
+  const runGh = vi.fn(async () =>
+    JSON.stringify({
+      merged: true,
+      message: 'Pull Request successfully merged',
+      sha: 'merged-sha',
+    }),
+  )
+  const runtime = new GitHubRuntime('/tmp/workspace', runGh, 'acme/repo')
+
+  const result = await runtime.squashMergePullRequest({
+    pullRequestNumber: 12,
+    subject: 'Task T001: Do work',
+  })
+
+  expect(result).toEqual({ commitSha: 'merged-sha' })
+  expect(runGh).toHaveBeenCalledWith([
+    'api',
+    'repos/acme/repo/pulls/12/merge',
+    '--method',
+    'PUT',
+    '-f',
+    'merge_method=squash',
+    '-f',
+    'commit_title=Task T001: Do work',
+  ])
+})

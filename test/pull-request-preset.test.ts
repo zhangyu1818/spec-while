@@ -63,7 +63,7 @@ test('pull-request preset creates or reuses a PR and polls until approval', asyn
   }
   const github = {
     findOpenPullRequestByHeadBranch: vi.fn().mockResolvedValueOnce(null),
-    squashMergePullRequest: vi.fn(async () => {}),
+    squashMergePullRequest: vi.fn(async () => ({ commitSha: 'merged-sha' })),
     createPullRequest: vi.fn(async () => ({
       number: 12,
       title: 'Task T001: Implement greeting',
@@ -152,7 +152,7 @@ test('pull-request preset restores a missing local task branch from origin when 
   }
   const github = {
     getPullRequestSnapshot: vi.fn(async () => createSnapshot()),
-    squashMergePullRequest: vi.fn(async () => {}),
+    squashMergePullRequest: vi.fn(async () => ({ commitSha: 'merged-sha' })),
     createPullRequest: vi.fn(async () => ({
       number: 12,
       title: 'Task T001: Implement greeting',

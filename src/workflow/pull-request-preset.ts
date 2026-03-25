@@ -116,6 +116,47 @@ async function waitForRemoteReview(input: {
   }
 }
 
+function toLocalCleanupWarning(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+async function cleanupAfterMerge(input: {
+  branchName: string
+  runtime: OrchestratorRuntime
+}) {
+  const warnings: string[] = []
+  let onBaseBranch = false
+
+  try {
+    await input.runtime.git.checkoutBranch(DEFAULT_BASE_BRANCH)
+    onBaseBranch = true
+  } catch (error) {
+    warnings.push(
+      `checkout ${DEFAULT_BASE_BRANCH} failed: ${toLocalCleanupWarning(error)}`,
+    )
+  }
+
+  if (!onBaseBranch) {
+    return warnings
+  }
+
+  try {
+    await input.runtime.git.pullFastForward(DEFAULT_BASE_BRANCH)
+  } catch (error) {
+    warnings.push(
+      `pull ${DEFAULT_BASE_BRANCH} failed: ${toLocalCleanupWarning(error)}`,
+    )
+  }
+
+  try {
+    await input.runtime.git.deleteLocalBranch(input.branchName)
+  } catch (error) {
+    warnings.push(`delete local branch failed: ${toLocalCleanupWarning(error)}`)
+  }
+
+  return warnings
+}
+
 export function createPullRequestWorkflowPreset(input: {
   reviewer: RemoteReviewerProvider
   sleep?: (ms: number) => Promise<void>
@@ -153,20 +194,23 @@ export function createPullRequestWorkflowPreset(input: {
         })
       }
       await context.runtime.git.pushBranch(branchName)
-      await context.runtime.github.squashMergePullRequest({
+      const mergeResult = await context.runtime.github.squashMergePullRequest({
         pullRequestNumber: pullRequest.number,
         subject: context.commitMessage,
       })
-      await context.runtime.git.checkoutBranch(DEFAULT_BASE_BRANCH)
-      await context.runtime.git.pullFastForward(DEFAULT_BASE_BRANCH)
-      const commitSha = await context.runtime.git.getHeadSha()
-      await context.runtime.git.deleteLocalBranch(branchName)
+      const warnings = await cleanupAfterMerge({
+        branchName,
+        runtime: context.runtime,
+      })
 
       return {
         kind: 'completed',
         result: {
-          commitSha,
-          summary: 'integrated',
+          commitSha: mergeResult.commitSha,
+          summary:
+            warnings.length === 0
+              ? 'integrated'
+              : `integrated; local cleanup warning: ${warnings.join('; ')}`,
         },
       }
     },

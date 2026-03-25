@@ -134,13 +134,21 @@ export class GitHubRuntime implements GitHubPort {
     pullRequestNumber: number
     subject: string
   }) {
-    await this.runGh([
-      'pr',
-      'merge',
-      String(input.pullRequestNumber),
-      '--squash',
-      '--subject',
-      input.subject,
-    ])
+    const repo = await this.resolveRepo()
+    const commitSha = asString(
+      JSON.parse(
+        await this.runGh([
+          'api',
+          `repos/${repo}/pulls/${input.pullRequestNumber}/merge`,
+          '--method',
+          'PUT',
+          '-f',
+          'merge_method=squash',
+          '-f',
+          `commit_title=${input.subject}`,
+        ]),
+      ).sha,
+    )
+    return { commitSha }
   }
 }

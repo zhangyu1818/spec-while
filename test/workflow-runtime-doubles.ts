@@ -161,7 +161,9 @@ export class FakeGitHub implements GitHubPort {
     }
   }
 
-  public async squashMergePullRequest() {}
+  public async squashMergePullRequest() {
+    return { commitSha: 'merged-sha' }
+  }
 }
 
 export class InMemoryStore implements WorkflowStore {

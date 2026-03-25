@@ -92,6 +92,9 @@ function requirePageInfo(value: unknown, label: string) {
   if (typeof record.hasNextPage !== 'boolean') {
     throw invalidGraphQLError(`${label}.pageInfo.hasNextPage`)
   }
+  if (record.hasNextPage && typeof record.endCursor !== 'string') {
+    throw invalidGraphQLError(`${label}.pageInfo.endCursor`)
+  }
   return {
     endCursor: record.endCursor,
     hasNextPage: record.hasNextPage,

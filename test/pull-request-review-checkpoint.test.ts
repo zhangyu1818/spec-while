@@ -57,7 +57,7 @@ test('pull-request preset creates a fresh checkpoint commit on the first review 
   const github = {
     findOpenPullRequestByHeadBranch: vi.fn(async () => null),
     getPullRequestSnapshot: vi.fn(async () => createSnapshot()),
-    squashMergePullRequest: vi.fn(async () => {}),
+    squashMergePullRequest: vi.fn(async () => ({ commitSha: 'merged-sha' })),
     createPullRequest: vi.fn(async () => ({
       number: 12,
       title: 'Task T001: Implement greeting',
@@ -138,7 +138,7 @@ test('pull-request preset reuses the head checkpoint for the same review attempt
   }
   const github = {
     getPullRequestSnapshot: vi.fn(async () => createSnapshot()),
-    squashMergePullRequest: vi.fn(async () => {}),
+    squashMergePullRequest: vi.fn(async () => ({ commitSha: 'merged-sha' })),
     createPullRequest: vi.fn(async () => ({
       number: 12,
       title: 'Task T001: Implement greeting',

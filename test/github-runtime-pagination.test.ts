@@ -1,6 +1,7 @@
 import { expect, test, vi } from 'vitest'
 
 import { GitHubRuntime } from '../src/runtime/github'
+import { parseSnapshotPage } from '../src/runtime/github-pr-snapshot-decode'
 import {
   createPullRequestConnectionPage,
   createThreadCommentsPage,
@@ -69,6 +70,35 @@ test('GitHubRuntime fails fast when repository.pullRequest is missing', async ()
       pullRequestNumber: 12,
     }),
   ).rejects.toThrow(/missing graphql node: repository\.pullRequest/i)
+})
+
+test('parseSnapshotPage rejects pageInfo that reports hasNextPage without an endCursor', () => {
+  expect(() =>
+    parseSnapshotPage(
+      JSON.stringify({
+        data: {
+          repository: {
+            pullRequest: {
+              comments: {
+                nodes: [],
+                pageInfo: {
+                  endCursor: null,
+                  hasNextPage: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      {
+        comments: true,
+        files: false,
+        reactions: false,
+        reviews: false,
+        reviewThreads: false,
+      },
+    ),
+  ).toThrow(/comments\.pageInfo\.endCursor/i)
 })
 
 test('GitHubRuntime paginates all top-level GraphQL connections', async () => {

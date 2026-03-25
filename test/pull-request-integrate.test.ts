@@ -52,7 +52,7 @@ test('pull-request preset finalizes and squashes an approved task branch', async
   }
   const github = {
     getPullRequestSnapshot: vi.fn(async () => createSnapshot()),
-    squashMergePullRequest: vi.fn(async () => {}),
+    squashMergePullRequest: vi.fn(async () => ({ commitSha: 'merged-sha' })),
     createPullRequest: vi.fn(async () => ({
       number: 12,
       title: 'Task T001: Implement greeting',
@@ -133,7 +133,7 @@ test('pull-request preset restores a missing local task branch from origin durin
   }
   const github = {
     getPullRequestSnapshot: vi.fn(async () => createSnapshot()),
-    squashMergePullRequest: vi.fn(async () => {}),
+    squashMergePullRequest: vi.fn(async () => ({ commitSha: 'merged-sha' })),
     createPullRequest: vi.fn(async () => ({
       number: 12,
       title: 'Task T001: Implement greeting',
@@ -200,7 +200,7 @@ test('pull-request integrate rolls back the task checkbox when finalize commit f
   }
   const github = {
     getPullRequestSnapshot: vi.fn(async () => createSnapshot()),
-    squashMergePullRequest: vi.fn(async () => {}),
+    squashMergePullRequest: vi.fn(async () => ({ commitSha: 'merged-sha' })),
     createPullRequest: vi.fn(async () => ({
       number: 12,
       title: 'Task T001: Implement greeting',
