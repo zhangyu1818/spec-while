@@ -157,6 +157,15 @@ async function cleanupAfterMerge(input: {
   return warnings
 }
 
+function summarizeIntegrateResult(input: {
+  status: 'already integrated' | 'integrated'
+  warnings: string[]
+}) {
+  return input.warnings.length === 0
+    ? input.status
+    : `${input.status}; local cleanup warning: ${input.warnings.join('; ')}`
+}
+
 export function createPullRequestWorkflowPreset(input: {
   reviewer: RemoteReviewerProvider
   sleep?: (ms: number) => Promise<void>
@@ -173,12 +182,34 @@ export function createPullRequestWorkflowPreset(input: {
     mode: 'pull-request',
     async integrate(context): Promise<IntegratePhaseResult> {
       const branchName = toTaskBranchName(context.commitMessage)
-      const pullRequest =
+      const openPullRequest =
         await context.runtime.github.findOpenPullRequestByHeadBranch({
           headBranch: branchName,
         })
-      if (!pullRequest) {
-        throw new Error(`Missing open pull request for branch ${branchName}`)
+      if (!openPullRequest) {
+        const mergedPullRequest =
+          await context.runtime.github.findMergedPullRequestByHeadBranch({
+            headBranch: branchName,
+          })
+        if (!mergedPullRequest) {
+          throw new Error(
+            `Missing open or merged pull request for branch ${branchName}`,
+          )
+        }
+        const warnings = await cleanupAfterMerge({
+          branchName,
+          runtime: context.runtime,
+        })
+        return {
+          kind: 'completed',
+          result: {
+            commitSha: mergedPullRequest.mergeCommitSha,
+            summary: summarizeIntegrateResult({
+              status: 'already integrated',
+              warnings,
+            }),
+          },
+        }
       }
 
       await ensureTaskBranch({
@@ -195,7 +226,7 @@ export function createPullRequestWorkflowPreset(input: {
       }
       await context.runtime.git.pushBranch(branchName)
       const mergeResult = await context.runtime.github.squashMergePullRequest({
-        pullRequestNumber: pullRequest.number,
+        pullRequestNumber: openPullRequest.number,
         subject: context.commitMessage,
       })
       const warnings = await cleanupAfterMerge({
@@ -207,10 +238,10 @@ export function createPullRequestWorkflowPreset(input: {
         kind: 'completed',
         result: {
           commitSha: mergeResult.commitSha,
-          summary:
-            warnings.length === 0
-              ? 'integrated'
-              : `integrated; local cleanup warning: ${warnings.join('; ')}`,
+          summary: summarizeIntegrateResult({
+            status: 'integrated',
+            warnings,
+          }),
         },
       }
     },

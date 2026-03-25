@@ -98,7 +98,7 @@ In `pull-request` mode:
 - review polls every minute with no default timeout
 - review evaluates approval from a fully paginated live GraphQL PR snapshot
 - approval is driven by the freshest `chatgpt-codex-connector[bot]` signal after the checkpoint commit
-- process restart re-enters `review` and keeps polling the same PR
+- process restart re-enters `review` or `integrate` and continues the same PR flow
 - integrate checks `tasks.md`, creates the final `Task <taskId>: <title>` commit when needed, squash-merges, returns to `main`, and deletes the local task branch
 
 Completion is git-first:

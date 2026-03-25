@@ -122,6 +122,23 @@ export function createFsRuntime(input: {
         }
         return validateImplementArtifact(JSON.parse(raw))
       },
+      async loadReviewArtifact(key) {
+        const raw = await readTextIfExists(
+          path.join(
+            createArtifactDir(
+              input.featureDir,
+              key.taskId,
+              key.generation,
+              key.attempt,
+            ),
+            'review.json',
+          ),
+        )
+        if (!raw) {
+          return null
+        }
+        return validateReviewArtifact(JSON.parse(raw))
+      },
       async loadState() {
         const raw = await readTextIfExists(runtimePaths.state)
         if (!raw) {

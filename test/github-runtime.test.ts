@@ -52,6 +52,43 @@ test('GitHubRuntime returns null when no open pull request matches the head bran
   ).resolves.toBeNull()
 })
 
+test('GitHubRuntime finds a merged pull request by head branch and returns its merge commit sha', async () => {
+  const runGh = vi.fn(async () =>
+    JSON.stringify([
+      {
+        number: 12,
+        title: 'Task T001: Do work',
+        url: 'https://github.com/acme/repo/pull/12',
+        mergeCommit: {
+          oid: 'merged-sha',
+        },
+      },
+    ]),
+  )
+  const runtime = new GitHubRuntime('/tmp/workspace', runGh, 'acme/repo')
+
+  const result = await runtime.findMergedPullRequestByHeadBranch({
+    headBranch: 'task/t001-do-work',
+  })
+
+  expect(result).toEqual({
+    mergeCommitSha: 'merged-sha',
+    number: 12,
+    title: 'Task T001: Do work',
+    url: 'https://github.com/acme/repo/pull/12',
+  })
+  expect(runGh).toHaveBeenCalledWith([
+    'pr',
+    'list',
+    '--head',
+    'task/t001-do-work',
+    '--state',
+    'merged',
+    '--json',
+    'number,title,url,mergeCommit',
+  ])
+})
+
 test('GitHubRuntime builds a pull request snapshot from GraphQL responses only', async () => {
   const runGh = vi.fn().mockResolvedValueOnce(
     createPullRequestConnectionPage({

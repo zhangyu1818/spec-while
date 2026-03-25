@@ -1,7 +1,7 @@
 import { createDirectWorkflowPreset } from '../src/workflow/direct-preset'
+import { FakeGitHub } from './workflow-github-double'
 import {
   FakeGit,
-  FakeGitHub,
   FakeVerifier,
   InMemoryStore,
   InMemoryWorkspace,

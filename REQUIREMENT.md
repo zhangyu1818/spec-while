@@ -170,8 +170,9 @@ In `pull-request` mode:
 - the only supported remote reviewer actor is `chatgpt-codex-connector[bot]`
 - approval requires the freshest `+1` reaction after the current checkpoint and no newer active feedback
 - active feedback includes unresolved, non-outdated review threads plus reviewer-authored review summaries and discussion comments after the current checkpoint
-- process restart during review re-enters `review` instead of restarting `implement`
+- process restart during review or integrate re-enters the current pull-request stage instead of restarting `implement`
 - if an open PR exists but the local task branch is missing, review/integrate restore the branch from `origin/<branch>`
+- if the PR was already squash-merged before state was persisted, integrate treats the merged PR as already completed and finalizes local cleanup on resume
 - integrate runs on the task branch, updates `tasks.md` when needed, squash-merges to `main`, then deletes the local task branch
 
 The `.while` directory is excluded from task commits.

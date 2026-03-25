@@ -39,6 +39,7 @@ export function alignStateWithGraph(
   graph: TaskGraph,
   state: WorkflowState,
   options?: {
+    preserveRunningIntegrate?: boolean
     preserveRunningReview?: boolean
   },
 ): WorkflowState {
@@ -47,7 +48,10 @@ export function alignStateWithGraph(
     graph.tasks.map((task) => {
       const existing = next.tasks[task.id] ?? createBaseTaskState()
       if (existing.status === 'running') {
-        if (options?.preserveRunningReview && existing.stage === 'review') {
+        if (
+          (options?.preserveRunningReview && existing.stage === 'review') ||
+          (options?.preserveRunningIntegrate && existing.stage === 'integrate')
+        ) {
           return [task.id, existing]
         }
         return [

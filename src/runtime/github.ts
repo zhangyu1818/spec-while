@@ -8,6 +8,7 @@ import {
 
 import type {
   GitHubPort,
+  MergedPullRequestRef,
   PullRequestRef,
   PullRequestSnapshot,
 } from '../core/runtime'
@@ -85,6 +86,44 @@ export class GitHubRuntime implements GitHubPort {
       )
     }
     return created
+  }
+
+  public async findMergedPullRequestByHeadBranch(input: {
+    headBranch: string
+  }): Promise<MergedPullRequestRef | null> {
+    const payload = JSON.parse(
+      await this.runGh([
+        'pr',
+        'list',
+        '--head',
+        input.headBranch,
+        '--state',
+        'merged',
+        '--json',
+        'number,title,url,mergeCommit',
+      ]),
+    )
+    const pullRequests = asArray<Record<string, unknown>>(payload)
+    const match = pullRequests[0]
+    if (!match) {
+      return null
+    }
+    const mergeCommit = match.mergeCommit
+    const mergeCommitSha =
+      mergeCommit && typeof mergeCommit === 'object' && 'oid' in mergeCommit
+        ? asString((mergeCommit as { oid?: unknown }).oid)
+        : ''
+    if (!mergeCommitSha) {
+      throw new Error(
+        `Merged pull request for branch ${input.headBranch} is missing mergeCommit`,
+      )
+    }
+    return {
+      mergeCommitSha,
+      number: asNumber(match.number),
+      title: asString(match.title),
+      url: asString(match.url),
+    }
   }
 
   public async findOpenPullRequestByHeadBranch(input: {

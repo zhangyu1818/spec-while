@@ -4,6 +4,7 @@ import {
   selectNextRunnableTask,
 } from './engine'
 import { appendEvent, now, persistState } from './orchestrator-helpers'
+import { resumePullRequestIntegrate } from './orchestrator-integrate-resume'
 import { resumePullRequestReview } from './orchestrator-review-resume'
 import { executeTaskAttempt } from './orchestrator-task-attempt'
 
@@ -24,6 +25,7 @@ export async function runWorkflow(input: {
     (await input.runtime.store.loadState()) ??
       createInitialWorkflowState(input.graph),
     {
+      preserveRunningIntegrate: input.workflow.preset.mode === 'pull-request',
       preserveRunningReview: input.workflow.preset.mode === 'pull-request',
     },
   )
@@ -41,6 +43,18 @@ export async function runWorkflow(input: {
       report.summary.finalStatus === 'replan_required'
     ) {
       break
+    }
+
+    const resumedIntegrate = await resumePullRequestIntegrate({
+      graph: input.graph,
+      runtime: input.runtime,
+      state,
+      workflow,
+    })
+    if (resumedIntegrate) {
+      report = resumedIntegrate.report
+      state = resumedIntegrate.state
+      continue
     }
 
     const resumedReview = await resumePullRequestReview({

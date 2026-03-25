@@ -24,6 +24,9 @@ export interface WorkflowStore {
   loadImplementArtifact: (
     key: AttemptArtifactKey,
   ) => Promise<ImplementArtifact | null>
+  loadReviewArtifact: (
+    key: AttemptArtifactKey,
+  ) => Promise<null | ReviewArtifact>
   loadState: () => Promise<null | WorkflowState>
   loadVerifyArtifact: (
     key: AttemptArtifactKey,
@@ -75,6 +78,10 @@ export interface PullRequestRef {
   number: number
   title: string
   url: string
+}
+
+export interface MergedPullRequestRef extends PullRequestRef {
+  mergeCommitSha: string
 }
 
 export interface PullRequestReaction {
@@ -131,6 +138,9 @@ export interface GitHubPort {
     headBranch: string
     title: string
   }) => Promise<PullRequestRef>
+  findMergedPullRequestByHeadBranch: (input: {
+    headBranch: string
+  }) => Promise<MergedPullRequestRef | null>
   findOpenPullRequestByHeadBranch: (input: {
     headBranch: string
   }) => Promise<null | PullRequestRef>

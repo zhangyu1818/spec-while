@@ -1,4 +1,4 @@
-import type { GitHubPort, WorkflowStore } from '../src/core/runtime'
+import type { WorkflowStore } from '../src/core/runtime'
 import type {
   FinalReport,
   ImplementArtifact,
@@ -138,34 +138,6 @@ export class FakeGit {
   }
 }
 
-export class FakeGitHub implements GitHubPort {
-  public async createPullRequest() {
-    return {
-      number: 1,
-      title: 'Task T001: Implement greeting',
-      url: 'https://example.com/pr/1',
-    }
-  }
-
-  public async findOpenPullRequestByHeadBranch() {
-    return null
-  }
-
-  public async getPullRequestSnapshot() {
-    return {
-      changedFiles: [],
-      discussionComments: [],
-      reactions: [],
-      reviewSummaries: [],
-      reviewThreads: [],
-    }
-  }
-
-  public async squashMergePullRequest() {
-    return { commitSha: 'merged-sha' }
-  }
-}
-
 export class InMemoryStore implements WorkflowStore {
   public events: WorkflowEvent[] = []
   public graph: null | TaskGraph = null
@@ -198,11 +170,23 @@ export class InMemoryStore implements WorkflowStore {
       ) ?? null
     )
   }
-
+  public async loadReviewArtifact(key: {
+    attempt: number
+    generation: number
+    taskId: string
+  }) {
+    return (
+      this.reviewArtifacts.find(
+        (item) =>
+          item.taskId === key.taskId &&
+          item.generation === key.generation &&
+          item.attempt === key.attempt,
+      ) ?? null
+    )
+  }
   public async loadState() {
     return this.state
   }
-
   public async loadVerifyArtifact(key: {
     attempt: number
     generation: number
@@ -304,9 +288,7 @@ export class InMemoryStore implements WorkflowStore {
 
 export class InMemoryWorkspace {
   public readonly checkboxUpdates: { checked: boolean; taskId: string }[][] = []
-
   public constructor(private readonly taskContext: TaskContextSource) {}
-
   public async isTaskChecked(taskId: string) {
     const latest = this.checkboxUpdates
       .flat()

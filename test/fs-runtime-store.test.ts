@@ -204,6 +204,17 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
     generation: 2,
     taskId: 'T001',
   })
+  await expect(
+    runtime.store.loadReviewArtifact({
+      attempt: 1,
+      generation: 2,
+      taskId: 'T001',
+    }),
+  ).resolves.toMatchObject({
+    attempt: 1,
+    generation: 2,
+    taskId: 'T001',
+  })
   expect(runtime.github).toBeDefined()
 
   const graphJson = await readFile(
