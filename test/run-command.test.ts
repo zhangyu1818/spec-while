@@ -264,6 +264,32 @@ test('loadWorkflowExecution resolves a direct workflow from while.yaml role prov
   )
 })
 
+test('loadWorkflowExecution selects the pull-request preset when workflow.mode is pull-request', async () => {
+  const context = createContext()
+  mockState.config = {
+    workflow: {
+      mode: 'pull-request',
+      roles: {
+        implementer: { provider: 'codex' },
+        reviewer: { provider: 'codex' },
+      },
+    },
+  }
+
+  const execution = await loadWorkflowExecution(context)
+
+  expect(execution.config).toEqual(mockState.config)
+  expect(execution.workflow).toMatchObject({
+    preset: {
+      mode: 'pull-request',
+    },
+    roles: {
+      implementer: expect.objectContaining({ name: 'codex' }),
+      reviewer: expect.objectContaining({ name: 'codex' }),
+    },
+  })
+})
+
 test('runCommand loads workflow config before creating runtime', async () => {
   const context = createContext()
 

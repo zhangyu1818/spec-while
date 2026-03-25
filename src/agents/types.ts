@@ -40,7 +40,37 @@ export interface ReviewerProvider {
   review: (input: ReviewAgentInput) => Promise<ReviewOutput>
 }
 
+export interface PullRequestReviewSnapshot {
+  changedFiles: string[]
+}
+
+export interface PullRequestReviewInput {
+  pullRequest: PullRequestReviewSnapshot
+  task: TaskDefinition
+  verify: VerifyResult
+}
+
+export type PullRequestReviewResult =
+  | {
+      kind: 'approved'
+      review: ReviewOutput
+    }
+  | {
+      kind: 'pending'
+    }
+  | {
+      kind: 'rejected'
+      review: ReviewOutput
+    }
+
+export interface RemoteReviewerProvider {
+  evaluatePullRequestReview: (
+    input: PullRequestReviewInput,
+  ) => Promise<PullRequestReviewResult>
+  readonly name: string
+}
+
 export interface WorkflowRoleProviders {
   implementer: ImplementerProvider
-  reviewer: ReviewerProvider
+  reviewer: RemoteReviewerProvider | ReviewerProvider
 }

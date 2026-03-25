@@ -38,7 +38,18 @@ export function createDirectWorkflowPreset(input: {
       }
     },
     async review(context) {
-      const review = await input.reviewer.review(context.reviewInput)
+      const review = await input.reviewer.review({
+        actualChangedFiles: context.actualChangedFiles,
+        attempt: context.attempt,
+        generation: context.generation,
+        implement: context.implement,
+        lastFindings: context.lastFindings,
+        plan: context.taskContext.plan,
+        spec: context.taskContext.spec,
+        task: context.task,
+        tasksSnippet: context.taskContext.tasksSnippet,
+        verify: context.verify,
+      })
       return review.verdict === 'pass'
         ? { kind: 'approved', review }
         : { kind: 'rejected', review }

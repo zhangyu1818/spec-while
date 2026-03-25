@@ -80,6 +80,7 @@ export async function runWorkflow(input: {
 
     const taskState = state.tasks[task.id]!
     const taskContext = await input.runtime.workspace.loadTaskContext(task)
+    const commitMessage = createTaskCommitMessage(task.id, task.title)
     let implementArtifact: ImplementArtifact | null = null
     let verifyArtifact: null | VerifyArtifact = null
     let reviewArtifact: null | ReviewArtifact = null
@@ -195,18 +196,16 @@ export async function runWorkflow(input: {
     let reviewPhaseKind: 'approved' | 'rejected'
     try {
       const reviewPhase = await workflow.preset.review({
-        reviewInput: {
-          actualChangedFiles,
-          attempt: taskState.attempt,
-          generation: taskState.generation,
-          implement,
-          lastFindings: taskState.lastFindings,
-          plan: taskContext.plan,
-          spec: taskContext.spec,
-          task,
-          tasksSnippet: taskContext.tasksSnippet,
-          verify,
-        },
+        actualChangedFiles,
+        attempt: taskState.attempt,
+        commitMessage,
+        generation: taskState.generation,
+        implement,
+        lastFindings: taskState.lastFindings,
+        runtime: input.runtime,
+        task,
+        taskContext,
+        verify,
       })
       reviewPhaseKind = reviewPhase.kind
       review = reviewPhase.review
@@ -264,7 +263,7 @@ export async function runWorkflow(input: {
       let integrateResult
       try {
         integrateResult = await workflow.preset.integrate({
-          commitMessage: createTaskCommitMessage(task.id, task.title),
+          commitMessage,
           runtime: input.runtime,
           taskId: task.id,
         })

@@ -68,16 +68,31 @@ test('loadWorkflowConfig parses configured role providers from yaml mappings', a
   })
 })
 
-test('loadWorkflowConfig rejects unsupported pull-request mode in v1', async () => {
+test('loadWorkflowConfig parses pull-request mode without rewriting it to direct', async () => {
   const workspaceRoot = await createWorkspace()
   await writeFile(
     path.join(workspaceRoot, 'while.yaml'),
-    ['workflow:', '  mode: pull-request', ''].join('\n'),
+    [
+      'workflow:',
+      '  mode: pull-request',
+      '  roles:',
+      '    implementer: { provider: codex }',
+      '    reviewer: { provider: claude }',
+      '',
+    ].join('\n'),
   )
 
-  await expect(loadWorkflowConfig(workspaceRoot)).rejects.toThrow(
-    /pull-request/i,
-  )
+  const config = await loadWorkflowConfig(workspaceRoot)
+
+  expect(config).toEqual({
+    workflow: {
+      mode: 'pull-request',
+      roles: {
+        implementer: { provider: 'codex' },
+        reviewer: { provider: 'claude' },
+      },
+    },
+  })
 })
 
 test('loadWorkflowConfig rejects unknown keys instead of silently defaulting', async () => {

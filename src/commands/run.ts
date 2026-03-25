@@ -3,10 +3,14 @@ import { runWorkflow } from '../core/orchestrator'
 import { normalizeTaskGraph } from '../core/task-normalizer'
 import { createFsRuntime } from '../runtime/fs-runtime'
 import { loadWorkflowConfig } from '../workflow/config'
-import { createDirectWorkflowPreset } from '../workflow/preset'
+import {
+  createDirectWorkflowPreset,
+  createPullRequestWorkflowPreset,
+} from '../workflow/preset'
 
 import type {
   ImplementerProvider,
+  RemoteReviewerProvider,
   ReviewerProvider,
   WorkflowRoleProviders,
 } from '../agents/types'
@@ -65,20 +69,72 @@ function createProviderResolver(
   }
 }
 
+function createRemoteReviewerResolver(
+  resolveProvider: ReturnType<typeof createProviderResolver>,
+) {
+  const cache = new Map<
+    WorkflowConfig['workflow']['roles']['reviewer']['provider'],
+    RemoteReviewerProvider
+  >()
+  return (
+    providerName: WorkflowConfig['workflow']['roles']['reviewer']['provider'],
+  ) => {
+    const cached = cache.get(providerName)
+    if (cached) {
+      return cached
+    }
+    if (providerName === 'claude') {
+      throw new Error(
+        'claude provider is not available in CLI mode because no Claude adapter is configured',
+      )
+    }
+    resolveProvider(providerName)
+    const provider: RemoteReviewerProvider = {
+      async evaluatePullRequestReview() {
+        throw new Error(
+          `workflow.mode "pull-request" is not implemented for reviewer "${providerName}"`,
+        )
+      },
+      name: providerName,
+    }
+    cache.set(providerName, provider)
+    return provider
+  }
+}
+
 function resolveWorkflowRuntime(
   context: WorkspaceContext,
   config: WorkflowConfig,
   options: RunCommandOptions,
 ): WorkflowRuntime {
   const resolveProvider = createProviderResolver(context, options.verbose)
+  const implementer = resolveProvider(config.workflow.roles.implementer.provider)
+
+  if (config.workflow.mode === 'pull-request') {
+    const resolveRemoteReviewer = createRemoteReviewerResolver(resolveProvider)
+    const reviewer = resolveRemoteReviewer(config.workflow.roles.reviewer.provider)
+    const roles: WorkflowRoleProviders = {
+      implementer,
+      reviewer,
+    }
+
+    return {
+      preset: createPullRequestWorkflowPreset({
+        reviewer,
+      }),
+      roles,
+    }
+  }
+
+  const reviewer = resolveProvider(config.workflow.roles.reviewer.provider)
   const roles: WorkflowRoleProviders = {
-    implementer: resolveProvider(config.workflow.roles.implementer.provider),
-    reviewer: resolveProvider(config.workflow.roles.reviewer.provider),
+    implementer,
+    reviewer,
   }
 
   return {
     preset: createDirectWorkflowPreset({
-      reviewer: roles.reviewer,
+      reviewer,
     }),
     roles,
   }

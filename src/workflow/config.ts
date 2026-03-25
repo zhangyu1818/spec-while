@@ -34,10 +34,11 @@ const workflowConfigSchema = z
   .default({})
 
 export type WorkflowProvider = z.infer<typeof workflowProviderSchema>
+export type WorkflowMode = z.infer<typeof workflowModeSchema>
 
 export interface WorkflowConfig {
   workflow: {
-    mode: 'direct'
+    mode: WorkflowMode
     roles: {
       implementer: {
         provider: WorkflowProvider
@@ -64,15 +65,10 @@ export async function loadWorkflowConfig(
   }
 
   const parsedConfig = workflowConfigSchema.parse(rawConfig)
-  if (parsedConfig.workflow.mode === 'pull-request') {
-    throw new Error(
-      'workflow.mode "pull-request" is not supported in this version',
-    )
-  }
 
   return {
     workflow: {
-      mode: 'direct',
+      mode: parsedConfig.workflow.mode,
       roles: parsedConfig.workflow.roles,
     },
   }
