@@ -39,7 +39,20 @@ workflow:
 
 Current status:
 
-- `workflow.mode: direct` is implemented
+- `workflow.mode: direct` uses a local reviewer
+- `workflow.mode: pull-request` pushes a task branch, polls GitHub PR review from `chatgpt-codex-connector[bot]`, then squash-merges on approval
+
+Example pull-request mode:
+
+```yaml
+workflow:
+  mode: pull-request
+  roles:
+    implementer:
+      provider: codex
+    reviewer:
+      provider: codex
+```
 
 ## Commands
 
@@ -75,7 +88,18 @@ Each task follows this lifecycle:
 1. The implement role receives the current task plus `spec.md`, `plan.md`, `tasksSnippet`, and scoped code context.
 2. Optional verify commands run.
 3. The reviewer evaluates acceptance, spec/plan alignment, verify results, changed files, and overall risk.
-4. If review is approved, `spec-while` updates `tasks.md`, creates a git commit, marks the task as `done`, and records integrate artifacts under `.while`.
+4. If review is approved, `spec-while` updates `tasks.md`, creates the final integration commit, marks the task as `done`, and records integrate artifacts under `.while`.
+
+In `pull-request` mode:
+
+- review creates or reuses `task/<slug>` and an open PR against `main`
+- if an open PR exists but the local task branch is missing, review restores the branch from `origin/task/<slug>`
+- review creates a checkpoint commit with `checkpoint: Task <taskId>: <title> (attempt <n>)`
+- review polls every minute with no default timeout
+- review evaluates approval from a fully paginated live GraphQL PR snapshot
+- approval is driven by the freshest `chatgpt-codex-connector[bot]` signal after the checkpoint commit
+- process restart re-enters `review` and keeps polling the same PR
+- integrate checks `tasks.md`, creates the final `Task <taskId>: <title>` commit when needed, squash-merges, returns to `main`, and deletes the local task branch
 
 Completion is git-first:
 

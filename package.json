@@ -41,6 +41,7 @@
     "lint:fix": "eslint . --fix",
     "smoke:codex": "tsx fixtures/smoke/codex-provider.ts",
     "smoke:e2e:codex": "tsx fixtures/smoke/codex-e2e.ts",
+    "smoke:github-pr-snapshot": "tsx fixtures/smoke/github-pr-snapshot.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

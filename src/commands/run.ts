@@ -2,11 +2,13 @@ import { createCodexProvider } from '../agents/codex'
 import { runWorkflow } from '../core/orchestrator'
 import { normalizeTaskGraph } from '../core/task-normalizer'
 import { createFsRuntime } from '../runtime/fs-runtime'
-import { loadWorkflowConfig } from '../workflow/config'
+import { loadWorkflowConfig, type WorkflowConfig } from '../workflow/config'
 import {
   createDirectWorkflowPreset,
   createPullRequestWorkflowPreset,
+  type WorkflowRuntime,
 } from '../workflow/preset'
+import { createCodexRemoteReviewerProvider } from '../workflow/remote-reviewer'
 
 import type {
   ImplementerProvider,
@@ -15,24 +17,23 @@ import type {
   WorkflowRoleProviders,
 } from '../agents/types'
 import type { WorkspaceContext } from '../types'
-import type { WorkflowConfig } from '../workflow/config'
-import type { WorkflowRuntime } from '../workflow/preset'
 
 export interface RunCommandOptions {
   untilTaskId?: string
   verbose?: boolean
 }
 
+function writeCodexEvent(event: { item?: { type?: string }; type: string }) {
+  process.stderr.write(
+    `[codex] ${event.type}${event.item?.type ? ` ${event.item.type}` : ''}\n`,
+  )
+}
+
 function createCodexEventHandler(verbose: boolean | undefined) {
   if (!verbose) {
     return undefined
   }
-  return (event: { item?: { type?: string }; type: string }) => {
-    const itemType = 'item' in event ? event.item?.type : undefined
-    process.stderr.write(
-      `[codex] ${event.type}${itemType ? ` ${itemType}` : ''}\n`,
-    )
-  }
+  return writeCodexEvent
 }
 
 function createProviderResolver(
@@ -69,9 +70,7 @@ function createProviderResolver(
   }
 }
 
-function createRemoteReviewerResolver(
-  resolveProvider: ReturnType<typeof createProviderResolver>,
-) {
+function createRemoteReviewerResolver() {
   const cache = new Map<
     WorkflowConfig['workflow']['roles']['reviewer']['provider'],
     RemoteReviewerProvider
@@ -85,18 +84,10 @@ function createRemoteReviewerResolver(
     }
     if (providerName === 'claude') {
       throw new Error(
-        'claude provider is not available in CLI mode because no Claude adapter is configured',
+        'claude remote reviewer is not implemented in pull-request mode',
       )
     }
-    resolveProvider(providerName)
-    const provider: RemoteReviewerProvider = {
-      async evaluatePullRequestReview() {
-        throw new Error(
-          `workflow.mode "pull-request" is not implemented for reviewer "${providerName}"`,
-        )
-      },
-      name: providerName,
-    }
+    const provider = createCodexRemoteReviewerProvider()
     cache.set(providerName, provider)
     return provider
   }
@@ -111,7 +102,7 @@ function resolveWorkflowRuntime(
   const implementer = resolveProvider(config.workflow.roles.implementer.provider)
 
   if (config.workflow.mode === 'pull-request') {
-    const resolveRemoteReviewer = createRemoteReviewerResolver(resolveProvider)
+    const resolveRemoteReviewer = createRemoteReviewerResolver()
     const reviewer = resolveRemoteReviewer(config.workflow.roles.reviewer.provider)
     const roles: WorkflowRoleProviders = {
       implementer,
@@ -119,10 +110,10 @@ function resolveWorkflowRuntime(
     }
 
     return {
+      roles,
       preset: createPullRequestWorkflowPreset({
         reviewer,
       }),
-      roles,
     }
   }
 
@@ -133,17 +124,17 @@ function resolveWorkflowRuntime(
   }
 
   return {
+    roles,
     preset: createDirectWorkflowPreset({
       reviewer,
     }),
-    roles,
   }
 }
 
 export interface WorkflowExecution {
   config: WorkflowConfig
-  workflow: WorkflowRuntime
   execute: () => ReturnType<typeof runWorkflow>
+  workflow: WorkflowRuntime
 }
 
 export async function loadWorkflowExecution(

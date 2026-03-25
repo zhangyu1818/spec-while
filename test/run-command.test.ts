@@ -1,13 +1,16 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 
-import type { OrchestratorRuntime } from '../src/core/runtime'
 import type { ImplementerProvider, ReviewerProvider } from '../src/agents/types'
+import type { OrchestratorRuntime } from '../src/core/runtime'
 import type { TaskGraph, WorkspaceContext } from '../src/types'
 import type { WorkflowConfig } from '../src/workflow/config'
 
 const mockState = vi.hoisted(() => {
   return {
     callSequence: [] as string[],
+    runWorkflowCalls: [] as unknown[],
+    workflowConfigCalls: [] as string[],
+    workflowConfigError: null as Error | null,
     codexInstances: [] as {
       options: {
         onEvent?: (event: { item?: { type?: string }; type: string }) => void
@@ -24,9 +27,6 @@ const mockState = vi.hoisted(() => {
         },
       },
     } as WorkflowConfig,
-    workflowConfigError: null as Error | null,
-    workflowConfigCalls: [] as string[],
-    runWorkflowCalls: [] as unknown[],
     graph: {
       featureId: '001-demo',
       tasks: [],
@@ -279,6 +279,7 @@ test('loadWorkflowExecution selects the pull-request preset when workflow.mode i
   const execution = await loadWorkflowExecution(context)
 
   expect(execution.config).toEqual(mockState.config)
+  expect(mockState.codexInstances).toHaveLength(1)
   expect(execution.workflow).toMatchObject({
     preset: {
       mode: 'pull-request',
@@ -288,6 +289,25 @@ test('loadWorkflowExecution selects the pull-request preset when workflow.mode i
       reviewer: expect.objectContaining({ name: 'codex' }),
     },
   })
+})
+
+test('loadWorkflowExecution rejects unsupported remote reviewers in pull-request mode', async () => {
+  const context = createContext()
+  mockState.config = {
+    workflow: {
+      mode: 'pull-request',
+      roles: {
+        implementer: { provider: 'codex' },
+        reviewer: { provider: 'claude' },
+      },
+    },
+  }
+
+  await expect(loadWorkflowExecution(context)).rejects.toThrow(
+    /claude remote reviewer is not implemented in pull-request mode/i,
+  )
+
+  expect(mockState.codexInstances).toHaveLength(1)
 })
 
 test('runCommand loads workflow config before creating runtime', async () => {

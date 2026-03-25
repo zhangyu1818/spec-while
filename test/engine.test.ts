@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 
 import {
+  alignStateWithGraph,
   buildReport,
   createInitialWorkflowState,
   recordImplementFailure,
@@ -133,6 +134,42 @@ test('engine advances task phases and unlocks dependents from derived readiness'
     status: 'done',
   })
   expect(selectNextRunnableTask(graph, done)?.id).toBe('T002')
+})
+
+test('alignStateWithGraph preserves running review when explicitly requested', () => {
+  const graph = createGraph()
+  const state = {
+    currentTaskId: 'T001',
+    featureId: '001-demo',
+    tasks: {
+      T001: {
+        attempt: 1,
+        generation: 1,
+        invalidatedBy: null,
+        lastFindings: [],
+        lastVerifyPassed: true,
+        stage: 'review' as const,
+        status: 'running' as const,
+      },
+      T002: {
+        attempt: 0,
+        generation: 1,
+        invalidatedBy: null,
+        lastFindings: [],
+        status: 'pending' as const,
+      },
+    },
+  }
+
+  const aligned = alignStateWithGraph(graph, state, {
+    preserveRunningReview: true,
+  })
+
+  expect(aligned.tasks.T001).toMatchObject({
+    stage: 'review',
+    status: 'running',
+  })
+  expect(aligned.currentTaskId).toBe('T001')
 })
 
 test('engine moves approved reviews into integrate instead of done', () => {

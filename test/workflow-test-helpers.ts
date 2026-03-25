@@ -1,11 +1,11 @@
+import { createDirectWorkflowPreset } from '../src/workflow/direct-preset'
 import {
   FakeGit,
+  FakeGitHub,
   FakeVerifier,
   InMemoryStore,
   InMemoryWorkspace,
 } from './workflow-runtime-doubles'
-
-import { createDirectWorkflowPreset } from '../src/workflow/direct-preset'
 
 import type {
   ImplementAgentInput,
@@ -212,12 +212,14 @@ export function createRuntime(input?: {
     new Set(input?.ancestorCommits ?? []),
     input?.commitFailures ?? [],
   )
+  const github = new FakeGitHub()
   return {
     git,
     store,
     workspace,
     runtime: {
       git,
+      github,
       store,
       verifier,
       workspace,

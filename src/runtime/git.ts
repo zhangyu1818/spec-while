@@ -29,6 +29,26 @@ export class GitRuntime implements GitPort {
     )
   }
 
+  public async checkoutBranch(
+    name: string,
+    options?: { create?: boolean; startPoint?: string },
+  ) {
+    if (options?.create) {
+      const args = ['checkout', '-b', name]
+      if (options.startPoint) {
+        args.push(options.startPoint)
+      }
+      await runGit(this.workspaceRoot, args)
+      return
+    }
+    await runGit(this.workspaceRoot, ['checkout', name])
+  }
+
+  public async checkoutRemoteBranch(name: string) {
+    await runGit(this.workspaceRoot, ['fetch', 'origin', name])
+    await runGit(this.workspaceRoot, ['checkout', '-B', name, 'FETCH_HEAD'])
+  }
+
   public async commitTask(input: { message: string }) {
     await runGit(this.workspaceRoot, ['add', '-A', '.'])
     await runGit(this.workspaceRoot, ['reset', '--', this.runtimeDirRelative])
@@ -40,6 +60,10 @@ export class GitRuntime implements GitPort {
     ])
     const commitSha = await runGit(this.workspaceRoot, ['rev-parse', 'HEAD'])
     return { commitSha }
+  }
+
+  public async deleteLocalBranch(name: string) {
+    await runGit(this.workspaceRoot, ['branch', '-D', name])
   }
 
   public async getChangedFilesSinceHead() {
@@ -64,6 +88,22 @@ export class GitRuntime implements GitPort {
     return [...files].sort()
   }
 
+  public async getCurrentBranch() {
+    return runGit(this.workspaceRoot, ['branch', '--show-current'])
+  }
+
+  public async getHeadSha() {
+    return runGit(this.workspaceRoot, ['rev-parse', 'HEAD'])
+  }
+
+  public async getHeadSubject() {
+    return runGit(this.workspaceRoot, ['log', '-1', '--format=%s', 'HEAD'])
+  }
+
+  public async getHeadTimestamp() {
+    return runGit(this.workspaceRoot, ['log', '-1', '--format=%cI', 'HEAD'])
+  }
+
   public async getParentCommit(commitSha: string) {
     return runGit(this.workspaceRoot, ['rev-parse', `${commitSha}^`])
   }
@@ -81,6 +121,22 @@ export class GitRuntime implements GitPort {
     } catch {
       return false
     }
+  }
+
+  public async pullFastForward(branch: string) {
+    await runGit(this.workspaceRoot, ['pull', '--ff-only', 'origin', branch])
+  }
+
+  public async pushBranch(
+    name: string,
+    options?: { setUpstream?: boolean },
+  ) {
+    const args = ['push']
+    if (options?.setUpstream) {
+      args.push('-u')
+    }
+    args.push('origin', name)
+    await runGit(this.workspaceRoot, args)
   }
 
   public async requireCleanWorktree() {

@@ -3,8 +3,8 @@ import path from 'node:path'
 
 import {
   validateFinalReport,
-  validateIntegrateArtifact,
   validateImplementArtifact,
+  validateIntegrateArtifact,
   validateReviewArtifact,
   validateTaskGraph,
   validateVerifyArtifact,
@@ -13,6 +13,7 @@ import {
 } from '../schema/index'
 import { ensureDir, readTextIfExists, writeJsonAtomic } from '../utils/fs'
 import { GitRuntime } from './git'
+import { GitHubRuntime } from './github'
 import { createRuntimePaths } from './path-layout'
 import { ProcessVerifier } from './verify-runner'
 
@@ -57,6 +58,11 @@ function buildTasksSnippet(tasksMd: string, taskId: string) {
     : tasksMd
 }
 
+function isTaskChecked(tasksMd: string, taskId: string) {
+  const pattern = new RegExp(String.raw`^- \[X\] ${taskId}(?=\b)`, 'm')
+  return pattern.test(tasksMd)
+}
+
 async function updateTaskCheckboxes(
   tasksPath: string,
   updates: { checked: boolean; taskId: string }[],
@@ -84,6 +90,7 @@ export function createFsRuntime(input: {
 
   return {
     git: new GitRuntime(input.workspaceRoot, runtimePaths.runtimeDir),
+    github: new GitHubRuntime(input.workspaceRoot),
     verifier: new ProcessVerifier(input.workspaceRoot),
     store: {
       async appendEvent(event) {
@@ -98,12 +105,46 @@ export function createFsRuntime(input: {
         }
         return validateTaskGraph(JSON.parse(raw))
       },
+      async loadImplementArtifact(key) {
+        const raw = await readTextIfExists(
+          path.join(
+            createArtifactDir(
+              input.featureDir,
+              key.taskId,
+              key.generation,
+              key.attempt,
+            ),
+            'implement.json',
+          ),
+        )
+        if (!raw) {
+          return null
+        }
+        return validateImplementArtifact(JSON.parse(raw))
+      },
       async loadState() {
         const raw = await readTextIfExists(runtimePaths.state)
         if (!raw) {
           return null
         }
         return validateWorkflowState(JSON.parse(raw))
+      },
+      async loadVerifyArtifact(key) {
+        const raw = await readTextIfExists(
+          path.join(
+            createArtifactDir(
+              input.featureDir,
+              key.taskId,
+              key.generation,
+              key.attempt,
+            ),
+            'verify.json',
+          ),
+        )
+        if (!raw) {
+          return null
+        }
+        return validateVerifyArtifact(JSON.parse(raw))
       },
       async readReport() {
         const raw = await readTextIfExists(runtimePaths.report)
@@ -121,19 +162,6 @@ export function createFsRuntime(input: {
       async saveGraph(graph) {
         await writeJsonAtomic(runtimePaths.graph, validateTaskGraph(graph))
       },
-      async saveIntegrateArtifact(artifact) {
-        const value = validateIntegrateArtifact(artifact)
-        const targetPath = path.join(
-          createArtifactDir(
-            input.featureDir,
-            artifact.taskId,
-            artifact.generation,
-            artifact.attempt,
-          ),
-          'integrate.json',
-        )
-        await writeJsonAtomic(targetPath, value)
-      },
       async saveImplementArtifact(artifact) {
         const value = validateImplementArtifact(artifact)
         const targetPath = path.join(
@@ -144,6 +172,19 @@ export function createFsRuntime(input: {
             artifact.attempt,
           ),
           'implement.json',
+        )
+        await writeJsonAtomic(targetPath, value)
+      },
+      async saveIntegrateArtifact(artifact) {
+        const value = validateIntegrateArtifact(artifact)
+        const targetPath = path.join(
+          createArtifactDir(
+            input.featureDir,
+            artifact.taskId,
+            artifact.generation,
+            artifact.attempt,
+          ),
+          'integrate.json',
         )
         await writeJsonAtomic(targetPath, value)
       },
@@ -181,6 +222,10 @@ export function createFsRuntime(input: {
       },
     },
     workspace: {
+      async isTaskChecked(taskId) {
+        const tasksMd = await readTextIfExists(tasksPath)
+        return isTaskChecked(tasksMd, taskId)
+      },
       async loadTaskContext(task: TaskDefinition) {
         const [spec, plan, tasksMd, codeContext] = await Promise.all([
           readTextIfExists(path.join(input.featureDir, 'spec.md')),

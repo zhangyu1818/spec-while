@@ -72,9 +72,9 @@ export async function finalizePassedTask(input: {
         integratingState,
         input.taskId,
         {
+          commitSha,
           review: input.review,
           verify: input.verify,
-          commitSha,
         },
       ),
     }

@@ -1,3 +1,4 @@
+import type { PullRequestSnapshot } from '../core/runtime'
 import type {
   ImplementOutput,
   ReviewFinding,
@@ -40,12 +41,9 @@ export interface ReviewerProvider {
   review: (input: ReviewAgentInput) => Promise<ReviewOutput>
 }
 
-export interface PullRequestReviewSnapshot {
-  changedFiles: string[]
-}
-
 export interface PullRequestReviewInput {
-  pullRequest: PullRequestReviewSnapshot
+  checkpointStartedAt: string
+  pullRequest: PullRequestSnapshot
   task: TaskDefinition
   verify: VerifyResult
 }

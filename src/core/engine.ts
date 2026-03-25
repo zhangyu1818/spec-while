@@ -31,12 +31,21 @@ export function createInitialWorkflowState(graph: TaskGraph): WorkflowState {
 export function alignStateWithGraph(
   graph: TaskGraph,
   state: WorkflowState,
+  options?: {
+    preserveRunningReview?: boolean
+  },
 ): WorkflowState {
   const next = cloneState(state)
   const alignedTasks = Object.fromEntries(
     graph.tasks.map((task) => {
       const existing = next.tasks[task.id] ?? createBaseTaskState()
       if (existing.status === 'running') {
+        if (
+          options?.preserveRunningReview &&
+          existing.stage === 'review'
+        ) {
+          return [task.id, existing]
+        }
         return [
           task.id,
           {
@@ -59,12 +68,12 @@ export function alignStateWithGraph(
   )
 
   return {
+    featureId: graph.featureId,
+    tasks: alignedTasks,
     currentTaskId:
       next.currentTaskId && alignedTasks[next.currentTaskId]
         ? next.currentTaskId
         : null,
-    featureId: graph.featureId,
-    tasks: alignedTasks,
   }
 }
 

@@ -33,7 +33,8 @@ workflow:
 
 Current support level:
 
-- `direct` is implemented
+- `direct` uses a local reviewer and local integrate
+- `pull-request` uses a remote GitHub PR reviewer and squash merge integrate
 
 ## Workspace Resolution
 
@@ -111,18 +112,18 @@ Implement receives:
 - `tasksSnippet`
 - scoped `codeContext`
 
-Review receives:
+Review phase context receives:
 
 - the current task
 - `generation`
 - `attempt`
 - previous findings
-- `spec`
-- `plan`
-- `tasksSnippet`
+- task context (`spec`, `plan`, `tasksSnippet`)
 - implement result
 - verify result
 - `actualChangedFiles`
+- the computed task commit message
+- runtime ports
 
 ## Workflow Semantics
 
@@ -159,6 +160,20 @@ Task <taskId>: <task title>
 
 The commit includes source changes and the updated `tasks.md`.
 
+In `pull-request` mode:
+
+- review creates or reuses a task branch derived from `Task <taskId>: <title>`
+- review creates a checkpoint commit with `checkpoint: Task <taskId>: <title> (attempt <n>)`
+- review opens or reuses a PR against `main`
+- review polls the PR every minute with no default timeout
+- review collects a fully paginated live GraphQL PR snapshot before evaluating approval or active feedback
+- the only supported remote reviewer actor is `chatgpt-codex-connector[bot]`
+- approval requires the freshest `+1` reaction after the current checkpoint and no newer active feedback
+- active feedback includes unresolved, non-outdated review threads plus reviewer-authored review summaries and discussion comments after the current checkpoint
+- process restart during review re-enters `review` instead of restarting `implement`
+- if an open PR exists but the local task branch is missing, review/integrate restore the branch from `origin/<branch>`
+- integrate runs on the task branch, updates `tasks.md` when needed, squash-merges to `main`, then deletes the local task branch
+
 The `.while` directory is excluded from task commits.
 
 Completed task state stores `commitSha`.
@@ -186,6 +201,8 @@ After git reset:
 
 `actualChangedFiles` are derived from git diff against `HEAD`.
 
+In `pull-request` mode, `changedFilesReviewed` come from the live PR snapshot rather than the local worktree diff.
+
 `Verify` is optional:
 
 - when present, commands run in order
@@ -211,3 +228,5 @@ The runtime layout includes:
 - `tasks/<taskId>/g<generation>/a<attempt>/integrate.json`
 
 `.while` is runtime state, not the long-term source of truth.
+
+For pull-request review recovery, the store must be able to reload persisted `implement` and `verify` artifacts by `taskId + generation + attempt`.

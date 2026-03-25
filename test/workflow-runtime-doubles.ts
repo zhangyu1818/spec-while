@@ -1,7 +1,8 @@
+import type { GitHubPort, WorkflowStore } from '../src/core/runtime'
 import type {
   FinalReport,
-  IntegrateArtifact,
   ImplementArtifact,
+  IntegrateArtifact,
   ReviewArtifact,
   TaskContext,
   TaskDefinition,
@@ -11,7 +12,6 @@ import type {
   WorkflowEvent,
   WorkflowState,
 } from '../src/types'
-import type { WorkflowStore } from '../src/core/runtime'
 
 export type TaskContextSource =
   | {
@@ -47,14 +47,37 @@ export class FakeVerifier {
 export class FakeGit {
   private commitIndex = 0
 
+  private headSubject: string
   public readonly commitMessages: string[] = []
+  public readonly currentBranches = ['main']
   public readonly resetTargets: string[] = []
 
   public constructor(
     private readonly changedFiles: string[][] = [[], []],
     private readonly ancestorCommits = new Set<string>(),
     private readonly commitFailures: (Error | null)[] = [],
-  ) {}
+    headSubject = 'Initial commit',
+  ) {
+    this.headSubject = headSubject
+  }
+
+  public async checkoutBranch(
+    name: string,
+    options?: { create?: boolean; startPoint?: string },
+  ) {
+    if (
+      options?.create &&
+      options.startPoint &&
+      !this.currentBranches.includes(options.startPoint)
+    ) {
+      throw new Error(`Missing branch ${options.startPoint}`)
+    }
+    this.currentBranches.push(name)
+  }
+
+  public async checkoutRemoteBranch(name: string) {
+    this.currentBranches.push(name)
+  }
 
   public async commitTask(input: { message: string }) {
     const failure = this.commitFailures.shift() ?? null
@@ -62,14 +85,37 @@ export class FakeGit {
       throw failure
     }
     this.commitMessages.push(input.message)
+    this.headSubject = input.message
     this.commitIndex += 1
     const commitSha = `commit-${this.commitIndex}`
     this.ancestorCommits.add(commitSha)
     return { commitSha }
   }
 
+  public async deleteLocalBranch(name: string) {
+    if (this.currentBranches.at(-1) === name) {
+      throw new Error(`Cannot delete checked out branch ${name}`)
+    }
+  }
+
   public async getChangedFilesSinceHead() {
     return this.changedFiles.shift() ?? []
+  }
+
+  public async getCurrentBranch() {
+    return this.currentBranches.at(-1) ?? 'main'
+  }
+
+  public async getHeadSha() {
+    return `head-${this.commitIndex}`
+  }
+
+  public async getHeadSubject() {
+    return this.headSubject
+  }
+
+  public async getHeadTimestamp() {
+    return '2026-03-25T08:00:00.000Z'
   }
 
   public async getParentCommit(commitSha: string) {
@@ -80,6 +126,10 @@ export class FakeGit {
     return this.ancestorCommits.has(commitSha)
   }
 
+  public async pullFastForward() {}
+
+  public async pushBranch() {}
+
   public async requireCleanWorktree() {}
 
   public async resetHard(commitSha: string) {
@@ -88,11 +138,37 @@ export class FakeGit {
   }
 }
 
+export class FakeGitHub implements GitHubPort {
+  public async createPullRequest() {
+    return {
+      number: 1,
+      title: 'Task T001: Implement greeting',
+      url: 'https://example.com/pr/1',
+    }
+  }
+
+  public async findOpenPullRequestByHeadBranch() {
+    return null
+  }
+
+  public async getPullRequestSnapshot() {
+    return {
+      changedFiles: [],
+      discussionComments: [],
+      reactions: [],
+      reviewSummaries: [],
+      reviewThreads: [],
+    }
+  }
+
+  public async squashMergePullRequest() {}
+}
+
 export class InMemoryStore implements WorkflowStore {
   public events: WorkflowEvent[] = []
   public graph: null | TaskGraph = null
-  public integrateArtifacts: IntegrateArtifact[] = []
   public implementArtifacts: ImplementArtifact[] = []
+  public integrateArtifacts: IntegrateArtifact[] = []
   public report: FinalReport | null = null
   public reviewArtifacts: ReviewArtifact[] = []
   public state: null | WorkflowState = null
@@ -106,8 +182,38 @@ export class InMemoryStore implements WorkflowStore {
     return this.graph
   }
 
+  public async loadImplementArtifact(key: {
+    attempt: number
+    generation: number
+    taskId: string
+  }) {
+    return (
+      this.implementArtifacts.find(
+        (item) =>
+          item.taskId === key.taskId &&
+          item.generation === key.generation &&
+          item.attempt === key.attempt,
+      ) ?? null
+    )
+  }
+
   public async loadState() {
     return this.state
+  }
+
+  public async loadVerifyArtifact(key: {
+    attempt: number
+    generation: number
+    taskId: string
+  }) {
+    return (
+      this.verifyArtifacts.find(
+        (item) =>
+          item.taskId === key.taskId &&
+          item.generation === key.generation &&
+          item.attempt === key.attempt,
+      ) ?? null
+    )
   }
 
   public async readReport() {
@@ -129,20 +235,6 @@ export class InMemoryStore implements WorkflowStore {
     this.graph = graph
   }
 
-  public async saveIntegrateArtifact(artifact: IntegrateArtifact) {
-    const index = this.integrateArtifacts.findIndex(
-      (item) =>
-        item.taskId === artifact.taskId &&
-        item.generation === artifact.generation &&
-        item.attempt === artifact.attempt,
-    )
-    if (index >= 0) {
-      this.integrateArtifacts[index] = artifact
-      return
-    }
-    this.integrateArtifacts.push(artifact)
-  }
-
   public async saveImplementArtifact(artifact: ImplementArtifact) {
     const index = this.implementArtifacts.findIndex(
       (item) =>
@@ -155,6 +247,20 @@ export class InMemoryStore implements WorkflowStore {
       return
     }
     this.implementArtifacts.push(artifact)
+  }
+
+  public async saveIntegrateArtifact(artifact: IntegrateArtifact) {
+    const index = this.integrateArtifacts.findIndex(
+      (item) =>
+        item.taskId === artifact.taskId &&
+        item.generation === artifact.generation &&
+        item.attempt === artifact.attempt,
+    )
+    if (index >= 0) {
+      this.integrateArtifacts[index] = artifact
+      return
+    }
+    this.integrateArtifacts.push(artifact)
   }
 
   public async saveReport(report: FinalReport) {
@@ -198,6 +304,11 @@ export class InMemoryWorkspace {
   public readonly checkboxUpdates: { checked: boolean; taskId: string }[][] = []
 
   public constructor(private readonly taskContext: TaskContextSource) {}
+
+  public async isTaskChecked(taskId: string) {
+    const latest = this.checkboxUpdates.flat().findLast((item) => item.taskId === taskId)
+    return latest?.checked ?? false
+  }
 
   public async loadTaskContext(task: TaskDefinition) {
     if (this.taskContext.kind === 'single') {
