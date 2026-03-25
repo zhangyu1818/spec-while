@@ -24,7 +24,10 @@ type FeedbackSignal =
       kind: 'thread'
     })
 
-function isAfterCheckpoint(timestamp: null | string, checkpointStartedAt: string) {
+function isAfterCheckpoint(
+  timestamp: null | string,
+  checkpointStartedAt: string,
+) {
   if (typeof timestamp !== 'string') {
     return false
   }
@@ -94,31 +97,32 @@ function collectFeedbackSignals(
     .map((thread) => collectThreadFeedback(thread, input.checkpointStartedAt))
     .filter((item): item is NonNullable<typeof item> => item !== null)
 
-  return [...discussion, ...reviewSummaries, ...threads].sort(
-    (left, right) => {
-      const leftTime = 'submittedAt' in left ? left.submittedAt ?? '' : left.createdAt
-      const rightTime =
-        'submittedAt' in right ? right.submittedAt ?? '' : right.createdAt
-      return compareTimestamps(leftTime, rightTime)
-    },
-  )
+  return [...discussion, ...reviewSummaries, ...threads].sort((left, right) => {
+    const leftTime =
+      'submittedAt' in left ? (left.submittedAt ?? '') : left.createdAt
+    const rightTime =
+      'submittedAt' in right ? (right.submittedAt ?? '') : right.createdAt
+    return compareTimestamps(leftTime, rightTime)
+  })
 }
 
 function getFeedbackTimestamp(signal: FeedbackSignal) {
-  return 'submittedAt' in signal ? signal.submittedAt ?? '' : signal.createdAt
+  return 'submittedAt' in signal ? (signal.submittedAt ?? '') : signal.createdAt
 }
 
 function latestApprovalTimestamp(input: PullRequestReviewInput) {
-  return input.pullRequest.reactions
-    .filter(
-      (reaction) =>
-        reaction.content === '+1' &&
-        isActor(reaction.userLogin) &&
-        isAfterCheckpoint(reaction.createdAt, input.checkpointStartedAt),
-    )
-    .map((reaction) => reaction.createdAt)
-    .sort(compareTimestamps)
-    .at(-1) ?? null
+  return (
+    input.pullRequest.reactions
+      .filter(
+        (reaction) =>
+          reaction.content === '+1' &&
+          isActor(reaction.userLogin) &&
+          isAfterCheckpoint(reaction.createdAt, input.checkpointStartedAt),
+      )
+      .map((reaction) => reaction.createdAt)
+      .sort(compareTimestamps)
+      .at(-1) ?? null
+  )
 }
 
 function signalSeverity(signal: FeedbackSignal): 'high' | 'medium' {
@@ -153,7 +157,9 @@ function buildRejectedReview(
 ): ReviewOutput {
   const findings = feedbackSignals.map((signal) => {
     const path =
-      'path' in signal && signal.path ? signal.path : input.pullRequest.changedFiles[0] ?? '.'
+      'path' in signal && signal.path
+        ? signal.path
+        : (input.pullRequest.changedFiles[0] ?? '.')
     const issue = signal.body.trim() || 'Remote reviewer requested changes'
     return {
       file: path,
@@ -178,10 +184,11 @@ function buildRejectedReview(
     overallRisk: findings.some((finding) => finding.severity === 'high')
       ? 'high'
       : 'medium',
-    summary: feedbackSignals
-      .map((signal) => signal.body.trim())
-      .filter(Boolean)
-      .join('\n') || 'Remote reviewer left active feedback',
+    summary:
+      feedbackSignals
+        .map((signal) => signal.body.trim())
+        .filter(Boolean)
+        .join('\n') || 'Remote reviewer left active feedback',
   }
 }
 
@@ -196,8 +203,7 @@ export function createCodexRemoteReviewerProvider(): RemoteReviewerProvider {
         feedbackSignals
           .map((signal) => getFeedbackTimestamp(signal))
           .sort(compareTimestamps)
-          .at(-1) ??
-        null
+          .at(-1) ?? null
       const approvalTimestamp = latestApprovalTimestamp(input)
 
       if (

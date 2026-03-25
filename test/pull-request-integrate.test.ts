@@ -3,9 +3,14 @@ import { expect, test, vi } from 'vitest'
 import { createPullRequestWorkflowPreset } from '../src/workflow/pull-request-preset'
 
 import type { RemoteReviewerProvider } from '../src/agents/types'
-import type { OrchestratorRuntime, PullRequestSnapshot } from '../src/core/runtime'
+import type {
+  OrchestratorRuntime,
+  PullRequestSnapshot,
+} from '../src/core/runtime'
 
-function createSnapshot(input: Partial<PullRequestSnapshot> = {}): PullRequestSnapshot {
+function createSnapshot(
+  input: Partial<PullRequestSnapshot> = {},
+): PullRequestSnapshot {
   return {
     changedFiles: ['src/greeting.ts'],
     discussionComments: [],

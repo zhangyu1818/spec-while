@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 
 import { ClaudeAgentClient, createClaudeProvider } from '../src/agents/claude'
+
 import type { ImplementerProvider, ReviewerProvider } from '../src/agents/types'
 
 test('ClaudeAgentClient forwards implement and review to injected adapter', async () => {

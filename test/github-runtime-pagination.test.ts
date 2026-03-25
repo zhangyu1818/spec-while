@@ -77,7 +77,6 @@ test('GitHubRuntime paginates all top-level GraphQL connections', async () => {
     .mockResolvedValueOnce(
       createPullRequestConnectionPage({
         files: Array.from({ length: 100 }, (_, index) => makeFile(index + 1)),
-        reviews: Array.from({ length: 100 }, (_, index) => makeReview(index + 1)),
         comments: Array.from({ length: 100 }, (_, index) =>
           makeIssueComment(index + 1),
         ),
@@ -96,6 +95,9 @@ test('GitHubRuntime paginates all top-level GraphQL connections', async () => {
           endCursor: 'reactions-cursor-1',
           hasNextPage: true,
         },
+        reviews: Array.from({ length: 100 }, (_, index) =>
+          makeReview(index + 1),
+        ),
         reviewsPageInfo: {
           endCursor: 'reviews-cursor-1',
           hasNextPage: true,

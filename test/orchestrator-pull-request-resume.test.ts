@@ -72,7 +72,9 @@ test('runWorkflow resumes a running pull-request review by reusing the current a
   runtime.git.getHeadSubject = vi.fn(
     async () => 'checkpoint: Task T001: Implement greeting (attempt 1)',
   )
-  runtime.github.findOpenPullRequestByHeadBranch = vi.fn(async () => pullRequest)
+  runtime.github.findOpenPullRequestByHeadBranch = vi.fn(
+    async () => pullRequest,
+  )
   runtime.github.getPullRequestSnapshot = vi.fn(async () => ({
     changedFiles: ['src/greeting.ts'],
     discussionComments: [],

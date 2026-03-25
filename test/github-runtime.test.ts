@@ -53,65 +53,63 @@ test('GitHubRuntime returns null when no open pull request matches the head bran
 })
 
 test('GitHubRuntime builds a pull request snapshot from GraphQL responses only', async () => {
-  const runGh = vi
-    .fn()
-    .mockResolvedValueOnce(
-      createPullRequestConnectionPage({
-        comments: [
-          {
-            author: { login: 'chatgpt-codex-connector[bot]' },
-            body: 'please confirm timeout semantics',
-            createdAt: '2026-03-25T07:58:00.000Z',
-            databaseId: 301,
-            url: 'https://github.com/acme/repo/issues/12#issuecomment-301',
-          },
-        ],
-        files: [
-          { path: 'src/workflow/preset.ts' },
-          { path: 'src/commands/run.ts' },
-        ],
-        reactions: [
-          {
-            content: 'THUMBS_UP',
-            createdAt: '2026-03-25T08:00:00.000Z',
-            user: { login: 'chatgpt-codex-connector[bot]' },
-          },
-        ],
-        reviews: [
-          {
-            author: { login: 'chatgpt-codex-connector[bot]' },
-            body: 'please tighten this',
-            fullDatabaseId: 101,
-            state: 'COMMENTED',
-            submittedAt: '2026-03-25T07:50:00.000Z',
-            url: 'https://github.com/acme/repo/pull/12#pullrequestreview-101',
-          },
-        ],
-        reviewThreads: [
-          {
-            id: 'thread-1',
-            isOutdated: false,
-            isResolved: false,
-            comments: {
-              nodes: [
-                {
-                  author: { login: 'chatgpt-codex-connector[bot]' },
-                  body: 'needs one more fix',
-                  createdAt: '2026-03-25T07:57:00.000Z',
-                  line: 33,
-                  path: 'src/workflow/preset.ts',
-                  url: 'https://github.com/acme/repo/pull/12#discussion_r201',
-                },
-              ],
-              pageInfo: {
-                endCursor: null,
-                hasNextPage: false,
+  const runGh = vi.fn().mockResolvedValueOnce(
+    createPullRequestConnectionPage({
+      comments: [
+        {
+          author: { login: 'chatgpt-codex-connector[bot]' },
+          body: 'please confirm timeout semantics',
+          createdAt: '2026-03-25T07:58:00.000Z',
+          databaseId: 301,
+          url: 'https://github.com/acme/repo/issues/12#issuecomment-301',
+        },
+      ],
+      files: [
+        { path: 'src/workflow/preset.ts' },
+        { path: 'src/commands/run.ts' },
+      ],
+      reactions: [
+        {
+          content: 'THUMBS_UP',
+          createdAt: '2026-03-25T08:00:00.000Z',
+          user: { login: 'chatgpt-codex-connector[bot]' },
+        },
+      ],
+      reviews: [
+        {
+          author: { login: 'chatgpt-codex-connector[bot]' },
+          body: 'please tighten this',
+          fullDatabaseId: 101,
+          state: 'COMMENTED',
+          submittedAt: '2026-03-25T07:50:00.000Z',
+          url: 'https://github.com/acme/repo/pull/12#pullrequestreview-101',
+        },
+      ],
+      reviewThreads: [
+        {
+          id: 'thread-1',
+          isOutdated: false,
+          isResolved: false,
+          comments: {
+            nodes: [
+              {
+                author: { login: 'chatgpt-codex-connector[bot]' },
+                body: 'needs one more fix',
+                createdAt: '2026-03-25T07:57:00.000Z',
+                line: 33,
+                path: 'src/workflow/preset.ts',
+                url: 'https://github.com/acme/repo/pull/12#discussion_r201',
               },
+            ],
+            pageInfo: {
+              endCursor: null,
+              hasNextPage: false,
             },
           },
-        ],
-      }),
-    )
+        },
+      ],
+    }),
+  )
 
   const runtime = new GitHubRuntime('/tmp/workspace', runGh, 'acme/repo')
   const snapshot = await runtime.getPullRequestSnapshot({
@@ -149,8 +147,11 @@ test('GitHubRuntime builds a pull request snapshot from GraphQL responses only',
 })
 
 test('PullRequestSnapshot no longer exposes reviewComments', () => {
-  type SnapshotHasReviewComments =
-    PullRequestSnapshot extends { reviewComments: unknown } ? true : false
+  type SnapshotHasReviewComments = PullRequestSnapshot extends {
+    reviewComments: unknown
+  }
+    ? true
+    : false
 
   expectTypeOf<SnapshotHasReviewComments>().toEqualTypeOf<false>()
 })

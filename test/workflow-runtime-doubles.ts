@@ -306,7 +306,9 @@ export class InMemoryWorkspace {
   public constructor(private readonly taskContext: TaskContextSource) {}
 
   public async isTaskChecked(taskId: string) {
-    const latest = this.checkboxUpdates.flat().findLast((item) => item.taskId === taskId)
+    const latest = this.checkboxUpdates
+      .flat()
+      .findLast((item) => item.taskId === taskId)
     return latest?.checked ?? false
   }
 

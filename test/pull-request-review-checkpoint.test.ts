@@ -9,9 +9,14 @@ import {
 } from './workflow-test-helpers'
 
 import type { RemoteReviewerProvider } from '../src/agents/types'
-import type { OrchestratorRuntime, PullRequestSnapshot } from '../src/core/runtime'
+import type {
+  OrchestratorRuntime,
+  PullRequestSnapshot,
+} from '../src/core/runtime'
 
-function createSnapshot(input: Partial<PullRequestSnapshot> = {}): PullRequestSnapshot {
+function createSnapshot(
+  input: Partial<PullRequestSnapshot> = {},
+): PullRequestSnapshot {
   return {
     changedFiles: ['src/greeting.ts'],
     discussionComments: [],

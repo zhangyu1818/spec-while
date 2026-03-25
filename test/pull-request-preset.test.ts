@@ -9,9 +9,14 @@ import {
 } from './workflow-test-helpers'
 
 import type { RemoteReviewerProvider } from '../src/agents/types'
-import type { OrchestratorRuntime, PullRequestSnapshot } from '../src/core/runtime'
+import type {
+  OrchestratorRuntime,
+  PullRequestSnapshot,
+} from '../src/core/runtime'
 
-function createSnapshot(input: Partial<PullRequestSnapshot> = {}): PullRequestSnapshot {
+function createSnapshot(
+  input: Partial<PullRequestSnapshot> = {},
+): PullRequestSnapshot {
   return {
     changedFiles: ['src/greeting.ts'],
     discussionComments: [],
@@ -57,15 +62,13 @@ test('pull-request preset creates or reuses a PR and polls until approval', asyn
     resetHard: vi.fn(async () => {}),
   }
   const github = {
+    findOpenPullRequestByHeadBranch: vi.fn().mockResolvedValueOnce(null),
     squashMergePullRequest: vi.fn(async () => {}),
     createPullRequest: vi.fn(async () => ({
       number: 12,
       title: 'Task T001: Implement greeting',
       url: 'https://example.com/pr/12',
     })),
-    findOpenPullRequestByHeadBranch: vi
-      .fn()
-      .mockResolvedValueOnce(null),
     getPullRequestSnapshot: vi
       .fn()
       .mockResolvedValueOnce(createSnapshot())

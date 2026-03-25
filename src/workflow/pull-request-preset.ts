@@ -21,10 +21,7 @@ function toTaskBranchName(commitMessage: string) {
   return `task/${slug}`
 }
 
-function createCheckpointCommitMessage(
-  commitMessage: string,
-  attempt: number,
-) {
+function createCheckpointCommitMessage(commitMessage: string, attempt: number) {
   return `checkpoint: ${commitMessage} (attempt ${attempt})`
 }
 

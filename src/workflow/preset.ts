@@ -40,7 +40,7 @@ export interface IntegratePhaseContext {
   taskId: string
 }
 
-export type IntegratePhaseResult = {
+export interface IntegratePhaseResult {
   kind: 'completed'
   result: {
     commitSha: string
@@ -49,8 +49,8 @@ export type IntegratePhaseResult = {
 }
 
 export interface WorkflowPreset {
-  readonly mode: WorkflowMode
   integrate: (context: IntegratePhaseContext) => Promise<IntegratePhaseResult>
+  readonly mode: WorkflowMode
   review: (context: ReviewPhaseContext) => Promise<ReviewPhaseResult>
 }
 

@@ -237,7 +237,9 @@ function toReactionContent(value: string) {
   }
 }
 
-function toReviewSummary(item: Record<string, unknown>): PullRequestReviewSummary {
+function toReviewSummary(
+  item: Record<string, unknown>,
+): PullRequestReviewSummary {
   return {
     id: asNumericId(item.id ?? item.fullDatabaseId),
     body: asString(item.body),
@@ -264,7 +266,9 @@ function toReviewThreadComment(
   }
 }
 
-function toReviewThreadPageNode(item: Record<string, unknown>): ReviewThreadPageNode {
+function toReviewThreadPageNode(
+  item: Record<string, unknown>,
+): ReviewThreadPageNode {
   const commentsConnection = requireConnectionRecord(
     item.comments,
     'reviewThreads.comments',

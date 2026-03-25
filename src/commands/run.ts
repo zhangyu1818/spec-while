@@ -99,11 +99,15 @@ function resolveWorkflowRuntime(
   options: RunCommandOptions,
 ): WorkflowRuntime {
   const resolveProvider = createProviderResolver(context, options.verbose)
-  const implementer = resolveProvider(config.workflow.roles.implementer.provider)
+  const implementer = resolveProvider(
+    config.workflow.roles.implementer.provider,
+  )
 
   if (config.workflow.mode === 'pull-request') {
     const resolveRemoteReviewer = createRemoteReviewerResolver()
-    const reviewer = resolveRemoteReviewer(config.workflow.roles.reviewer.provider)
+    const reviewer = resolveRemoteReviewer(
+      config.workflow.roles.reviewer.provider,
+    )
     const roles: WorkflowRoleProviders = {
       implementer,
       reviewer,

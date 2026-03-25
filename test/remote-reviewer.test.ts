@@ -5,7 +5,9 @@ import { createGraph, createVerify } from './workflow-test-helpers'
 
 import type { PullRequestSnapshot } from '../src/core/runtime'
 
-function createSnapshot(input: Partial<PullRequestSnapshot> = {}): PullRequestSnapshot {
+function createSnapshot(
+  input: Partial<PullRequestSnapshot> = {},
+): PullRequestSnapshot {
   return {
     changedFiles: ['src/greeting.ts'],
     discussionComments: [],

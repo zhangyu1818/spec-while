@@ -127,10 +127,7 @@ export class GitRuntime implements GitPort {
     await runGit(this.workspaceRoot, ['pull', '--ff-only', 'origin', branch])
   }
 
-  public async pushBranch(
-    name: string,
-    options?: { setUpstream?: boolean },
-  ) {
+  public async pushBranch(name: string, options?: { setUpstream?: boolean }) {
     const args = ['push']
     if (options?.setUpstream) {
       args.push('-u')

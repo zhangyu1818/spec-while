@@ -6,7 +6,11 @@ import {
   type RunGh,
 } from './github-pr-snapshot'
 
-import type { GitHubPort, PullRequestRef, PullRequestSnapshot } from '../core/runtime'
+import type {
+  GitHubPort,
+  PullRequestRef,
+  PullRequestSnapshot,
+} from '../core/runtime'
 
 const execFileAsync = promisify(execFile)
 

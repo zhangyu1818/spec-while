@@ -33,10 +33,10 @@ async function runVerifyCommand(
         finishedAt,
         passed: exitCode === 0,
         startedAt,
+        stdout,
         stderr: signal
           ? `${stderr}${stderr ? '\n' : ''}Process exited with signal ${signal}`
           : stderr,
-        stdout,
       })
     })
   })
@@ -66,10 +66,10 @@ export class ProcessVerifier {
     return {
       commands,
       passed,
+      taskId: input.taskId,
       summary: passed
         ? 'All verify commands passed'
         : 'One or more verify commands failed',
-      taskId: input.taskId,
     }
   }
 }

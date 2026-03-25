@@ -269,13 +269,13 @@ export const integrateArtifactSchema = z
     attempt: z.number().int().min(1),
     createdAt: dateTimeSchema,
     generation: z.number().int().min(1),
+    taskId: taskIdSchema,
     result: z
       .object({
         commitSha: nonEmptyStringSchema,
         summary: nonEmptyStringSchema,
       })
       .strict(),
-    taskId: taskIdSchema,
   })
   .strict()
 
