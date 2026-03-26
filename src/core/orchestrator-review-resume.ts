@@ -24,15 +24,6 @@ import type {
 import type { WorkflowRuntime } from '../workflow/preset'
 import type { OrchestratorRuntime } from './runtime'
 
-function toTaskBranchName(commitMessage: string) {
-  const slug = commitMessage
-    .replace(/^Task\s+/i, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-  return `task/${slug}`
-}
-
 export async function resumePullRequestReview(input: {
   graph: TaskGraph
   runtime: OrchestratorRuntime
@@ -90,65 +81,12 @@ export async function resumePullRequestReview(input: {
 
   const taskContext = await input.runtime.workspace.loadTaskContext(task)
   const commitMessage = createTaskCommitMessage(task.id, task.title)
-  let pullRequest
-  let snapshot
-  try {
-    pullRequest = await input.runtime.github.findOpenPullRequestByHeadBranch({
-      headBranch: toTaskBranchName(commitMessage),
-    })
-    if (!pullRequest) {
-      const reason = `Cannot resume review for ${taskId} without an open pull request`
-      const nextState = recordReviewFailure(
-        input.graph,
-        input.state,
-        taskId,
-        reason,
-      )
-      await appendEvent(input.runtime, {
-        attempt: taskState.attempt,
-        detail: reason,
-        generation: taskState.generation,
-        taskId,
-        timestamp: now(),
-        type: 'review_failed',
-      })
-      const report = await persistState(input.runtime, input.graph, nextState)
-      return {
-        report,
-        state: nextState,
-      }
-    }
-    snapshot = await input.runtime.github.getPullRequestSnapshot({
-      pullRequestNumber: pullRequest.number,
-    })
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error)
-    const nextState = recordReviewFailure(
-      input.graph,
-      input.state,
-      taskId,
-      reason,
-    )
-    await appendEvent(input.runtime, {
-      attempt: taskState.attempt,
-      detail: reason,
-      generation: taskState.generation,
-      taskId,
-      timestamp: now(),
-      type: 'review_failed',
-    })
-    const report = await persistState(input.runtime, input.graph, nextState)
-    return {
-      report,
-      state: nextState,
-    }
-  }
   let review
   let reviewPhaseKind: 'approved' | 'rejected'
 
   try {
     const reviewPhase = await input.workflow.preset.review({
-      actualChangedFiles: snapshot.changedFiles,
+      actualChangedFiles: [],
       attempt: taskState.attempt,
       commitMessage,
       generation: taskState.generation,

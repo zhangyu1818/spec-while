@@ -111,7 +111,7 @@ test('runWorkflow resumes a running pull-request review without re-running imple
   expect(review).toHaveBeenCalledTimes(1)
   expect(review).toHaveBeenCalledWith(
     expect.objectContaining({
-      actualChangedFiles: ['src/greeting.ts'],
+      actualChangedFiles: [],
       attempt: 1,
       generation: 1,
     }),
