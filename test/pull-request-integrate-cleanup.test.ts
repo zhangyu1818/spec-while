@@ -70,7 +70,6 @@ test('pull-request preset treats local cleanup failures after squash merge as no
     isTaskChecked: vi.fn(async () => false),
     updateTaskChecks: vi.fn(async () => {}),
     loadTaskContext: vi.fn(async () => ({
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',

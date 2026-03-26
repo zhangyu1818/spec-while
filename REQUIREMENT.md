@@ -74,7 +74,6 @@ Feature resolution order:
 
 Each task must define:
 
-- `Paths`
 - `Acceptance`
 - `Review Rubric`
 - `Max Iterations` or `Max Attempts`
@@ -83,7 +82,6 @@ Optional fields include:
 
 - `Goal`
 - `Depends`
-- `Verify`
 - `storyId`
 
 Validation rejects:
@@ -110,7 +108,6 @@ Implement receives:
 - `spec`
 - `plan`
 - `tasksSnippet`
-- scoped `codeContext`
 
 Review phase context receives:
 
@@ -120,7 +117,6 @@ Review phase context receives:
 - previous findings
 - task context (`spec`, `plan`, `tasksSnippet`)
 - implement result
-- verify result
 - `actualChangedFiles`
 - the computed task commit message
 - runtime ports
@@ -131,25 +127,21 @@ For each runnable task:
 
 1. start a new attempt
 2. run implement
-3. run optional verify commands
-4. run review
-5. if review is approved, enter integrate
-6. if integrate succeeds, update `tasks.md`, create a git commit, mark the task as `done`, and record integrate artifacts in `.while`
+3. run review
+4. if review is approved, enter integrate
+5. if integrate succeeds, update `tasks.md`, create a git commit, mark the task as `done`, and record integrate artifacts in `.while`
 
 The zero gate for completion requires:
 
 - review verdict `pass`
 - no findings
 - all acceptance checks passing
-- verify passing
-
-If no verify commands are configured, verify is treated as a successful no-op result.
 
 ## Git-First Completion
 
 `done` means:
 
-- the task passed implement, verify, and review
+- the task passed implement and review
 - the integrate stage succeeded
 
 Each completed task creates one commit with this message format:
@@ -194,20 +186,9 @@ After git reset:
 
 ## Scope and Verification
 
-`paths` remain part of each task definition, but they are a soft scope:
-
-- they limit implementation code context
-- they guide review
-- they do not act as a hard failure gate
-
 `actualChangedFiles` are derived from git diff against `HEAD`.
 
-In `pull-request` mode, `changedFilesReviewed` come from the live PR snapshot rather than the local worktree diff.
-
-`Verify` is optional:
-
-- when present, commands run in order
-- when absent, verify returns a successful no-op result
+In `pull-request` mode, review changed-file context comes from the live PR snapshot rather than the local worktree diff.
 
 ## Runtime Storage
 
@@ -224,10 +205,9 @@ The runtime layout includes:
 - `report.json`
 - `events.jsonl`
 - `tasks/<taskId>/g<generation>/a<attempt>/implement.json`
-- `tasks/<taskId>/g<generation>/a<attempt>/verify.json`
 - `tasks/<taskId>/g<generation>/a<attempt>/review.json`
 - `tasks/<taskId>/g<generation>/a<attempt>/integrate.json`
 
 `.while` is runtime state, not the long-term source of truth.
 
-For pull-request review recovery, the store must be able to reload persisted `implement` and `verify` artifacts by `taskId + generation + attempt`.
+For pull-request review recovery, the store must be able to reload the persisted `implement` artifact by `taskId + generation + attempt`.

@@ -2,7 +2,7 @@
 
 `spec-while` is a git-first task orchestrator for Spec Kit workspaces.
 
-It reads workflow settings from `while.yaml`, consumes `spec.md`, `plan.md`, and `tasks.md`, executes one task at a time, runs optional verify commands, reviews the result, integrates approved work, and creates one git commit per completed task.
+It reads workflow settings from `while.yaml`, consumes `spec.md`, `plan.md`, and `tasks.md`, executes one task at a time, reviews the result, integrates approved work, and creates one git commit per completed task.
 
 ## Requirements
 
@@ -85,10 +85,9 @@ pnpm exec spec-while rewind --workspace /path/to/workspace --feature 001-demo --
 
 Each task follows this lifecycle:
 
-1. The implement role receives the current task plus `spec.md`, `plan.md`, `tasksSnippet`, and scoped code context.
-2. Optional verify commands run.
-3. The reviewer evaluates acceptance, spec/plan alignment, verify results, changed files, and overall risk.
-4. If review is approved, `spec-while` updates `tasks.md`, creates the final integration commit, marks the task as `done`, and records integrate artifacts under `.while`.
+1. The implement role receives the current task plus `spec.md`, `plan.md`, and `tasksSnippet`.
+2. The reviewer evaluates acceptance, spec/plan alignment, changed files, and overall risk.
+3. If review is approved, `spec-while` updates `tasks.md`, creates the final integration commit, marks the task as `done`, and records integrate artifacts under `.while`.
 
 In `pull-request` mode:
 
@@ -111,34 +110,22 @@ Completion is git-first:
 
 `spec-while` consumes Spec Kit style tasks. Each task must define:
 
-- `Paths`
 - `Acceptance`
 - `Review Rubric`
 - `Max Iterations` or `Max Attempts`
-
-`Verify` is optional. When omitted, the task still runs and review sees a no-op verify result.
 
 Example:
 
 ```md
 - [ ] T001 Implement greeting
   - Goal: Build the greeting helper
-  - Paths: src/greeting.ts
   - Depends:
   - Acceptance:
     - greeting helper exists
-  - Verify:
-    - pnpm test -- greeting
   - Review Rubric:
     - keep naming clear
   - Max Iterations: 2
 ```
-
-## Scope Model
-
-- `Paths` define the expected primary scope for the task.
-- They are used to load code context for implementation and to guide review.
-- They are not a hard stop. Review can still approve a task that reasonably touches additional files.
 
 ## What `spec-while` Does Not Do
 
@@ -164,7 +151,6 @@ Important files:
 - `report.json`
 - `events.jsonl`
 - `tasks/<taskId>/g<generation>/a<attempt>/implement.json`
-- `tasks/<taskId>/g<generation>/a<attempt>/verify.json`
 - `tasks/<taskId>/g<generation>/a<attempt>/review.json`
 - `tasks/<taskId>/g<generation>/a<attempt>/integrate.json`
 

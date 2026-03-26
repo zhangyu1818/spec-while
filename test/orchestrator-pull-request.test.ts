@@ -5,7 +5,6 @@ import {
   createGraph,
   createImplement,
   createRuntime,
-  createVerify,
 } from './workflow-test-helpers'
 
 import type {
@@ -20,6 +19,18 @@ test('runWorkflow resumes a running pull-request review without re-running imple
     tasks: [createGraph().tasks[0]!],
   }
   const { runtime, store } = createRuntime()
+  runtime.github.findOpenPullRequestByHeadBranch = vi.fn(async () => ({
+    number: 12,
+    title: 'Task T001: Implement greeting',
+    url: 'https://example.com/pr/12',
+  }))
+  runtime.github.getPullRequestSnapshot = vi.fn(async () => ({
+    changedFiles: ['src/greeting.ts'],
+    discussionComments: [],
+    reactions: [],
+    reviewSummaries: [],
+    reviewThreads: [],
+  }))
   store.state = {
     currentTaskId: 'T001',
     featureId: '001-demo',
@@ -29,7 +40,6 @@ test('runWorkflow resumes a running pull-request review without re-running imple
         generation: 1,
         invalidatedBy: null,
         lastFindings: [],
-        lastVerifyPassed: true,
         stage: 'review',
         status: 'running',
       },
@@ -42,13 +52,6 @@ test('runWorkflow resumes a running pull-request review without re-running imple
     result: createImplement('T001', 'src/greeting.ts'),
     taskId: 'T001',
   })
-  await store.saveVerifyArtifact({
-    attempt: 1,
-    createdAt: '2026-03-25T08:01:00.000Z',
-    generation: 1,
-    result: createVerify('T001', true),
-    taskId: 'T001',
-  })
 
   const implement = vi.fn(async () => {
     throw new Error('implement should not run during review resume')
@@ -56,7 +59,6 @@ test('runWorkflow resumes a running pull-request review without re-running imple
   const review = vi.fn(async () => ({
     kind: 'approved' as const,
     review: {
-      changedFilesReviewed: ['src/greeting.ts'],
       findings: [],
       overallRisk: 'low' as const,
       summary: 'approved remotely',
@@ -131,6 +133,18 @@ test('runWorkflow resumes a running pull-request review and records rejected fee
     tasks: [task],
   }
   const { runtime, store } = createRuntime()
+  runtime.github.findOpenPullRequestByHeadBranch = vi.fn(async () => ({
+    number: 12,
+    title: 'Task T001: Implement greeting',
+    url: 'https://example.com/pr/12',
+  }))
+  runtime.github.getPullRequestSnapshot = vi.fn(async () => ({
+    changedFiles: ['src/greeting.ts'],
+    discussionComments: [],
+    reactions: [],
+    reviewSummaries: [],
+    reviewThreads: [],
+  }))
   store.state = {
     currentTaskId: 'T001',
     featureId: '001-demo',
@@ -140,7 +154,6 @@ test('runWorkflow resumes a running pull-request review and records rejected fee
         generation: 1,
         invalidatedBy: null,
         lastFindings: [],
-        lastVerifyPassed: true,
         stage: 'review',
         status: 'running',
       },
@@ -153,13 +166,6 @@ test('runWorkflow resumes a running pull-request review and records rejected fee
     result: createImplement('T001', 'src/greeting.ts'),
     taskId: 'T001',
   })
-  await store.saveVerifyArtifact({
-    attempt: 1,
-    createdAt: '2026-03-25T08:01:00.000Z',
-    generation: 1,
-    result: createVerify('T001', true),
-    taskId: 'T001',
-  })
 
   const implement = vi.fn(async () => {
     throw new Error('implement should not run during review resume')
@@ -167,7 +173,6 @@ test('runWorkflow resumes a running pull-request review and records rejected fee
   const review = vi.fn(async () => ({
     kind: 'rejected' as const,
     review: {
-      changedFilesReviewed: ['src/greeting.ts'],
       overallRisk: 'medium' as const,
       summary: 'handle edge case',
       taskId: 'T001',

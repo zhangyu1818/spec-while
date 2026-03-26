@@ -73,7 +73,6 @@ test('pull-request integrate treats an already merged pull request as completed 
     isTaskChecked: vi.fn(async () => true),
     updateTaskChecks: vi.fn(async () => {}),
     loadTaskContext: vi.fn(async () => ({
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [X] T001 Implement greeting\n',

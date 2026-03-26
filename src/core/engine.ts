@@ -12,7 +12,6 @@ import type {
   ReviewOutput,
   TaskDefinition,
   TaskGraph,
-  VerifyResult,
   WorkflowState,
 } from '../types'
 
@@ -63,9 +62,6 @@ export function alignStateWithGraph(
             lastFindings: existing.lastFindings,
             ...(existing.lastReviewVerdict
               ? { lastReviewVerdict: existing.lastReviewVerdict }
-              : {}),
-            ...(existing.lastVerifyPassed !== undefined
-              ? { lastVerifyPassed: existing.lastVerifyPassed }
               : {}),
             status: 'rework' as const,
           },
@@ -141,7 +137,7 @@ export function recordImplementSuccess(
   }
   next.tasks[taskId] = {
     ...taskState,
-    stage: 'verify',
+    stage: 'review',
     status: 'running',
   }
   return next
@@ -171,62 +167,11 @@ export function recordImplementFailure(
   return next
 }
 
-export function recordVerifyResult(
-  state: WorkflowState,
-  taskId: string,
-  verify: VerifyResult,
-): WorkflowState {
-  const next = cloneState(state)
-  const taskState = getTaskState(next, taskId)
-  if (taskState.status !== 'running' || taskState.stage !== 'verify') {
-    throw new Error(`Task ${taskId} is not verifying`)
-  }
-  next.tasks[taskId] = {
-    ...withReviewMetadata(taskState, {
-      verifyPassed: verify.passed,
-    }),
-    stage: 'review',
-    status: 'running',
-  }
-  return next
-}
-
-export function recordVerifyFailure(
-  graph: TaskGraph,
-  state: WorkflowState,
-  taskId: string,
-  reason: string,
-): WorkflowState {
-  const next = cloneState(state)
-  const task = getTask(graph, taskId)
-  const taskState = getTaskState(next, taskId)
-  next.currentTaskId = null
-  next.tasks[taskId] =
-    taskState.attempt >= task.maxAttempts
-      ? {
-          ...withReviewMetadata(taskState, {
-            verifyPassed: false,
-          }),
-          reason,
-          status: 'blocked',
-        }
-      : {
-          ...withReviewMetadata(taskState, {
-            verifyPassed: false,
-          }),
-          status: 'rework',
-        }
-  return next
-}
-
 export function recordReviewResult(
   graph: TaskGraph,
   state: WorkflowState,
   taskId: string,
-  input: {
-    review: ReviewOutput
-    verify: VerifyResult
-  },
+  input: { review: ReviewOutput },
 ): WorkflowState {
   const next = cloneState(state)
   const task = getTask(graph, taskId)
@@ -235,7 +180,6 @@ export function recordReviewResult(
   const metadata = withReviewMetadata(taskState, {
     findings: input.review.findings,
     reviewVerdict: input.review.verdict,
-    verifyPassed: input.verify.passed,
   })
 
   if (shouldPassZeroGate(input)) {

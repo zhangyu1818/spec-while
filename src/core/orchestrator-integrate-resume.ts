@@ -45,16 +45,13 @@ export async function resumePullRequestIntegrate(input: {
     generation: taskState.generation,
     taskId,
   }
-  const [implementArtifact, reviewArtifact, verifyArtifact] = await Promise.all(
-    [
-      input.runtime.store.loadImplementArtifact(artifactKey),
-      input.runtime.store.loadReviewArtifact(artifactKey),
-      input.runtime.store.loadVerifyArtifact(artifactKey),
-    ],
-  )
+  const [implementArtifact, reviewArtifact] = await Promise.all([
+    input.runtime.store.loadImplementArtifact(artifactKey),
+    input.runtime.store.loadReviewArtifact(artifactKey),
+  ])
 
-  if (!implementArtifact || !reviewArtifact || !verifyArtifact) {
-    const reason = `Cannot resume integrate for ${taskId} without persisted implement, review, and verify artifacts`
+  if (!implementArtifact || !reviewArtifact) {
+    const reason = `Cannot resume integrate for ${taskId} without persisted implement and review artifacts`
     const nextState = recordCommitFailure(
       input.graph,
       input.state,
@@ -118,7 +115,6 @@ export async function resumePullRequestIntegrate(input: {
   const nextState = recordIntegrateResult(input.graph, input.state, task.id, {
     commitSha: integrateResult.result.commitSha,
     review: reviewArtifact.result,
-    verify: verifyArtifact.result,
   })
   const report = await persistState(input.runtime, input.graph, nextState)
   await appendEvent(input.runtime, {
@@ -134,7 +130,6 @@ export async function resumePullRequestIntegrate(input: {
     commitSha: integrateResult.result.commitSha,
     implementArtifact,
     reviewArtifact,
-    verifyArtifact,
   })
   return {
     report,

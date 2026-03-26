@@ -68,7 +68,6 @@ test('pull-request preset finalizes and squashes an approved task branch', async
     isTaskChecked: vi.fn(async () => false),
     updateTaskChecks: vi.fn(async () => {}),
     loadTaskContext: vi.fn(async () => ({
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',
@@ -149,7 +148,6 @@ test('pull-request preset restores a missing local task branch from origin durin
     isTaskChecked: vi.fn(async () => false),
     updateTaskChecks: vi.fn(async () => {}),
     loadTaskContext: vi.fn(async () => ({
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',
@@ -215,7 +213,6 @@ test('pull-request integrate rolls back the task checkbox when finalize commit f
   const workspace = {
     isTaskChecked: vi.fn(async () => false),
     loadTaskContext: vi.fn(async () => ({
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',

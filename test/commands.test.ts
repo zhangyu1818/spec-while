@@ -154,10 +154,9 @@ test('runCommand keeps soft path boundaries and lets reviewer judge extra change
   expect(result.summary.finalStatus).toBe('completed')
 })
 
-test('runCommand treats tasks without verify commands as passing no-op verify', async () => {
+test('runCommand reviews changed files before integrate', async () => {
   const { context, root } = await createWorkspace({
     includeSecondTask: false,
-    omitVerifyForTaskIds: ['T001'],
   })
   await initGitRepo(root)
   providerState.queue.push(
@@ -169,12 +168,7 @@ test('runCommand treats tasks without verify commands as passing no-op verify', 
         )
       },
       async (input) => {
-        expect(input.verify).toEqual({
-          commands: [],
-          passed: true,
-          summary: 'No verify commands configured.',
-          taskId: 'T001',
-        })
+        expect(input.actualChangedFiles).toEqual(['src/greeting.js'])
         return createPassingReview(input)
       },
     ),

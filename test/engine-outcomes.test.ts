@@ -9,13 +9,11 @@ import {
   recordReviewApproved,
   recordReviewFailure,
   recordReviewResult,
-  recordVerifyFailure,
-  recordVerifyResult,
   rewindTaskGeneration,
   startAttempt,
 } from '../src/core/engine'
 
-import type { ReviewOutput, TaskGraph, VerifyResult } from '../src/types'
+import type { ReviewOutput, TaskGraph } from '../src/types'
 
 function createGraph(): TaskGraph {
   return {
@@ -27,11 +25,9 @@ function createGraph(): TaskGraph {
         dependsOn: [],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
       {
         id: 'T002',
@@ -39,11 +35,9 @@ function createGraph(): TaskGraph {
         dependsOn: ['T001'],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/farewell.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement farewell',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
@@ -51,7 +45,6 @@ function createGraph(): TaskGraph {
 
 function createPassingReview(taskId: string, criterion: string): ReviewOutput {
   return {
-    changedFilesReviewed: [],
     findings: [],
     overallRisk: 'low',
     summary: 'ok',
@@ -62,25 +55,6 @@ function createPassingReview(taskId: string, criterion: string): ReviewOutput {
         criterion,
         note: 'ok',
         status: 'pass',
-      },
-    ],
-  }
-}
-
-function createVerifyResult(taskId: string, passed: boolean): VerifyResult {
-  return {
-    passed,
-    summary: passed ? 'ok' : 'failed',
-    taskId,
-    commands: [
-      {
-        command: 'node -e "process.exit(0)"',
-        exitCode: passed ? 0 : 1,
-        finishedAt: '2026-03-22T00:00:00.000Z',
-        passed,
-        startedAt: '2026-03-22T00:00:00.000Z',
-        stderr: '',
-        stdout: '',
       },
     ],
   }
@@ -103,38 +77,20 @@ test('engine blocks after exceeding max attempts', () => {
   })
 })
 
-test('engine returns rework then blocked when verify execution itself fails repeatedly', () => {
+test('engine returns rework then blocked when review execution itself fails repeatedly', () => {
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
 
-  const attemptOne = recordImplementSuccess(
-    startAttempt(graph, initial, 'T001'),
-    'T001',
-  )
-  const rework = recordVerifyFailure(
-    graph,
-    attemptOne,
-    'T001',
-    'verify crashed',
-  )
+  const attemptOne = recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001')
+  const rework = recordReviewFailure(graph, attemptOne, 'T001', 'review crashed')
   expect(rework.tasks.T001).toMatchObject({
-    lastVerifyPassed: false,
     status: 'rework',
   })
 
-  const attemptTwo = recordImplementSuccess(
-    startAttempt(graph, rework, 'T001'),
-    'T001',
-  )
-  const blocked = recordVerifyFailure(
-    graph,
-    attemptTwo,
-    'T001',
-    'verify crashed again',
-  )
+  const attemptTwo = recordImplementSuccess(startAttempt(graph, rework, 'T001'), 'T001')
+  const blocked = recordReviewFailure(graph, attemptTwo, 'T001', 'review crashed again')
   expect(blocked.tasks.T001).toMatchObject({
-    lastVerifyPassed: false,
-    reason: 'verify crashed again',
+    reason: 'review crashed again',
     status: 'blocked',
   })
 })
@@ -142,14 +98,9 @@ test('engine returns rework then blocked when verify execution itself fails repe
 test('engine maps reviewer blocked and replan verdicts to terminal workflow states', () => {
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
-  const reviewing = recordVerifyResult(
-    recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
-    'T001',
-    createVerifyResult('T001', true),
-  )
+  const reviewing = recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001')
 
   const blocked = recordReviewResult(graph, reviewing, 'T001', {
-    verify: createVerifyResult('T001', true),
     review: {
       ...createPassingReview('T001', 'buildGreeting works'),
       summary: 'waiting for dependency',
@@ -162,13 +113,8 @@ test('engine maps reviewer blocked and replan verdicts to terminal workflow stat
     status: 'blocked',
   })
 
-  const reviewingAgain = recordVerifyResult(
-    recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
-    'T001',
-    createVerifyResult('T001', true),
-  )
+  const reviewingAgain = recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001')
   const replanned = recordReviewResult(graph, reviewingAgain, 'T001', {
-    verify: createVerifyResult('T001', true),
     review: {
       ...createPassingReview('T001', 'buildGreeting works'),
       summary: 'task contract is wrong',
@@ -185,11 +131,7 @@ test('engine maps reviewer blocked and replan verdicts to terminal workflow stat
 test('engine records review execution failures as rework before max attempts', () => {
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
-  const reviewing = recordVerifyResult(
-    recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
-    'T001',
-    createVerifyResult('T001', true),
-  )
+  const reviewing = recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001')
 
   const failed = recordReviewFailure(graph, reviewing, 'T001', 'review crashed')
   const taskState = failed.tasks.T001!
@@ -206,11 +148,7 @@ test('rewindTaskGeneration starts a fresh generation for target and descendants'
   const firstRun = recordIntegrateResult(
     graph,
     recordReviewApproved(
-      recordVerifyResult(
-        recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
-        'T001',
-        createVerifyResult('T001', true),
-      ),
+      recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
       'T001',
       createPassingReview('T001', 'buildGreeting works'),
     ),
@@ -218,17 +156,12 @@ test('rewindTaskGeneration starts a fresh generation for target and descendants'
     {
       commitSha: 'commit-1',
       review: createPassingReview('T001', 'buildGreeting works'),
-      verify: createVerifyResult('T001', true),
     },
   )
   const secondRun = recordIntegrateResult(
     graph,
     recordReviewApproved(
-      recordVerifyResult(
-        recordImplementSuccess(startAttempt(graph, firstRun, 'T002'), 'T002'),
-        'T002',
-        createVerifyResult('T002', true),
-      ),
+      recordImplementSuccess(startAttempt(graph, firstRun, 'T002'), 'T002'),
       'T002',
       createPassingReview('T002', 'buildFarewell works'),
     ),
@@ -236,7 +169,6 @@ test('rewindTaskGeneration starts a fresh generation for target and descendants'
     {
       commitSha: 'commit-2',
       review: createPassingReview('T002', 'buildFarewell works'),
-      verify: createVerifyResult('T002', true),
     },
   )
 
@@ -269,7 +201,6 @@ test('buildReport summarizes workflow state without exposing internal invalidati
         invalidatedBy: null,
         lastFindings: [],
         lastReviewVerdict: 'pass' as const,
-        lastVerifyPassed: true,
         status: 'done' as const,
       },
       T002: {

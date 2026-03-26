@@ -6,7 +6,6 @@ import {
   createImplement,
   createReview,
   createRuntime,
-  createVerify,
 } from './workflow-test-helpers'
 
 import type {
@@ -31,7 +30,6 @@ test('runWorkflow resumes a running pull-request integrate after restart without
         invalidatedBy: null,
         lastFindings: [],
         lastReviewVerdict: 'pass',
-        lastVerifyPassed: true,
         stage: 'integrate',
         status: 'running',
       },
@@ -49,13 +47,6 @@ test('runWorkflow resumes a running pull-request integrate after restart without
     createdAt: '2026-03-25T08:02:00.000Z',
     generation: 1,
     result: createReview('T001', 'buildGreeting works'),
-    taskId: 'T001',
-  })
-  await store.saveVerifyArtifact({
-    attempt: 1,
-    createdAt: '2026-03-25T08:01:00.000Z',
-    generation: 1,
-    result: createVerify('T001', true),
     taskId: 'T001',
   })
 

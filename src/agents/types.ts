@@ -4,12 +4,10 @@ import type {
   ReviewFinding,
   ReviewOutput,
   TaskDefinition,
-  VerifyResult,
 } from '../types'
 
 export interface ImplementAgentInput {
   attempt: number
-  codeContext: string
   generation: number
   lastFindings: ReviewFinding[]
   plan: string
@@ -28,7 +26,6 @@ export interface ReviewAgentInput {
   spec: string
   task: TaskDefinition
   tasksSnippet: string
-  verify: VerifyResult
 }
 
 export interface ImplementerProvider {
@@ -45,7 +42,6 @@ export interface PullRequestReviewInput {
   checkpointStartedAt: string
   pullRequest: PullRequestSnapshot
   task: TaskDefinition
-  verify: VerifyResult
 }
 
 export type PullRequestReviewResult =

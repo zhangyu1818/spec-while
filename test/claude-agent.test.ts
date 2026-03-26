@@ -11,10 +11,8 @@ test('ClaudeAgentClient forwards implement and review to injected adapter', asyn
       calls.push(`implement:${input.task.id}`)
       return {
         assumptions: [],
-        changedFiles: ['src/a.ts'],
         needsHumanAttention: false,
         notes: [],
-        requestedAdditionalPaths: [],
         status: 'implemented',
         summary: 'ok',
         taskId: input.task.id,
@@ -24,7 +22,6 @@ test('ClaudeAgentClient forwards implement and review to injected adapter', asyn
     async review(input) {
       calls.push(`review:${input.task.id}`)
       return {
-        changedFilesReviewed: ['src/a.ts'],
         findings: [],
         overallRisk: 'low',
         summary: 'ok',
@@ -43,7 +40,6 @@ test('ClaudeAgentClient forwards implement and review to injected adapter', asyn
 
   const implement = await client.implement({
     attempt: 1,
-    codeContext: '',
     generation: 1,
     lastFindings: [],
     plan: '# plan',
@@ -55,11 +51,9 @@ test('ClaudeAgentClient forwards implement and review to injected adapter', asyn
       dependsOn: [],
       maxAttempts: 1,
       parallelizable: false,
-      paths: ['src/a.ts'],
       phase: 'Core',
       reviewRubric: ['clear'],
       title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
     },
   })
   const review = await client.review({
@@ -77,27 +71,9 @@ test('ClaudeAgentClient forwards implement and review to injected adapter', asyn
       dependsOn: [],
       maxAttempts: 1,
       parallelizable: false,
-      paths: ['src/a.ts'],
       phase: 'Core',
       reviewRubric: ['clear'],
       title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
-    },
-    verify: {
-      passed: true,
-      summary: 'ok',
-      taskId: 'T001',
-      commands: [
-        {
-          command: 'node -e "process.exit(0)"',
-          exitCode: 0,
-          finishedAt: '2026-03-22T00:00:00.000Z',
-          passed: true,
-          startedAt: '2026-03-22T00:00:00.000Z',
-          stderr: '',
-          stdout: '',
-        },
-      ],
     },
   })
 
@@ -112,7 +88,6 @@ test('ClaudeAgentClient default adapter throws explicit configuration errors', a
   await expect(
     client.implement({
       attempt: 1,
-      codeContext: '',
       generation: 1,
       lastFindings: [],
       plan: '# plan',
@@ -124,11 +99,9 @@ test('ClaudeAgentClient default adapter throws explicit configuration errors', a
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/a.ts'],
         phase: 'Core',
         reviewRubric: ['clear'],
         title: 'Do work',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     }),
   ).rejects.toThrow(/claude agent adapter is not configured/i)
@@ -144,10 +117,8 @@ test('ClaudeAgentClient default adapter throws explicit configuration errors', a
       tasksSnippet: '- [ ] T001 Do work',
       implement: {
         assumptions: [],
-        changedFiles: ['src/a.ts'],
         needsHumanAttention: false,
         notes: [],
-        requestedAdditionalPaths: [],
         status: 'implemented',
         summary: 'ok',
         taskId: 'T001',
@@ -159,27 +130,9 @@ test('ClaudeAgentClient default adapter throws explicit configuration errors', a
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/a.ts'],
         phase: 'Core',
         reviewRubric: ['clear'],
         title: 'Do work',
-        verifyCommands: ['node -e "process.exit(0)"'],
-      },
-      verify: {
-        passed: true,
-        summary: 'ok',
-        taskId: 'T001',
-        commands: [
-          {
-            command: 'node -e "process.exit(0)"',
-            exitCode: 0,
-            finishedAt: '2026-03-22T00:00:00.000Z',
-            passed: true,
-            startedAt: '2026-03-22T00:00:00.000Z',
-            stderr: '',
-            stdout: '',
-          },
-        ],
       },
     }),
   ).rejects.toThrow(/claude agent adapter is not configured/i)
@@ -191,10 +144,8 @@ test('createClaudeProvider returns a role-scoped claude provider', async () => {
       async implement(input) {
         return {
           assumptions: [],
-          changedFiles: ['src/a.ts'],
           needsHumanAttention: false,
           notes: [],
-          requestedAdditionalPaths: [],
           status: 'implemented',
           summary: 'ok',
           taskId: input.task.id,
@@ -203,7 +154,6 @@ test('createClaudeProvider returns a role-scoped claude provider', async () => {
       },
       async review(input) {
         return {
-          changedFilesReviewed: input.actualChangedFiles,
           findings: [],
           overallRisk: 'low',
           summary: 'ok',
@@ -223,7 +173,6 @@ test('createClaudeProvider returns a role-scoped claude provider', async () => {
 
   const implement = await provider.implement({
     attempt: 1,
-    codeContext: '',
     generation: 1,
     lastFindings: [],
     plan: '# plan',
@@ -235,11 +184,9 @@ test('createClaudeProvider returns a role-scoped claude provider', async () => {
       dependsOn: [],
       maxAttempts: 1,
       parallelizable: false,
-      paths: ['src/a.ts'],
       phase: 'Core',
       reviewRubric: ['clear'],
       title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
     },
   })
   const review = await provider.review({
@@ -257,27 +204,9 @@ test('createClaudeProvider returns a role-scoped claude provider', async () => {
       dependsOn: [],
       maxAttempts: 1,
       parallelizable: false,
-      paths: ['src/a.ts'],
       phase: 'Core',
       reviewRubric: ['clear'],
       title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
-    },
-    verify: {
-      passed: true,
-      summary: 'ok',
-      taskId: 'T001',
-      commands: [
-        {
-          command: 'node -e "process.exit(0)"',
-          exitCode: 0,
-          finishedAt: '2026-03-22T00:00:00.000Z',
-          passed: true,
-          startedAt: '2026-03-22T00:00:00.000Z',
-          stderr: '',
-          stdout: '',
-        },
-      ],
     },
   })
 

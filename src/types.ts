@@ -16,16 +16,12 @@ export type {
   TaskGraph,
   TaskState,
   TaskStatus,
-  VerifyArtifact,
-  VerifyCommandResult,
-  VerifyResult,
   WorkflowEvent,
   WorkflowEventType,
   WorkflowState,
 } from './schema/index'
 
 export interface TaskContext {
-  codeContext: string
   plan: string
   spec: string
   tasksSnippet: string

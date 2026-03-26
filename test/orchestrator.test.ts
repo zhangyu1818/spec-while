@@ -6,7 +6,6 @@ import {
   createImplement,
   createReview,
   createRuntime,
-  createVerify,
   createWorkflow,
   ScriptedWorkflowProvider,
 } from './workflow-test-helpers'
@@ -34,7 +33,6 @@ test('runWorkflow finalizes tasks, commits each done task, and records commitSha
   expect(result.summary.finalStatus).toBe('completed')
   expect(store.integrateArtifacts).toHaveLength(2)
   expect(store.implementArtifacts).toHaveLength(2)
-  expect(store.verifyArtifacts).toHaveLength(2)
   expect(store.reviewArtifacts).toHaveLength(2)
   expect(workspace.checkboxUpdates.flat()).toEqual([
     { checked: true, taskId: 'T001' },
@@ -56,7 +54,6 @@ test('runWorkflow finalizes tasks, commits each done task, and records commitSha
     result: { commitSha: 'commit-1' },
   })
   expect(store.implementArtifacts[0]).toMatchObject({ commitSha: 'commit-1' })
-  expect(store.verifyArtifacts[1]).toMatchObject({ commitSha: 'commit-2' })
 })
 
 test('runWorkflow loads per-task context and passes git-based changed files into review', async () => {
@@ -65,13 +62,11 @@ test('runWorkflow loads per-task context and passes git-based changed files into
     changedFiles: [['src/greeting.ts'], ['src/farewell.ts']],
     taskContexts: {
       T001: {
-        codeContext: '## src/greeting.ts\nexport const greeting = "hi"\n',
         plan: '# plan for T001\n',
         spec: '# spec for T001\n',
         tasksSnippet: '- [ ] T001 Implement greeting\n',
       },
       T002: {
-        codeContext: '## src/farewell.ts\nexport const farewell = "bye"\n',
         plan: '# plan for T002\n',
         spec: '# spec for T002\n',
         tasksSnippet: '- [ ] T002 Implement farewell\n',
@@ -95,8 +90,8 @@ test('runWorkflow loads per-task context and passes git-based changed files into
     workflow: createWorkflow(provider),
   })
 
-  expect(provider.implementInputs[0]?.codeContext).toContain('src/greeting.ts')
-  expect(provider.implementInputs[1]?.codeContext).toContain('src/farewell.ts')
+  expect(provider.implementInputs[0]?.plan).toContain('# plan for T001')
+  expect(provider.implementInputs[1]?.plan).toContain('# plan for T002')
   expect(provider.reviewInputs[0]?.actualChangedFiles).toEqual([
     'src/greeting.ts',
   ])
@@ -118,9 +113,7 @@ test('runWorkflow carries review findings into the next implement attempt', asyn
       severity: 'medium' as const,
     },
   ]
-  const { runtime } = createRuntime({
-    verifierResponses: [createVerify('T001', true), createVerify('T001', true)],
-  })
+  const { runtime } = createRuntime()
   const provider = new ScriptedWorkflowProvider(
     [
       createImplement('T001', 'src/greeting.ts'),
@@ -128,7 +121,6 @@ test('runWorkflow carries review findings into the next implement attempt', asyn
     ],
     [
       {
-        changedFilesReviewed: ['src/greeting.ts'],
         findings,
         overallRisk: 'medium',
         summary: 'retry with edge-case handling',
@@ -170,9 +162,7 @@ test('runWorkflow resumes a persisted rework task with its last findings', async
       severity: 'medium' as const,
     },
   ]
-  const { runtime, store } = createRuntime({
-    verifierResponses: [createVerify('T001', true)],
-  })
+  const { runtime, store } = createRuntime()
   store.state = {
     currentTaskId: null,
     featureId: '001-demo',
@@ -183,7 +173,6 @@ test('runWorkflow resumes a persisted rework task with its last findings', async
         invalidatedBy: null,
         lastFindings: findings,
         lastReviewVerdict: 'rework',
-        lastVerifyPassed: false,
         status: 'rework',
       },
     },
@@ -203,17 +192,12 @@ test('runWorkflow resumes a persisted rework task with its last findings', async
   expect(provider.implementInputs[0]?.lastFindings).toEqual(findings)
 })
 
-test('runWorkflow still reviews failed verify results before later retries', async () => {
+test('runWorkflow retries after review rework results before later success', async () => {
   const graph = {
     featureId: '001-demo',
     tasks: [createGraph().tasks[0]!],
   }
-  const { runtime, store } = createRuntime({
-    verifierResponses: [
-      createVerify('T001', false),
-      createVerify('T001', true),
-    ],
-  })
+  const { runtime } = createRuntime()
   const provider = new ScriptedWorkflowProvider(
     [
       createImplement('T001', 'src/greeting.ts'),
@@ -232,9 +216,7 @@ test('runWorkflow still reviews failed verify results before later retries', asy
   })
 
   expect(provider.reviewInputs).toHaveLength(2)
-  expect(provider.reviewInputs[0]?.verify.passed).toBe(false)
   expect(result.state.tasks.T001).toMatchObject({ status: 'done' })
-  expect(store.report?.tasks[0]?.lastVerifyPassed).toBe(true)
 })
 
 test('runWorkflow retries after implement failure and keeps downstream tasks pending until the target succeeds', async () => {

@@ -41,10 +41,8 @@ test('CodexAgentClient passes workspaceRoot and structured output schema to SDK 
           return {
             finalResponse: JSON.stringify({
               assumptions: [],
-              changedFiles: ['src/parser.ts'],
               needsHumanAttention: false,
               notes: [],
-              requestedAdditionalPaths: [],
               status: 'implemented',
               summary: 'done',
               taskId: 'T001',
@@ -62,7 +60,6 @@ test('CodexAgentClient passes workspaceRoot and structured output schema to SDK 
 
   const result = await client.implement({
     attempt: 1,
-    codeContext: '## src/parser.ts\nexport const value = 1\n',
     generation: 1,
     lastFindings: [],
     plan: '# plan',
@@ -74,11 +71,9 @@ test('CodexAgentClient passes workspaceRoot and structured output schema to SDK 
       dependsOn: [],
       maxAttempts: 2,
       parallelizable: false,
-      paths: ['src/parser.ts'],
       phase: 'Phase 1',
       reviewRubric: ['naming clarity'],
       title: 'Create parser',
-      verifyCommands: ['node -e "process.exit(0)"'],
     },
   })
 
@@ -105,7 +100,6 @@ test('CodexAgentClient creates a fresh thread for each role invocation', async (
             finalResponse: JSON.stringify(
               isReview
                 ? {
-                    changedFilesReviewed: [],
                     findings: [],
                     overallRisk: 'low',
                     summary: 'ok',
@@ -121,10 +115,8 @@ test('CodexAgentClient creates a fresh thread for each role invocation', async (
                   }
                 : {
                     assumptions: [],
-                    changedFiles: ['src/a.ts'],
                     needsHumanAttention: false,
                     notes: [],
-                    requestedAdditionalPaths: [],
                     status: 'implemented',
                     summary: 'ok',
                     taskId: 'T001',
@@ -143,7 +135,6 @@ test('CodexAgentClient creates a fresh thread for each role invocation', async (
 
   await client.implement({
     attempt: 1,
-    codeContext: '',
     generation: 1,
     lastFindings: [],
     plan: '# plan',
@@ -155,11 +146,9 @@ test('CodexAgentClient creates a fresh thread for each role invocation', async (
       dependsOn: [],
       maxAttempts: 2,
       parallelizable: false,
-      paths: ['src/a.ts'],
       phase: 'Core',
       reviewRubric: ['clear'],
       title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
     },
   })
   await client.review({
@@ -172,10 +161,8 @@ test('CodexAgentClient creates a fresh thread for each role invocation', async (
     tasksSnippet: '- [ ] T001 Do work',
     implement: {
       assumptions: [],
-      changedFiles: ['src/a.ts'],
       needsHumanAttention: false,
       notes: [],
-      requestedAdditionalPaths: [],
       status: 'implemented',
       summary: 'ok',
       taskId: 'T001',
@@ -187,27 +174,9 @@ test('CodexAgentClient creates a fresh thread for each role invocation', async (
       dependsOn: [],
       maxAttempts: 2,
       parallelizable: false,
-      paths: ['src/a.ts'],
       phase: 'Core',
       reviewRubric: ['clear'],
       title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
-    },
-    verify: {
-      passed: true,
-      summary: 'ok',
-      taskId: 'T001',
-      commands: [
-        {
-          command: 'node -e "process.exit(0)"',
-          exitCode: 0,
-          finishedAt: '2026-03-22T00:00:00.000Z',
-          passed: true,
-          startedAt: '2026-03-22T00:00:00.000Z',
-          stderr: '',
-          stdout: '',
-        },
-      ],
     },
   })
 

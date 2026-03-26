@@ -23,12 +23,10 @@ function createTask(line: string, phase: string): TaskDefinition {
     dependsOn: [],
     maxAttempts: 0,
     parallelizable: line.includes(' [P] '),
-    paths: [],
     phase,
     reviewRubric: [],
     storyId: match[2] ?? null,
     title: match[3]!,
-    verifyCommands: [],
   }
 }
 
@@ -45,10 +43,7 @@ function splitList(value: string) {
 
 function ensureTaskField(
   task: TaskDefinition,
-  field: keyof Pick<
-    TaskDefinition,
-    'acceptance' | 'paths' | 'reviewRubric' | 'verifyCommands'
-  >,
+  field: keyof Pick<TaskDefinition, 'acceptance' | 'reviewRubric'>,
   label: string,
 ) {
   if (task[field].length === 0) {
@@ -124,8 +119,7 @@ export async function normalizeTaskGraph(
   const tasks: TaskDefinition[] = []
   let currentPhase = 'unknown'
   let currentTask: null | TaskDefinition = null
-  let currentList: 'acceptance' | 'reviewRubric' | 'verifyCommands' | null =
-    null
+  let currentList: 'acceptance' | 'reviewRubric' | null = null
 
   for (const rawLine of lines) {
     const line = rawLine.trimEnd()
@@ -153,16 +147,11 @@ export async function normalizeTaskGraph(
 
       if (field.label === 'Goal' && field.value) {
         currentTask.goal = field.value
-      } else if (field.label === 'Paths') {
-        currentTask.paths = splitList(field.value)
       } else if (field.label === 'Depends') {
         currentTask.dependsOn = splitList(field.value)
       } else if (field.label === 'Acceptance') {
         currentTask.acceptance = field.value ? [field.value] : []
         currentList = 'acceptance'
-      } else if (field.label === 'Verify') {
-        currentTask.verifyCommands = field.value ? [field.value] : []
-        currentList = 'verifyCommands'
       } else if (field.label === 'Review Rubric') {
         currentTask.reviewRubric = field.value ? [field.value] : []
         currentList = 'reviewRubric'
@@ -186,13 +175,11 @@ export async function normalizeTaskGraph(
   }
 
   for (const task of tasks) {
-    ensureTaskField(task, 'paths', 'Paths')
     ensureTaskField(task, 'acceptance', 'Acceptance')
     ensureTaskField(task, 'reviewRubric', 'Review Rubric')
     if (!Number.isInteger(task.maxAttempts) || task.maxAttempts < 1) {
       throw new Error(`${task.id} has invalid Max Iterations`)
     }
-    task.paths = task.paths.map((item) => item.replaceAll(path.sep, '/'))
     task.dependsOn = task.dependsOn.filter(Boolean)
   }
 

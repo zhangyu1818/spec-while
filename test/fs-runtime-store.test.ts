@@ -25,12 +25,9 @@ async function createWorkspace() {
 ## Phase 1: Core
 
 - [ ] T001 Do work in src/existing.ts
-  - Paths: src/existing.ts
   - Depends:
   - Acceptance:
     - works
-  - Verify:
-    - node -e "process.exit(0)"
   - Review Rubric:
     - clear
   - Max Iterations: 2
@@ -55,11 +52,9 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
         dependsOn: [],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/existing.ts'],
         phase: 'Core',
         reviewRubric: ['clear'],
         title: 'Do work',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
@@ -74,7 +69,6 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
         invalidatedBy: null,
         lastFindings: [],
         lastReviewVerdict: 'pass' as const,
-        lastVerifyPassed: true,
         status: 'done' as const,
       },
     },
@@ -96,7 +90,6 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
         commitSha: 'commit-1',
         generation: 2,
         lastReviewVerdict: 'pass' as const,
-        lastVerifyPassed: true,
         status: 'done' as const,
       },
     ],
@@ -113,37 +106,12 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
     taskId: 'T001',
     result: {
       assumptions: [],
-      changedFiles: ['src/existing.ts'],
       needsHumanAttention: false,
       notes: [],
-      requestedAdditionalPaths: [],
       status: 'implemented',
       summary: 'implemented',
       taskId: 'T001',
       unresolvedItems: [],
-    },
-  })
-  await runtime.store.saveVerifyArtifact({
-    attempt: 1,
-    commitSha: 'commit-1',
-    createdAt: '2026-03-22T00:00:01.000Z',
-    generation: 2,
-    taskId: 'T001',
-    result: {
-      passed: true,
-      summary: 'ok',
-      taskId: 'T001',
-      commands: [
-        {
-          command: 'node -e "process.exit(0)"',
-          exitCode: 0,
-          finishedAt: '2026-03-22T00:00:01.000Z',
-          passed: true,
-          startedAt: '2026-03-22T00:00:00.500Z',
-          stderr: '',
-          stdout: '',
-        },
-      ],
     },
   })
   await runtime.store.saveReviewArtifact({
@@ -153,7 +121,6 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
     generation: 2,
     taskId: 'T001',
     result: {
-      changedFilesReviewed: ['src/existing.ts'],
       findings: [],
       overallRisk: 'low',
       summary: 'ok',
@@ -184,17 +151,6 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
   await expect(runtime.store.readReport()).resolves.toEqual(report)
   await expect(
     runtime.store.loadImplementArtifact({
-      attempt: 1,
-      generation: 2,
-      taskId: 'T001',
-    }),
-  ).resolves.toMatchObject({
-    attempt: 1,
-    generation: 2,
-    taskId: 'T001',
-  })
-  await expect(
-    runtime.store.loadVerifyArtifact({
       attempt: 1,
       generation: 2,
       taskId: 'T001',
@@ -241,10 +197,6 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
     ),
     'utf8',
   )
-  const verifyJson = await readFile(
-    path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'verify.json'),
-    'utf8',
-  )
   const reviewJson = await readFile(
     path.join(featureDir, '.while', 'tasks', 'T001', 'g2', 'a1', 'review.json'),
     'utf8',
@@ -266,7 +218,6 @@ test('FsRuntime persists graph, state, report and per-attempt artifacts with sep
   expect(JSON.parse(stateJson)).toEqual(state)
   expect(JSON.parse(reportJson)).toEqual(report)
   expect(JSON.parse(implementJson)).toMatchObject({ taskId: 'T001' })
-  expect(JSON.parse(verifyJson)).toMatchObject({ taskId: 'T001' })
   expect(JSON.parse(reviewJson)).toMatchObject({ taskId: 'T001' })
   expect(JSON.parse(integrateJson)).toMatchObject({ taskId: 'T001' })
 })

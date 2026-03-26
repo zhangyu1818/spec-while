@@ -26,18 +26,9 @@ function createCheckpointCommitMessage(commitMessage: string, attempt: number) {
 }
 
 function createPullRequestBody(context: ReviewPhaseContext) {
-  const changedFiles =
-    context.implement.changedFiles.length !== 0
-      ? context.implement.changedFiles.map((file) => `- ${file}`).join('\n')
-      : '- none'
   return [
     `Task: ${context.commitMessage}`,
     `Attempt: ${context.attempt}`,
-    '',
-    'Changed files:',
-    changedFiles,
-    '',
-    `Verify: ${context.verify.summary}`,
     '',
     'Managed by spec-while.',
   ].join('\n')
@@ -106,7 +97,6 @@ async function waitForRemoteReview(input: {
       checkpointStartedAt: input.checkpointStartedAt,
       pullRequest: snapshot,
       task: input.context.task,
-      verify: input.context.verify,
     })
     if (result.kind === 'pending') {
       await input.sleep(DEFAULT_REVIEW_POLL_INTERVAL_MS)

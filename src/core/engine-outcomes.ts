@@ -11,7 +11,6 @@ import type {
   FinalReport,
   ReviewOutput,
   TaskGraph,
-  VerifyResult,
   WorkflowState,
 } from '../types'
 
@@ -46,7 +45,6 @@ export function recordIntegrateResult(
   input: {
     commitSha: string
     review: ReviewOutput
-    verify: VerifyResult
   },
 ): WorkflowState {
   const next = cloneState(state)
@@ -55,16 +53,13 @@ export function recordIntegrateResult(
     throw new Error(`Task ${taskId} is not integrating`)
   }
   if (!shouldPassZeroGate(input)) {
-    throw new Error(
-      `Task ${taskId} integration requires an approved review and passing verify result`,
-    )
+    throw new Error(`Task ${taskId} integration requires an approved review`)
   }
   next.currentTaskId = null
   next.tasks[taskId] = {
     ...withReviewMetadata(taskState, {
       findings: input.review.findings,
       reviewVerdict: input.review.verdict,
-      verifyPassed: input.verify.passed,
     }),
     commitSha: input.commitSha,
     status: 'done',
@@ -84,7 +79,6 @@ export function recordCommitFailure(
   next.currentTaskId = null
   const metadata = withReviewMetadata(taskState, {
     reviewVerdict: 'pass',
-    verifyPassed: true,
   })
   next.tasks[taskId] =
     taskState.attempt >= task.maxAttempts
@@ -169,9 +163,6 @@ export function buildReport(
       ...('commitSha' in taskState ? { commitSha: taskState.commitSha } : {}),
       ...(taskState.lastReviewVerdict
         ? { lastReviewVerdict: taskState.lastReviewVerdict }
-        : {}),
-      ...(typeof taskState.lastVerifyPassed === 'boolean'
-        ? { lastVerifyPassed: taskState.lastVerifyPassed }
         : {}),
       ...('reason' in taskState ? { reason: taskState.reason } : {}),
       status: taskState.status,

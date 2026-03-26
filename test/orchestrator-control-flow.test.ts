@@ -10,7 +10,7 @@ import {
   ScriptedWorkflowProvider,
 } from './workflow-test-helpers'
 
-test('runWorkflow records verifier execution failures and blocks when max attempts are exhausted', async () => {
+test('runWorkflow records review execution failures and blocks when max attempts are exhausted', async () => {
   const graph = {
     featureId: '001-demo',
     tasks: [
@@ -20,20 +20,16 @@ test('runWorkflow records verifier execution failures and blocks when max attemp
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
-  const { runtime, store } = createRuntime({
-    verifierResponses: [new Error('verify subprocess failed')],
-  })
+  const { runtime, store } = createRuntime()
   const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
-    [],
+    [new Error('review crashed')],
   )
 
   const result = await runWorkflow({
@@ -43,12 +39,10 @@ test('runWorkflow records verifier execution failures and blocks when max attemp
   })
 
   expect(result.state.tasks.T001).toMatchObject({
-    reason: 'verify subprocess failed',
+    reason: 'review crashed',
     status: 'blocked',
   })
-  expect(store.events.some((event) => event.type === 'verify_failed')).toBe(
-    true,
-  )
+  expect(store.events.some((event) => event.type === 'review_failed')).toBe(true)
   expect(store.reviewArtifacts).toHaveLength(0)
 })
 
@@ -89,7 +83,6 @@ test('runWorkflow returns immediately when untilTaskId is already completed in p
         invalidatedBy: null,
         lastFindings: [],
         lastReviewVerdict: 'pass',
-        lastVerifyPassed: true,
         status: 'done',
       },
       T002: {

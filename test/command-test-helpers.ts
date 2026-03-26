@@ -35,10 +35,8 @@ export class ScriptedWorkflowProvider
     await this.implementHandler(input)
     return {
       assumptions: [],
-      changedFiles: input.task.paths,
       needsHumanAttention: false,
       notes: [],
-      requestedAdditionalPaths: [],
       status: 'implemented' as const,
       summary: `${input.task.id} done`,
       taskId: input.task.id,
@@ -84,13 +82,11 @@ export async function trackedFilesInHead(root: string) {
 export async function createWorkspace(input?: {
   includeSecondTask?: boolean
   maxAttempts?: number
-  omitVerifyForTaskIds?: string[]
 }) {
   const root = await mkdtemp(path.join(tmpdir(), 'while-commands-'))
   const featureDir = path.join(root, 'specs', '001-demo')
   const maxAttempts = input?.maxAttempts ?? 2
   const includeSecondTask = input?.includeSecondTask ?? true
-  const omitVerify = new Set(input?.omitVerifyForTaskIds ?? [])
   await mkdir(featureDir, { recursive: true })
   await mkdir(path.join(root, 'src'), { recursive: true })
   await writeFile(path.join(root, '.gitignore'), '.while\n')
@@ -129,17 +125,9 @@ export async function createWorkspace(input?: {
 ## Phase 1: Core
 
 - [ ] T001 Implement greeting in src/greeting.js
-  - Paths: src/greeting.js
   - Depends:
   - Acceptance:
     - buildGreeting returns Hello, world!
-${
-  omitVerify.has('T001')
-    ? ''
-    : `  - Verify:
-    - node -e "const { buildGreeting } = require('./src/greeting.js'); if (buildGreeting() !== 'Hello, world!') process.exit(1)"
-`
-}
   - Review Rubric:
     - simple and scoped
   - Max Iterations: ${maxAttempts}
@@ -148,17 +136,9 @@ ${
     ? `
 
 - [ ] T002 Implement farewell in src/farewell.js
-  - Paths: src/farewell.js
   - Depends: T001
   - Acceptance:
     - buildFarewell returns Bye, world!
-${
-  omitVerify.has('T002')
-    ? ''
-    : `  - Verify:
-    - node -e "const { buildFarewell } = require('./src/farewell.js'); if (buildFarewell() !== 'Bye, world!') process.exit(1)"
-`
-}
   - Review Rubric:
     - simple and scoped
   - Max Iterations: ${maxAttempts}
@@ -183,7 +163,6 @@ ${
 
 export function createPassingReview(input: ReviewAgentInput) {
   return {
-    changedFilesReviewed: input.actualChangedFiles,
     findings: [],
     overallRisk: 'low' as const,
     summary: 'ok',

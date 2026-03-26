@@ -6,7 +6,6 @@ import type {
   ReviewOutput,
   TaskContext,
   TaskDefinition,
-  VerifyResult,
 } from '../types'
 
 export type WorkflowMode = 'direct' | 'pull-request'
@@ -21,7 +20,6 @@ export interface ReviewPhaseContext {
   runtime: OrchestratorRuntime
   task: TaskDefinition
   taskContext: TaskContext
-  verify: VerifyResult
 }
 
 export type ReviewPhaseResult =

@@ -4,7 +4,6 @@ import type {
   TaskDefinition,
   TaskGraph,
   TaskState,
-  VerifyResult,
   WorkflowState,
 } from '../types'
 
@@ -57,7 +56,6 @@ export function withReviewMetadata(
   input: {
     findings?: ReviewFinding[]
     reviewVerdict?: ReviewOutput['verdict']
-    verifyPassed?: boolean
   },
 ) {
   const next = {
@@ -68,9 +66,6 @@ export function withReviewMetadata(
     ...(taskState.lastReviewVerdict
       ? { lastReviewVerdict: taskState.lastReviewVerdict }
       : {}),
-    ...(typeof taskState.lastVerifyPassed === 'boolean'
-      ? { lastVerifyPassed: taskState.lastVerifyPassed }
-      : {}),
   }
   if (input.findings) {
     next.lastFindings = input.findings
@@ -78,21 +73,14 @@ export function withReviewMetadata(
   if (input.reviewVerdict) {
     next.lastReviewVerdict = input.reviewVerdict
   }
-  if (typeof input.verifyPassed === 'boolean') {
-    next.lastVerifyPassed = input.verifyPassed
-  }
   return next
 }
 
-export function shouldPassZeroGate(input: {
-  review: ReviewOutput
-  verify: VerifyResult
-}) {
+export function shouldPassZeroGate(input: { review: ReviewOutput }) {
   return (
     input.review.verdict === 'pass' &&
     input.review.findings.length === 0 &&
-    input.review.acceptanceChecks.every((check) => check.status === 'pass') &&
-    input.verify.passed
+    input.review.acceptanceChecks.every((check) => check.status === 'pass')
   )
 }
 

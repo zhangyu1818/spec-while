@@ -33,7 +33,6 @@ const mockState = vi.hoisted(() => {
     } as TaskGraph,
     runtime: {
       store: {},
-      verifier: {},
       workspace: {},
       git: {
         requireCleanWorktree: vi.fn(async () => {}),
@@ -67,10 +66,8 @@ vi.mock('../src/agents/codex', () => {
           async implement() {
             return {
               assumptions: [],
-              changedFiles: [],
               needsHumanAttention: false,
               notes: [],
-              requestedAdditionalPaths: [],
               status: 'implemented' as const,
               summary: 'unused',
               taskId: 'T001',
@@ -79,7 +76,6 @@ vi.mock('../src/agents/codex', () => {
           },
           async review() {
             return {
-              changedFilesReviewed: [],
               findings: [],
               overallRisk: 'low' as const,
               summary: 'unused',

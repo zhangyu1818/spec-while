@@ -25,7 +25,6 @@ test('FsRuntime task snippet starts from the matching task header instead of dep
 ## Phase 1: Core
 
 - [ ] T001 Implement greeting
-  - Paths: src/greeting.ts
   - Depends: T002
   - Acceptance:
     - works
@@ -34,7 +33,6 @@ test('FsRuntime task snippet starts from the matching task header instead of dep
   - Max Iterations: 1
 
 - [ ] T002 Implement follow-up
-  - Paths: src/greeting.ts
   - Depends:
   - Acceptance:
     - works
@@ -54,11 +52,9 @@ test('FsRuntime task snippet starts from the matching task header instead of dep
     dependsOn: [],
     maxAttempts: 1,
     parallelizable: false,
-    paths: ['src/greeting.ts'],
     phase: 'Core',
     reviewRubric: ['clear'],
     title: 'Implement follow-up',
-    verifyCommands: [],
   })
 
   expect(context.tasksSnippet.trimStart()).toMatch(

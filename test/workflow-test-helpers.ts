@@ -1,11 +1,6 @@
 import { createDirectWorkflowPreset } from '../src/workflow/direct-preset'
 import { FakeGitHub } from './workflow-github-double'
-import {
-  FakeGit,
-  FakeVerifier,
-  InMemoryStore,
-  InMemoryWorkspace,
-} from './workflow-runtime-doubles'
+import { FakeGit, InMemoryStore, InMemoryWorkspace } from './workflow-runtime-doubles'
 
 import type {
   ImplementAgentInput,
@@ -19,7 +14,6 @@ import type {
   ReviewOutput,
   TaskContext,
   TaskGraph,
-  VerifyResult,
 } from '../src/types'
 import type { WorkflowRuntime } from '../src/workflow/preset'
 
@@ -84,11 +78,9 @@ export function createGraph(): TaskGraph {
         dependsOn: [],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
       {
         id: 'T002',
@@ -96,23 +88,20 @@ export function createGraph(): TaskGraph {
         dependsOn: ['T001'],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/farewell.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement farewell',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
 }
 
 export function createImplement(taskId: string, file: string): ImplementOutput {
+  void file
   return {
     assumptions: [],
-    changedFiles: [file],
     needsHumanAttention: false,
     notes: [],
-    requestedAdditionalPaths: [],
     status: 'implemented',
     summary: `${taskId} done`,
     taskId,
@@ -126,7 +115,6 @@ export function createReview(
   verdict: ReviewOutput['verdict'] = 'pass',
 ): ReviewOutput {
   return {
-    changedFilesReviewed: [],
     overallRisk: verdict === 'pass' ? 'low' : 'medium',
     summary: verdict === 'pass' ? 'ok' : 'retry',
     taskId,
@@ -152,31 +140,11 @@ export function createReview(
   }
 }
 
-export function createVerify(taskId: string, passed: boolean): VerifyResult {
-  return {
-    passed,
-    summary: passed ? 'ok' : 'failed',
-    taskId,
-    commands: [
-      {
-        command: 'node -e "process.exit(0)"',
-        exitCode: passed ? 0 : 1,
-        finishedAt: '2026-03-22T00:00:00.000Z',
-        passed,
-        startedAt: '2026-03-22T00:00:00.000Z',
-        stderr: '',
-        stdout: '',
-      },
-    ],
-  }
-}
-
 export function createRuntime(input?: {
   ancestorCommits?: string[]
   changedFiles?: string[][]
   commitFailures?: (Error | null)[]
   taskContexts?: Record<string, TaskContext>
-  verifierResponses?: (Error | VerifyResult)[]
 }): {
   git: FakeGit
   runtime: OrchestratorRuntime
@@ -188,25 +156,17 @@ export function createRuntime(input?: {
     kind: 'per-task',
     value: input?.taskContexts ?? {
       T001: {
-        codeContext: '## src/greeting.ts\nexport const greeting = "hi"\n',
         plan: '# plan\n',
         spec: '# spec\n',
         tasksSnippet: '- [ ] T001 Implement greeting\n',
       },
       T002: {
-        codeContext: '## src/farewell.ts\nexport const farewell = "bye"\n',
         plan: '# plan\n',
         spec: '# spec\n',
         tasksSnippet: '- [ ] T002 Implement farewell\n',
       },
     },
   })
-  const verifier = new FakeVerifier(
-    input?.verifierResponses ?? [
-      createVerify('T001', true),
-      createVerify('T002', true),
-    ],
-  )
   const git = new FakeGit(
     input?.changedFiles ?? [['src/greeting.ts'], ['src/farewell.ts']],
     new Set(input?.ancestorCommits ?? []),
@@ -221,7 +181,6 @@ export function createRuntime(input?: {
       git,
       github,
       store,
-      verifier,
       workspace,
     },
   }

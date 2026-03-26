@@ -43,7 +43,6 @@ test('CodexAgentClient throws when SDK returns empty finalResponse in non-stream
   await expect(
     client.implement({
       attempt: 1,
-      codeContext: '',
       generation: 1,
       lastFindings: [],
       plan: '# plan',
@@ -55,11 +54,9 @@ test('CodexAgentClient throws when SDK returns empty finalResponse in non-stream
         dependsOn: [],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/a.ts'],
         phase: 'Core',
         reviewRubric: ['clear'],
         title: 'Do work',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     }),
   ).rejects.toThrow(/empty finalResponse/i)
@@ -85,7 +82,6 @@ test('CodexAgentClient throws when SDK returns non-JSON finalResponse in non-str
   await expect(
     client.implement({
       attempt: 1,
-      codeContext: '',
       generation: 1,
       lastFindings: [],
       plan: '# plan',
@@ -97,11 +93,9 @@ test('CodexAgentClient throws when SDK returns non-JSON finalResponse in non-str
         dependsOn: [],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/a.ts'],
         phase: 'Core',
         reviewRubric: ['clear'],
         title: 'Do work',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     }),
   ).rejects.toThrow(/non-JSON finalResponse/i)
@@ -145,7 +139,6 @@ test('CodexAgentClient surfaces streamed agent failures before any structured re
   await expect(
     client.implement({
       attempt: 1,
-      codeContext: '',
       generation: 1,
       lastFindings: [],
       plan: '# plan',
@@ -157,11 +150,9 @@ test('CodexAgentClient surfaces streamed agent failures before any structured re
         dependsOn: [],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/a.ts'],
         phase: 'Core',
         reviewRubric: ['clear'],
         title: 'Do work',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     }),
   ).rejects.toThrow(/model failed/i)
@@ -205,7 +196,6 @@ test('CodexAgentClient throws when streamed mode completes without any final age
   await expect(
     client.implement({
       attempt: 1,
-      codeContext: '',
       generation: 1,
       lastFindings: [],
       plan: '# plan',
@@ -217,11 +207,9 @@ test('CodexAgentClient throws when streamed mode completes without any final age
         dependsOn: [],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/a.ts'],
         phase: 'Core',
         reviewRubric: ['clear'],
         title: 'Do work',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     }),
   ).rejects.toThrow(/empty finalResponse/i)

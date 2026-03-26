@@ -52,10 +52,8 @@ test('CodexAgentClient streams events when progress callback is enabled', async 
                   type: 'agent_message' as const,
                   text: JSON.stringify({
                     assumptions: [],
-                    changedFiles: ['src/a.ts'],
                     needsHumanAttention: false,
                     notes: [],
-                    requestedAdditionalPaths: [],
                     status: 'implemented',
                     summary: 'ok',
                     taskId: 'T001',
@@ -87,7 +85,6 @@ test('CodexAgentClient streams events when progress callback is enabled', async 
 
   const result = await client.implement({
     attempt: 1,
-    codeContext: '',
     generation: 1,
     lastFindings: [],
     plan: '# plan',
@@ -99,11 +96,9 @@ test('CodexAgentClient streams events when progress callback is enabled', async 
       dependsOn: [],
       maxAttempts: 2,
       parallelizable: false,
-      paths: ['src/a.ts'],
       phase: 'Core',
       reviewRubric: ['clear'],
       title: 'Do work',
-      verifyCommands: ['node -e "process.exit(0)"'],
     },
   })
 

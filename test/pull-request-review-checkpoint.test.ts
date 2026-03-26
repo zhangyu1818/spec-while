@@ -5,7 +5,6 @@ import {
   createGraph,
   createImplement,
   createReview,
-  createVerify,
 } from './workflow-test-helpers'
 
 import type { RemoteReviewerProvider } from '../src/agents/types'
@@ -68,7 +67,6 @@ test('pull-request preset creates a fresh checkpoint commit on the first review 
     isTaskChecked: vi.fn(async () => false),
     updateTaskChecks: vi.fn(async () => {}),
     loadTaskContext: vi.fn(async () => ({
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',
@@ -78,7 +76,6 @@ test('pull-request preset creates a fresh checkpoint commit on the first review 
     git,
     github,
     store: {},
-    verifier: {},
     workspace,
   } as unknown as OrchestratorRuntime
 
@@ -91,9 +88,7 @@ test('pull-request preset creates a fresh checkpoint commit on the first review 
     lastFindings: [],
     runtime,
     task,
-    verify: createVerify('T001', true),
     taskContext: {
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',
@@ -154,7 +149,6 @@ test('pull-request preset reuses the head checkpoint for the same review attempt
     isTaskChecked: vi.fn(async () => false),
     updateTaskChecks: vi.fn(async () => {}),
     loadTaskContext: vi.fn(async () => ({
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',
@@ -164,7 +158,6 @@ test('pull-request preset reuses the head checkpoint for the same review attempt
     git,
     github,
     store: {},
-    verifier: {},
     workspace,
   } as unknown as OrchestratorRuntime
 
@@ -177,9 +170,7 @@ test('pull-request preset reuses the head checkpoint for the same review attempt
     lastFindings: [],
     runtime,
     task,
-    verify: createVerify('T001', true),
     taskContext: {
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',

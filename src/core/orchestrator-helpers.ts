@@ -10,7 +10,6 @@ import type {
   ImplementArtifact,
   ReviewArtifact,
   TaskGraph,
-  VerifyArtifact,
   WorkflowEvent,
   WorkflowState,
 } from '../types'
@@ -49,7 +48,6 @@ export async function finalizePassedTask(input: {
   state: WorkflowState
   taskId: string
   taskTitle: string
-  verify: VerifyArtifact['result']
 }) {
   const integratingState = recordReviewApproved(
     input.state,
@@ -74,7 +72,6 @@ export async function finalizePassedTask(input: {
         {
           commitSha,
           review: input.review,
-          verify: input.verify,
         },
       ),
     }
@@ -106,15 +103,10 @@ export async function persistCommittedArtifacts(
     commitSha: string
     implementArtifact: ImplementArtifact
     reviewArtifact: ReviewArtifact
-    verifyArtifact: VerifyArtifact
   },
 ) {
   await runtime.store.saveImplementArtifact({
     ...input.implementArtifact,
-    commitSha: input.commitSha,
-  })
-  await runtime.store.saveVerifyArtifact({
-    ...input.verifyArtifact,
     commitSha: input.commitSha,
   })
   await runtime.store.saveReviewArtifact({

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 
 import { createCodexRemoteReviewerProvider } from '../src/workflow/remote-reviewer'
-import { createGraph, createVerify } from './workflow-test-helpers'
+import { createGraph } from './workflow-test-helpers'
 
 import type { PullRequestSnapshot } from '../src/core/runtime'
 
@@ -25,7 +25,6 @@ test('codex remote reviewer approves when the latest thumbs-up wins', async () =
   const result = await reviewer.evaluatePullRequestReview({
     checkpointStartedAt: '2026-03-25T08:00:00.000Z',
     task,
-    verify: createVerify('T001', true),
     pullRequest: createSnapshot({
       reactions: [
         {
@@ -57,7 +56,7 @@ test('codex remote reviewer approves when the latest thumbs-up wins', async () =
   expect(result.kind).toBe('approved')
   if (result.kind === 'approved') {
     expect(result.review.verdict).toBe('pass')
-    expect(result.review.changedFilesReviewed).toEqual(['src/greeting.ts'])
+    expect(result.review.findings).toEqual([])
   }
 })
 
@@ -68,7 +67,6 @@ test('codex remote reviewer ignores stale thumbs-up from a previous attempt on t
   const result = await reviewer.evaluatePullRequestReview({
     checkpointStartedAt: '2026-03-25T08:02:00.000Z',
     task,
-    verify: createVerify('T001', true),
     pullRequest: createSnapshot({
       reactions: [
         {
@@ -92,7 +90,6 @@ test('codex remote reviewer rejects when active feedback is newer than approval'
   const result = await reviewer.evaluatePullRequestReview({
     checkpointStartedAt: '2026-03-25T08:00:00.000Z',
     task,
-    verify: createVerify('T001', true),
     pullRequest: createSnapshot({
       reactions: [
         {
@@ -135,7 +132,6 @@ test('codex remote reviewer upgrades changes requested feedback to high risk', a
   const result = await reviewer.evaluatePullRequestReview({
     checkpointStartedAt: '2026-03-25T08:00:00.000Z',
     task,
-    verify: createVerify('T001', true),
     pullRequest: createSnapshot({
       reviewSummaries: [
         {
@@ -154,7 +150,6 @@ test('codex remote reviewer upgrades changes requested feedback to high risk', a
   if (result.kind === 'rejected') {
     expect(result.review.findings).toEqual([
       {
-        file: 'src/greeting.ts',
         fixHint: 'needs more tests',
         issue: 'needs more tests',
         severity: 'high',
@@ -171,7 +166,6 @@ test('codex remote reviewer ignores resolved and outdated thread comments', asyn
   const result = await reviewer.evaluatePullRequestReview({
     checkpointStartedAt: '2026-03-25T08:00:00.000Z',
     task,
-    verify: createVerify('T001', true),
     pullRequest: createSnapshot({
       reviewThreads: [
         {
@@ -220,7 +214,6 @@ test('codex remote reviewer only keeps the latest active comment from each threa
   const result = await reviewer.evaluatePullRequestReview({
     checkpointStartedAt: '2026-03-25T08:00:00.000Z',
     task,
-    verify: createVerify('T001', true),
     pullRequest: createSnapshot({
       reviewThreads: [
         {

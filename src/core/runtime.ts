@@ -6,8 +6,6 @@ import type {
   TaskContext,
   TaskDefinition,
   TaskGraph,
-  VerifyArtifact,
-  VerifyResult,
   WorkflowEvent,
   WorkflowState,
 } from '../types'
@@ -28,9 +26,6 @@ export interface WorkflowStore {
     key: AttemptArtifactKey,
   ) => Promise<null | ReviewArtifact>
   loadState: () => Promise<null | WorkflowState>
-  loadVerifyArtifact: (
-    key: AttemptArtifactKey,
-  ) => Promise<null | VerifyArtifact>
   readReport: () => Promise<FinalReport | null>
   reset: () => Promise<void>
   saveGraph: (graph: TaskGraph) => Promise<void>
@@ -39,7 +34,6 @@ export interface WorkflowStore {
   saveReport: (report: FinalReport) => Promise<void>
   saveReviewArtifact: (artifact: ReviewArtifact) => Promise<void>
   saveState: (state: WorkflowState) => Promise<void>
-  saveVerifyArtifact: (artifact: VerifyArtifact) => Promise<void>
 }
 
 export interface WorkspacePort {
@@ -153,17 +147,9 @@ export interface GitHubPort {
   }) => Promise<{ commitSha: string }>
 }
 
-export interface Verifier {
-  verify: (input: {
-    commands: string[]
-    taskId: string
-  }) => Promise<VerifyResult>
-}
-
 export interface OrchestratorRuntime {
   git: GitPort
   github: GitHubPort
   store: WorkflowStore
-  verifier: Verifier
   workspace: WorkspacePort
 }

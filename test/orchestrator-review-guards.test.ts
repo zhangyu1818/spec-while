@@ -5,7 +5,6 @@ import {
   createImplement,
   createReview,
   createRuntime,
-  createVerify,
   createWorkflow,
   ScriptedWorkflowProvider,
 } from './workflow-test-helpers'
@@ -20,11 +19,9 @@ test('runWorkflow stops scheduling after a task blocks the workflow', async () =
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
       {
         id: 'T002',
@@ -32,17 +29,14 @@ test('runWorkflow stops scheduling after a task blocks the workflow', async () =
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/farewell.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement farewell',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
   const { git, runtime } = createRuntime({
     changedFiles: [['src/greeting.ts'], ['src/farewell.ts']],
-    verifierResponses: [createVerify('T001', true), createVerify('T002', true)],
   })
   const provider = new ScriptedWorkflowProvider(
     [
@@ -84,17 +78,13 @@ test('runWorkflow rejects review outputs whose taskId does not match the current
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
-  const { git, runtime, store } = createRuntime({
-    verifierResponses: [createVerify('T001', true)],
-  })
+  const { git, runtime, store } = createRuntime()
   const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [createReview('T999', 'buildGreeting works')],
@@ -126,17 +116,13 @@ test('runWorkflow rejects implement outputs whose taskId does not match the curr
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
-  const { git, runtime, store } = createRuntime({
-    verifierResponses: [createVerify('T001', true)],
-  })
+  const { git, runtime, store } = createRuntime()
   const provider = new ScriptedWorkflowProvider(
     [createImplement('T999', 'src/greeting.ts')],
     [createReview('T001', 'buildGreeting works')],

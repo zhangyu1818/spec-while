@@ -24,6 +24,15 @@ import type {
 import type { WorkflowRuntime } from '../workflow/preset'
 import type { OrchestratorRuntime } from './runtime'
 
+function toTaskBranchName(commitMessage: string) {
+  const slug = commitMessage
+    .replace(/^Task\s+/i, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return `task/${slug}`
+}
+
 export async function resumePullRequestReview(input: {
   graph: TaskGraph
   runtime: OrchestratorRuntime
@@ -53,13 +62,11 @@ export async function resumePullRequestReview(input: {
     generation: taskState.generation,
     taskId,
   }
-  const [implementArtifact, verifyArtifact] = await Promise.all([
-    input.runtime.store.loadImplementArtifact(artifactKey),
-    input.runtime.store.loadVerifyArtifact(artifactKey),
-  ])
+  const implementArtifact =
+    await input.runtime.store.loadImplementArtifact(artifactKey)
 
-  if (!implementArtifact || !verifyArtifact) {
-    const reason = `Cannot resume review for ${taskId} without persisted implement and verify artifacts`
+  if (!implementArtifact) {
+    const reason = `Cannot resume review for ${taskId} without a persisted implement artifact`
     const nextState = recordReviewFailure(
       input.graph,
       input.state,
@@ -83,12 +90,41 @@ export async function resumePullRequestReview(input: {
 
   const taskContext = await input.runtime.workspace.loadTaskContext(task)
   const commitMessage = createTaskCommitMessage(task.id, task.title)
+  const pullRequest =
+    await input.runtime.github.findOpenPullRequestByHeadBranch({
+      headBranch: toTaskBranchName(commitMessage),
+    })
+  if (!pullRequest) {
+    const reason = `Cannot resume review for ${taskId} without an open pull request`
+    const nextState = recordReviewFailure(
+      input.graph,
+      input.state,
+      taskId,
+      reason,
+    )
+    await appendEvent(input.runtime, {
+      attempt: taskState.attempt,
+      detail: reason,
+      generation: taskState.generation,
+      taskId,
+      timestamp: now(),
+      type: 'review_failed',
+    })
+    const report = await persistState(input.runtime, input.graph, nextState)
+    return {
+      report,
+      state: nextState,
+    }
+  }
+  const snapshot = await input.runtime.github.getPullRequestSnapshot({
+    pullRequestNumber: pullRequest.number,
+  })
   let review
   let reviewPhaseKind: 'approved' | 'rejected'
 
   try {
     const reviewPhase = await input.workflow.preset.review({
-      actualChangedFiles: implementArtifact.result.changedFiles,
+      actualChangedFiles: snapshot.changedFiles,
       attempt: taskState.attempt,
       commitMessage,
       generation: taskState.generation,
@@ -97,7 +133,6 @@ export async function resumePullRequestReview(input: {
       runtime: input.runtime,
       task,
       taskContext,
-      verify: verifyArtifact.result,
     })
     reviewPhaseKind = reviewPhase.kind
     review = reviewPhase.review
@@ -148,7 +183,7 @@ export async function resumePullRequestReview(input: {
 
   if (
     reviewPhaseKind === 'approved' &&
-    shouldPassZeroGate({ review, verify: verifyArtifact.result })
+    shouldPassZeroGate({ review })
   ) {
     let nextState = recordReviewApproved(input.state, task.id, review)
     await appendEvent(input.runtime, {
@@ -195,7 +230,6 @@ export async function resumePullRequestReview(input: {
     nextState = recordIntegrateResult(input.graph, nextState, task.id, {
       commitSha: integrateResult.result.commitSha,
       review,
-      verify: verifyArtifact.result,
     })
     report = await persistState(input.runtime, input.graph, nextState)
     await appendEvent(input.runtime, {
@@ -211,7 +245,6 @@ export async function resumePullRequestReview(input: {
       commitSha: integrateResult.result.commitSha,
       implementArtifact,
       reviewArtifact,
-      verifyArtifact,
     })
     return {
       report,
@@ -221,7 +254,6 @@ export async function resumePullRequestReview(input: {
 
   const nextState = recordReviewResult(input.graph, input.state, task.id, {
     review,
-    verify: verifyArtifact.result,
   })
   const report = await persistState(input.runtime, input.graph, nextState)
   return {

@@ -33,7 +33,6 @@ export function createDirectWorkflowPreset(input: {
         spec: context.taskContext.spec,
         task: context.task,
         tasksSnippet: context.taskContext.tasksSnippet,
-        verify: context.verify,
       })
       return review.verdict === 'pass'
         ? { kind: 'approved', review }

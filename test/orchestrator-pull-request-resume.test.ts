@@ -6,7 +6,6 @@ import {
   createGraph,
   createImplement,
   createRuntime,
-  createVerify,
 } from './workflow-test-helpers'
 
 import type {
@@ -41,7 +40,6 @@ test('runWorkflow resumes a running pull-request review by reusing the current a
         generation: 1,
         invalidatedBy: null,
         lastFindings: [],
-        lastVerifyPassed: true,
         stage: 'review',
         status: 'running',
       },
@@ -52,13 +50,6 @@ test('runWorkflow resumes a running pull-request review by reusing the current a
     createdAt: '2026-03-25T08:00:00.000Z',
     generation: 1,
     result: createImplement('T001', 'src/greeting.ts'),
-    taskId: 'T001',
-  })
-  await store.saveVerifyArtifact({
-    attempt: 1,
-    createdAt: '2026-03-25T08:01:00.000Z',
-    generation: 1,
-    result: createVerify('T001', true),
     taskId: 'T001',
   })
 
@@ -87,7 +78,6 @@ test('runWorkflow resumes a running pull-request review by reusing the current a
     evaluatePullRequestReview: vi.fn(async () => ({
       kind: 'rejected' as const,
       review: {
-        changedFilesReviewed: ['src/greeting.ts'],
         overallRisk: 'medium' as const,
         summary: 'handle edge case',
         taskId: 'T001',

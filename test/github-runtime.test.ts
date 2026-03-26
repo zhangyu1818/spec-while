@@ -1,9 +1,7 @@
-import { expect, expectTypeOf, test, vi } from 'vitest'
+import { expect, test, vi } from 'vitest'
 
 import { GitHubRuntime } from '../src/runtime/github'
 import { createPullRequestConnectionPage } from './github-runtime-test-helpers'
-
-import type { PullRequestSnapshot } from '../src/core/runtime'
 
 test('GitHubRuntime finds an open pull request by head branch', async () => {
   const runGh = vi.fn(async () =>
@@ -268,16 +266,6 @@ test('GitHubRuntime builds a pull request snapshot from GraphQL responses only',
   expect(runGh).not.toHaveBeenCalledWith(
     expect.arrayContaining([`repos/acme/repo/issues/12/comments`]),
   )
-})
-
-test('PullRequestSnapshot no longer exposes reviewComments', () => {
-  type SnapshotHasReviewComments = PullRequestSnapshot extends {
-    reviewComments: unknown
-  }
-    ? true
-    : false
-
-  expectTypeOf<SnapshotHasReviewComments>().toEqualTypeOf<false>()
 })
 
 test('GitHubRuntime merges pull requests via API and returns the merge commit sha', async () => {

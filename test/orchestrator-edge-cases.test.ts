@@ -6,12 +6,11 @@ import {
   createImplement,
   createReview,
   createRuntime,
-  createVerify,
   createWorkflow,
   ScriptedWorkflowProvider,
 } from './workflow-test-helpers'
 
-test('runWorkflow does not mechanically block when changed files extend beyond task.paths', async () => {
+test('runWorkflow does not mechanically block when changed files extend beyond the original task scope', async () => {
   const graph = {
     featureId: '001-demo',
     tasks: [
@@ -21,23 +20,19 @@ test('runWorkflow does not mechanically block when changed files extend beyond t
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
   const { git, runtime, store, workspace } = createRuntime({
     changedFiles: [['src/greeting.ts', 'src/outside.ts']],
-    verifierResponses: [createVerify('T001', true)],
   })
   const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [
       {
-        changedFilesReviewed: ['src/greeting.ts', 'src/outside.ts'],
         findings: [],
         overallRisk: 'low',
         summary: 'review passed with additional related files',
@@ -69,7 +64,6 @@ test('runWorkflow does not mechanically block when changed files extend beyond t
   expect(result.state.tasks.T001).toMatchObject({
     commitSha: 'commit-1',
     lastReviewVerdict: 'pass',
-    lastVerifyPassed: true,
     status: 'done',
   })
   expect(workspace.checkboxUpdates).toEqual([
@@ -89,17 +83,13 @@ test('runWorkflow preserves implement artifacts when review fails and blocks aft
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
-  const { runtime, store } = createRuntime({
-    verifierResponses: [createVerify('T001', true)],
-  })
+  const { runtime, store } = createRuntime()
   const provider = new ScriptedWorkflowProvider(
     [createImplement('T001', 'src/greeting.ts')],
     [new Error('review output invalid')],
@@ -130,17 +120,13 @@ test('runWorkflow treats task checkbox write failures as recoverable commit fail
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
-  const { git, runtime, workspace } = createRuntime({
-    verifierResponses: [createVerify('T001', true)],
-  })
+  const { git, runtime, workspace } = createRuntime()
   workspace.updateTaskChecks = async (updates) => {
     if (updates[0]?.checked) {
       throw new Error('disk full')
@@ -168,9 +154,7 @@ test('runWorkflow treats task checkbox write failures as recoverable commit fail
 
 test('runWorkflow aligns persisted state with newly added tasks before saving reports', async () => {
   const graph = createGraph()
-  const { runtime, store } = createRuntime({
-    verifierResponses: [createVerify('T002', true)],
-  })
+  const { runtime, store } = createRuntime()
   store.state = {
     currentTaskId: null,
     featureId: '001-demo',
@@ -182,7 +166,6 @@ test('runWorkflow aligns persisted state with newly added tasks before saving re
         invalidatedBy: null,
         lastFindings: [],
         lastReviewVerdict: 'pass',
-        lastVerifyPassed: true,
         status: 'done',
       },
     },
@@ -214,17 +197,13 @@ test('runWorkflow requeues persisted running tasks so interrupted attempts can r
         dependsOn: [],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
-  const { runtime, store } = createRuntime({
-    verifierResponses: [createVerify('T001', true)],
-  })
+  const { runtime, store } = createRuntime()
   store.state = {
     currentTaskId: 'T001',
     featureId: '001-demo',

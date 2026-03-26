@@ -3,7 +3,6 @@ import { expect, test } from 'vitest'
 import {
   implementArtifactSchema,
   integrateArtifactSchema,
-  reviewOutputSchema,
   validateReviewOutput,
   validateTaskGraph,
   validateWorkflowEvent,
@@ -21,7 +20,6 @@ test('validateWorkflowState accepts discriminated task states', () => {
         invalidatedBy: null,
         lastFindings: [],
         lastReviewVerdict: 'pass',
-        lastVerifyPassed: true,
         stage: 'review',
         status: 'running',
       },
@@ -86,10 +84,8 @@ test('implementArtifactSchema captures generation and attempt metadata', () => {
     taskId: 'T001',
     result: {
       assumptions: [],
-      changedFiles: ['src/a.ts'],
       needsHumanAttention: false,
       notes: [],
-      requestedAdditionalPaths: [],
       status: 'implemented',
       summary: 'done',
       taskId: 'T001',
@@ -133,17 +129,9 @@ test('validateWorkflowEvent accepts integrate lifecycle events', () => {
   }
 })
 
-test('reviewOutputSchema remains compatible with structured outputs', () => {
-  const findings = (reviewOutputSchema.properties as Record<string, unknown>)
-    .findings as Record<string, unknown>
-
-  expect(findings.uniqueItems).toBeUndefined()
-})
-
 test('validateReviewOutput rejects pass verdicts with remaining findings', () => {
   expect(() => {
     validateReviewOutput({
-      changedFilesReviewed: ['src/a.ts'],
       overallRisk: 'medium',
       summary: 'looks mostly fine',
       taskId: 'T001',
@@ -170,7 +158,6 @@ test('validateReviewOutput rejects pass verdicts with remaining findings', () =>
 test('validateReviewOutput rejects pass verdicts with failed acceptance checks', () => {
   expect(() => {
     validateReviewOutput({
-      changedFilesReviewed: ['src/a.ts'],
       findings: [],
       overallRisk: 'medium',
       summary: 'looks mostly fine',
@@ -198,11 +185,9 @@ test('validateTaskGraph rejects duplicate task ids', () => {
           dependsOn: [],
           maxAttempts: 2,
           parallelizable: false,
-          paths: ['src/a.ts'],
           phase: 'Phase 1',
           reviewRubric: ['clear'],
           title: 'Do work',
-          verifyCommands: ['node -e "process.exit(0)"'],
         },
         {
           id: 'T001',
@@ -210,11 +195,9 @@ test('validateTaskGraph rejects duplicate task ids', () => {
           dependsOn: [],
           maxAttempts: 2,
           parallelizable: false,
-          paths: ['src/b.ts'],
           phase: 'Phase 1',
           reviewRubric: ['clear'],
           title: 'Do more work',
-          verifyCommands: ['node -e "process.exit(0)"'],
         },
       ],
     })

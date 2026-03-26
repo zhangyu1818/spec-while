@@ -7,7 +7,6 @@ import {
   validateIntegrateArtifact,
   validateReviewArtifact,
   validateTaskGraph,
-  validateVerifyArtifact,
   validateWorkflowEvent,
   validateWorkflowState,
 } from '../schema/index'
@@ -15,7 +14,6 @@ import { ensureDir, readTextIfExists, writeJsonAtomic } from '../utils/fs'
 import { GitRuntime } from './git'
 import { GitHubRuntime } from './github'
 import { createRuntimePaths } from './path-layout'
-import { ProcessVerifier } from './verify-runner'
 
 import type { OrchestratorRuntime } from '../core/runtime'
 import type { TaskDefinition } from '../types'
@@ -33,20 +31,6 @@ function createArtifactDir(
     `g${generation}`,
     `a${attempt}`,
   )
-}
-
-async function readCodeContext(workspaceRoot: string, paths: string[]) {
-  const parts: string[] = []
-  for (const relativePath of paths) {
-    const targetPath = path.join(workspaceRoot, relativePath)
-    try {
-      const content = await readFile(targetPath, 'utf8')
-      parts.push(`## ${relativePath}\n${content}`)
-    } catch {
-      parts.push(`## ${relativePath}\n<missing>`)
-    }
-  }
-  return parts.join('\n\n')
 }
 
 function buildTasksSnippet(tasksMd: string, taskId: string) {
@@ -91,7 +75,6 @@ export function createFsRuntime(input: {
   return {
     git: new GitRuntime(input.workspaceRoot, runtimePaths.runtimeDir),
     github: new GitHubRuntime(input.workspaceRoot),
-    verifier: new ProcessVerifier(input.workspaceRoot),
     store: {
       async appendEvent(event) {
         const value = validateWorkflowEvent(event)
@@ -145,23 +128,6 @@ export function createFsRuntime(input: {
           return null
         }
         return validateWorkflowState(JSON.parse(raw))
-      },
-      async loadVerifyArtifact(key) {
-        const raw = await readTextIfExists(
-          path.join(
-            createArtifactDir(
-              input.featureDir,
-              key.taskId,
-              key.generation,
-              key.attempt,
-            ),
-            'verify.json',
-          ),
-        )
-        if (!raw) {
-          return null
-        }
-        return validateVerifyArtifact(JSON.parse(raw))
       },
       async readReport() {
         const raw = await readTextIfExists(runtimePaths.report)
@@ -224,19 +190,6 @@ export function createFsRuntime(input: {
       async saveState(state) {
         await writeJsonAtomic(runtimePaths.state, validateWorkflowState(state))
       },
-      async saveVerifyArtifact(artifact) {
-        const value = validateVerifyArtifact(artifact)
-        const targetPath = path.join(
-          createArtifactDir(
-            input.featureDir,
-            artifact.taskId,
-            artifact.generation,
-            artifact.attempt,
-          ),
-          'verify.json',
-        )
-        await writeJsonAtomic(targetPath, value)
-      },
     },
     workspace: {
       async isTaskChecked(taskId) {
@@ -244,14 +197,12 @@ export function createFsRuntime(input: {
         return isTaskChecked(tasksMd, taskId)
       },
       async loadTaskContext(task: TaskDefinition) {
-        const [spec, plan, tasksMd, codeContext] = await Promise.all([
+        const [spec, plan, tasksMd] = await Promise.all([
           readTextIfExists(path.join(input.featureDir, 'spec.md')),
           readTextIfExists(path.join(input.featureDir, 'plan.md')),
           readTextIfExists(tasksPath),
-          readCodeContext(input.workspaceRoot, task.paths),
         ])
         return {
-          codeContext,
           plan,
           spec,
           tasksSnippet: buildTasksSnippet(tasksMd, task.id),

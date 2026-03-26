@@ -39,12 +39,9 @@ async function createWorkspace() {
 ## Phase 1: Setup
 
 - [ ] T001 Create parser in src/parser.ts
-  - Paths: src/parser.ts
   - Depends:
   - Acceptance:
     - parser exists
-  - Verify:
-    - node -e "process.exit(0)"
   - Review Rubric:
     - naming clarity
   - Max Iterations: 2
@@ -115,10 +112,8 @@ test('spec-while rewind resolves workspace from the actual current directory and
         [
           {
             assumptions: [],
-            changedFiles: ['src/parser.ts'],
             needsHumanAttention: false,
             notes: [],
-            requestedAdditionalPaths: [],
             status: 'implemented',
             summary: 'done',
             taskId: 'T001',
@@ -127,7 +122,6 @@ test('spec-while rewind resolves workspace from the actual current directory and
         ],
         [
           {
-            changedFilesReviewed: ['src/parser.ts'],
             findings: [],
             overallRisk: 'low',
             summary: 'ok',

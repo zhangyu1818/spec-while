@@ -34,12 +34,9 @@ async function createWorkspace() {
 ## Phase 1: Core
 
 - [ ] T001 Do work in src/existing.ts
-  - Paths: src/existing.ts, src/missing.ts
   - Depends:
   - Acceptance:
     - works
-  - Verify:
-    - node -e "process.exit(0)"
   - Review Rubric:
     - clear
   - Max Iterations: 1
@@ -73,12 +70,9 @@ async function createRemoteBackedWorkspace() {
 ## Phase 1: Core
 
 - [ ] T001 Do work in src/existing.ts
-  - Paths: src/existing.ts
   - Depends:
   - Acceptance:
     - works
-  - Verify:
-    - node -e "process.exit(0)"
   - Review Rubric:
     - clear
   - Max Iterations: 1
@@ -201,15 +195,11 @@ test('FsRuntime loads task context, marks missing code, updates checkboxes and a
     dependsOn: [],
     maxAttempts: 1,
     parallelizable: false,
-    paths: ['src/existing.ts', 'src/missing.ts'],
     phase: 'Core',
     reviewRubric: ['clear'],
     title: 'Do work',
-    verifyCommands: ['node -e "process.exit(0)"'],
   })
 
-  expect(context.codeContext).toMatch(/## src\/existing\.ts/)
-  expect(context.codeContext).toMatch(/## src\/missing\.ts\n<missing>/)
   expect(context.tasksSnippet).toMatch(/T001/)
 
   await runtime.workspace.updateTaskChecks([{ checked: true, taskId: 'T001' }])

@@ -8,8 +8,6 @@ import {
   reviewArtifactSchema,
   reviewOutputSchemaInternal,
   taskGraphSchema,
-  verifyArtifactSchema,
-  verifyResultSchema,
   workflowEventSchema,
   workflowStateSchema,
 } from './model'
@@ -68,20 +66,12 @@ export function validateWorkflowState(value: unknown) {
   return parseWithSchema(workflowStateSchema, value)
 }
 
-export function validateVerifyResult(value: unknown) {
-  return parseWithSchema(verifyResultSchema, value)
-}
-
 export function validateImplementArtifact(value: unknown) {
   return parseWithSchema(implementArtifactSchema, value)
 }
 
 export function validateIntegrateArtifact(value: unknown) {
   return parseWithSchema(integrateArtifactSchema, value)
-}
-
-export function validateVerifyArtifact(value: unknown) {
-  return parseWithSchema(verifyArtifactSchema, value)
 }
 
 export function validateReviewArtifact(value: unknown) {
@@ -130,10 +120,6 @@ export type TaskGraph = (typeof taskGraphSchema)['_output']
 export type TaskState = (typeof import('./model').taskStateSchema)['_output']
 export type TaskStatus =
   (typeof import('./model').taskStateSchema)['_output']['status']
-export type VerifyArtifact = (typeof verifyArtifactSchema)['_output']
-export type VerifyCommandResult =
-  (typeof import('./model').verifyCommandResultSchema)['_output']
-export type VerifyResult = (typeof verifyResultSchema)['_output']
 export type WorkflowEvent = (typeof workflowEventSchema)['_output']
 export type WorkflowEventType = (typeof workflowEventSchema)['_output']['type']
 export type WorkflowState = (typeof workflowStateSchema)['_output']

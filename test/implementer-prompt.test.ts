@@ -5,7 +5,6 @@ import { buildImplementerPrompt } from '../src/prompts/implementer'
 test('buildImplementerPrompt makes while task boundaries explicit', async () => {
   const prompt = await buildImplementerPrompt({
     attempt: 2,
-    codeContext: 'export function buildGreeting() { return "Hello" }\n',
     generation: 3,
     plan: '# plan',
     spec: '# spec',
@@ -24,11 +23,9 @@ test('buildImplementerPrompt makes while task boundaries explicit', async () => 
       dependsOn: [],
       maxAttempts: 2,
       parallelizable: false,
-      paths: ['src/greeting.ts'],
       phase: 'Phase 1',
       reviewRubric: ['simple and scoped'],
       title: 'Implement greeting',
-      verifyCommands: [],
     },
   })
 
@@ -37,12 +34,11 @@ test('buildImplementerPrompt makes while task boundaries explicit', async () => 
     'Use spec.md, plan.md, and the provided tasks snippet as the source of truth.',
   )
   expect(prompt).toContain(
-    'Modify only the files that are reasonably required for the current task, starting with task.paths.',
+    'Modify only the files that are reasonably required for the current task.',
   )
   expect(prompt).toContain('Do not modify tasks.md.')
   expect(prompt).toContain('Do not move to the next task.')
   expect(prompt).toContain('Do not declare the task finalized.')
-  expect(prompt).toContain('requestedAdditionalPaths')
   expect(prompt).toMatch(/# spec/)
   expect(prompt).toMatch(/# plan/)
   expect(prompt).toMatch(/src\/greeting\.ts/)

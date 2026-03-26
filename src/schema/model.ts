@@ -20,7 +20,7 @@ import {
 
 export const reviewFindingSchema = z
   .object({
-    file: nonEmptyStringSchema,
+    file: nonEmptyStringSchema.optional(),
     fixHint: nonEmptyStringSchema,
     issue: nonEmptyStringSchema,
     severity: z.enum(findingSeverityValues),
@@ -45,12 +45,10 @@ export const taskDefinitionSchema = z
     maxAttempts: z.number().int().min(1).max(20),
     metadata: z.record(z.unknown()).optional(),
     parallelizable: z.boolean(),
-    paths: uniqueStringArray('task path', { minItems: 1 }),
     phase: nonEmptyStringSchema,
     reviewRubric: uniqueStringArray('review rubric', { minItems: 1 }),
     storyId: storyIdSchema.nullable().optional(),
     title: nonEmptyStringSchema,
-    verifyCommands: uniqueStringArray('verify command'),
     dependsOn: uniqueStringArray('dependency task id').superRefine(
       (items, ctx) => {
         for (const [index, item] of items.entries()) {
@@ -102,54 +100,23 @@ export const taskGraphSchema = z
 export const implementOutputSchemaInternal = z
   .object({
     assumptions: uniqueStringArray('assumption'),
-    changedFiles: uniqueStringArray('changed file'),
     needsHumanAttention: z.boolean(),
     notes: uniqueStringArray('note'),
     status: z.enum(implementStatusValues),
     summary: nonEmptyStringSchema,
     taskId: taskIdSchema,
     unresolvedItems: uniqueStringArray('unresolved item'),
-    requestedAdditionalPaths: z.array(
-      z
-        .object({
-          path: nonEmptyStringSchema,
-          reason: nonEmptyStringSchema,
-        })
-        .strict(),
-    ),
   })
   .strict()
 
 export const reviewOutputSchemaInternal = z
   .object({
     acceptanceChecks: z.array(acceptanceCheckSchema).min(1),
-    changedFilesReviewed: uniqueStringArray('reviewed file'),
     findings: z.array(reviewFindingSchema),
     overallRisk: z.enum(overallRiskValues),
     summary: nonEmptyStringSchema,
     taskId: taskIdSchema,
     verdict: z.enum(reviewVerdictValues),
-  })
-  .strict()
-
-export const verifyCommandResultSchema = z
-  .object({
-    command: nonEmptyStringSchema,
-    exitCode: z.number().int(),
-    finishedAt: dateTimeSchema,
-    passed: z.boolean(),
-    startedAt: dateTimeSchema,
-    stderr: z.string(),
-    stdout: z.string(),
-  })
-  .strict()
-
-export const verifyResultSchema = z
-  .object({
-    commands: z.array(verifyCommandResultSchema),
-    passed: z.boolean(),
-    summary: nonEmptyStringSchema,
-    taskId: taskIdSchema,
   })
   .strict()
 
@@ -160,7 +127,6 @@ const taskStateBaseSchema = z
     invalidatedBy: taskIdSchema.nullable(),
     lastFindings: z.array(reviewFindingSchema),
     lastReviewVerdict: z.enum(reviewVerdictValues).optional(),
-    lastVerifyPassed: z.boolean().optional(),
   })
   .strict()
 
@@ -242,17 +208,6 @@ export const implementArtifactSchema = z
   })
   .strict()
 
-export const verifyArtifactSchema = z
-  .object({
-    attempt: z.number().int().min(1),
-    commitSha: nonEmptyStringSchema.optional(),
-    createdAt: dateTimeSchema,
-    generation: z.number().int().min(1),
-    result: verifyResultSchema,
-    taskId: taskIdSchema,
-  })
-  .strict()
-
 export const reviewArtifactSchema = z
   .object({
     attempt: z.number().int().min(1),
@@ -297,7 +252,6 @@ export const finalReportTaskSchema = z
     commitSha: nonEmptyStringSchema.optional(),
     generation: z.number().int().min(1),
     lastReviewVerdict: z.enum(reviewVerdictValues).optional(),
-    lastVerifyPassed: z.boolean().optional(),
     reason: nonEmptyStringSchema.optional(),
     status: z.enum(taskStatusValues),
   })

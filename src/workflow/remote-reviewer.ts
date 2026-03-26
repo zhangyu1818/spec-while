@@ -137,7 +137,6 @@ function signalSeverity(signal: FeedbackSignal): 'high' | 'medium' {
 
 function buildApprovedReview(input: PullRequestReviewInput): ReviewOutput {
   return {
-    changedFilesReviewed: input.pullRequest.changedFiles,
     findings: [],
     overallRisk: 'low',
     summary: `Remote reviewer ${CODEX_REVIEWER_ACTOR} approved the pull request`,
@@ -156,13 +155,10 @@ function buildRejectedReview(
   feedbackSignals: FeedbackSignal[],
 ): ReviewOutput {
   const findings = feedbackSignals.map((signal) => {
-    const path =
-      'path' in signal && signal.path
-        ? signal.path
-        : (input.pullRequest.changedFiles[0] ?? '.')
+    const path = 'path' in signal && signal.path ? signal.path : undefined
     const issue = signal.body.trim() || 'Remote reviewer requested changes'
     return {
-      file: path,
+      ...(path ? { file: path } : {}),
       fixHint: issue,
       issue,
       severity: signalSeverity(signal),
@@ -177,10 +173,6 @@ function buildRejectedReview(
       note: 'Remote review left active feedback',
       status: 'unclear' as const,
     })),
-    changedFilesReviewed:
-      findings.map((finding) => finding.file).filter(Boolean).length !== 0
-        ? [...new Set(findings.map((finding) => finding.file))]
-        : input.pullRequest.changedFiles,
     overallRisk: findings.some((finding) => finding.severity === 'high')
       ? 'high'
       : 'medium',

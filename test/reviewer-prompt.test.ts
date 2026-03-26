@@ -12,10 +12,8 @@ test('buildReviewerPrompt keeps review context path-only', async () => {
     tasksSnippet: '- [ ] T001 Create parser',
     implement: {
       assumptions: [],
-      changedFiles: ['src/parser.ts'],
       needsHumanAttention: false,
       notes: [],
-      requestedAdditionalPaths: [],
       status: 'implemented',
       summary: 'done',
       taskId: 'T001',
@@ -35,17 +33,9 @@ test('buildReviewerPrompt keeps review context path-only', async () => {
       dependsOn: [],
       maxAttempts: 2,
       parallelizable: false,
-      paths: ['src/parser.ts'],
       phase: 'Phase 1',
       reviewRubric: ['naming clarity'],
       title: 'Create parser',
-      verifyCommands: [],
-    },
-    verify: {
-      commands: [],
-      passed: true,
-      summary: 'No verify commands configured.',
-      taskId: 'T001',
     },
   })
 
@@ -59,14 +49,10 @@ test('buildReviewerPrompt keeps review context path-only', async () => {
     'Use spec.md, plan.md, and the provided tasks snippet to judge whether the task matches the intended implementation.',
   )
   expect(prompt).toContain(
-    'Evaluate task acceptance, spec/plan alignment, verify results, actual changed files, and overall risk.',
-  )
-  expect(prompt).toContain(
-    'Treat task.paths as the expected primary scope, not as an absolute hard boundary.',
+    'Evaluate task acceptance, spec/plan alignment, actual changed files, and overall risk.',
   )
   expect(prompt).toContain(
     'Do not expand the review to unrelated files or repository-wide history.',
   )
-  expect(prompt).not.toContain('Boundary Check:')
   expect(prompt).not.toMatch(/export const value/)
 })

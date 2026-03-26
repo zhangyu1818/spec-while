@@ -21,7 +21,6 @@ async function runAgentSmoke() {
   })
   const result = await client.implement({
     attempt: 1,
-    codeContext: '',
     generation: 1,
     lastFindings: [],
     plan: '# plan',
@@ -33,11 +32,9 @@ async function runAgentSmoke() {
       dependsOn: [],
       maxAttempts: 1,
       parallelizable: false,
-      paths: [],
       phase: 'Smoke',
       reviewRubric: ['respond in JSON'],
       title: 'Inspect repository',
-      verifyCommands: ['node -e "process.exit(0)"'],
     },
   })
 

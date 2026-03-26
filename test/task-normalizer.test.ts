@@ -23,12 +23,9 @@ test('normalizeTaskGraph parses tasks into the new workflow graph', async () => 
 ## Phase 1: Setup
 
 - [ ] T001 Create parser in src/parser.ts
-  - Paths: src/parser.ts, test/parser.test.ts
   - Depends:
   - Acceptance:
     - parse one task
-  - Verify:
-    - node -e "process.exit(0)"
   - Review Rubric:
     - naming clarity
   - Max Iterations: 2
@@ -36,12 +33,9 @@ test('normalizeTaskGraph parses tasks into the new workflow graph', async () => 
 ## Phase 2: Core
 
 - [ ] T002 [P] [US1] Add scheduler in src/scheduler.ts
-  - Paths: src/scheduler.ts
   - Depends: T001
   - Acceptance:
     - schedule next task
-  - Verify:
-    - node -e "process.exit(0)"
   - Review Rubric:
     - no duplication
   - Max Iterations: 3
@@ -66,12 +60,9 @@ test('normalizeTaskGraph rejects invalid dependencies', async () => {
 ## Phase 1: Setup
 
 - [ ] T001 Create parser in src/parser.ts
-  - Paths: src/parser.ts
   - Depends: T999
   - Acceptance:
     - parse one task
-  - Verify:
-    - node -e "process.exit(0)"
   - Review Rubric:
     - naming clarity
   - Max Iterations: 2
@@ -83,28 +74,4 @@ test('normalizeTaskGraph rejects invalid dependencies', async () => {
       tasksPath: path.join(featureDir, 'tasks.md'),
     }),
   ).rejects.toThrow(/unknown task/i)
-})
-
-test('normalizeTaskGraph allows tasks without verify commands', async () => {
-  const { featureDir } = await createFeatureDir(`
-# Tasks
-
-## Phase 1: Setup
-
-- [ ] T001 Create parser in src/parser.ts
-  - Paths: src/parser.ts
-  - Depends:
-  - Acceptance:
-    - parse one task
-  - Review Rubric:
-    - naming clarity
-  - Max Iterations: 2
-`)
-
-  const graph = await normalizeTaskGraph({
-    featureDir,
-    tasksPath: path.join(featureDir, 'tasks.md'),
-  })
-
-  expect(graph.tasks[0]?.verifyCommands).toEqual([])
 })

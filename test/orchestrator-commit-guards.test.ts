@@ -6,7 +6,6 @@ import {
   createImplement,
   createReview,
   createRuntime,
-  createVerify,
   createWorkflow,
   ScriptedWorkflowProvider,
 } from './workflow-test-helpers'
@@ -21,17 +20,13 @@ test('runWorkflow keeps a task done when post-commit artifact persistence fails'
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
-  const { git, runtime, store, workspace } = createRuntime({
-    verifierResponses: [createVerify('T001', true)],
-  })
+  const { git, runtime, store, workspace } = createRuntime()
   const originalSaveImplementArtifact = store.saveImplementArtifact.bind(store)
   store.saveImplementArtifact = async (artifact) => {
     if (artifact.commitSha) {
@@ -58,8 +53,6 @@ test('runWorkflow keeps a task done when post-commit artifact persistence fails'
   expect(store.events.map((event) => event.type)).toEqual([
     'attempt_started',
     'implement_succeeded',
-    'verify_started',
-    'verify_completed',
     'review_started',
     'review_completed',
     'integrate_started',
@@ -85,17 +78,13 @@ test('runWorkflow does not re-run a completed task when integrate completion eve
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
-  const { git, runtime, store, workspace } = createRuntime({
-    verifierResponses: [createVerify('T001', true)],
-  })
+  const { git, runtime, store, workspace } = createRuntime()
   const originalAppendEvent = store.appendEvent.bind(store)
   let failIntegrateCompleted = true
   store.appendEvent = async (event) => {
@@ -151,17 +140,14 @@ test('runWorkflow records integrate failure events when commit integration fails
         dependsOn: [],
         maxAttempts: 1,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
   const { git, runtime, store, workspace } = createRuntime({
     commitFailures: [new Error('git commit rejected')],
-    verifierResponses: [createVerify('T001', true)],
   })
   const workflow = createWorkflow(
     new ScriptedWorkflowProvider(
@@ -180,8 +166,6 @@ test('runWorkflow records integrate failure events when commit integration fails
   expect(store.events.map((event) => event.type)).toEqual([
     'attempt_started',
     'implement_succeeded',
-    'verify_started',
-    'verify_completed',
     'review_started',
     'review_completed',
     'integrate_started',
@@ -209,7 +193,6 @@ test('rewindTask resets rolled-back task commits into a new pending generation',
       ],
       [
         {
-          changedFilesReviewed: [],
           findings: [],
           overallRisk: 'low',
           summary: 'ok',
@@ -224,7 +207,6 @@ test('rewindTask resets rolled-back task commits into a new pending generation',
           ],
         },
         {
-          changedFilesReviewed: [],
           findings: [],
           overallRisk: 'low',
           summary: 'ok',

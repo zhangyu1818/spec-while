@@ -5,7 +5,6 @@ import {
   createGraph,
   createImplement,
   createReview,
-  createVerify,
 } from './workflow-test-helpers'
 
 import type { RemoteReviewerProvider } from '../src/agents/types'
@@ -78,7 +77,6 @@ test('pull-request preset creates or reuses a PR and polls until approval', asyn
     isTaskChecked: vi.fn(async () => false),
     updateTaskChecks: vi.fn(async () => {}),
     loadTaskContext: vi.fn(async () => ({
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',
@@ -88,7 +86,6 @@ test('pull-request preset creates or reuses a PR and polls until approval', asyn
     git,
     github,
     store: {},
-    verifier: {},
     workspace,
   } as unknown as OrchestratorRuntime
 
@@ -101,9 +98,7 @@ test('pull-request preset creates or reuses a PR and polls until approval', asyn
     lastFindings: [],
     runtime,
     task,
-    verify: createVerify('T001', true),
     taskContext: {
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',
@@ -168,7 +163,6 @@ test('pull-request preset restores a missing local task branch from origin when 
     isTaskChecked: vi.fn(async () => false),
     updateTaskChecks: vi.fn(async () => {}),
     loadTaskContext: vi.fn(async () => ({
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',
@@ -178,7 +172,6 @@ test('pull-request preset restores a missing local task branch from origin when 
     git,
     github,
     store: {},
-    verifier: {},
     workspace,
   } as unknown as OrchestratorRuntime
 
@@ -191,9 +184,7 @@ test('pull-request preset restores a missing local task branch from origin when 
     lastFindings: [],
     runtime,
     task,
-    verify: createVerify('T001', true),
     taskContext: {
-      codeContext: '',
       plan: '# plan\n',
       spec: '# spec\n',
       tasksSnippet: '- [ ] T001 Implement greeting\n',

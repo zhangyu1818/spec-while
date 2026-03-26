@@ -7,8 +7,6 @@ import type {
   TaskContext,
   TaskDefinition,
   TaskGraph,
-  VerifyArtifact,
-  VerifyResult,
   WorkflowEvent,
   WorkflowState,
 } from '../src/types'
@@ -22,27 +20,6 @@ export type TaskContextSource =
       kind: 'single'
       value: TaskContext
     }
-
-export class FakeVerifier {
-  public readonly calls: { commands: string[]; taskId: string }[] = []
-
-  public constructor(private readonly responses: (Error | VerifyResult)[]) {}
-
-  public async verify(input: {
-    commands: string[]
-    taskId: string
-  }): Promise<VerifyResult> {
-    this.calls.push(input)
-    const next = this.responses.shift()
-    if (!next) {
-      throw new Error('Missing fake verify response')
-    }
-    if (next instanceof Error) {
-      throw next
-    }
-    return next
-  }
-}
 
 export class FakeGit {
   private commitIndex = 0
@@ -146,7 +123,6 @@ export class InMemoryStore implements WorkflowStore {
   public report: FinalReport | null = null
   public reviewArtifacts: ReviewArtifact[] = []
   public state: null | WorkflowState = null
-  public verifyArtifacts: VerifyArtifact[] = []
 
   public async appendEvent(event: WorkflowEvent) {
     this.events.push(event)
@@ -187,21 +163,6 @@ export class InMemoryStore implements WorkflowStore {
   public async loadState() {
     return this.state
   }
-  public async loadVerifyArtifact(key: {
-    attempt: number
-    generation: number
-    taskId: string
-  }) {
-    return (
-      this.verifyArtifacts.find(
-        (item) =>
-          item.taskId === key.taskId &&
-          item.generation === key.generation &&
-          item.attempt === key.attempt,
-      ) ?? null
-    )
-  }
-
   public async readReport() {
     return this.report
   }
@@ -214,7 +175,6 @@ export class InMemoryStore implements WorkflowStore {
     this.report = null
     this.reviewArtifacts = []
     this.state = null
-    this.verifyArtifacts = []
   }
 
   public async saveGraph(graph: TaskGraph) {
@@ -269,20 +229,6 @@ export class InMemoryStore implements WorkflowStore {
 
   public async saveState(state: WorkflowState) {
     this.state = state
-  }
-
-  public async saveVerifyArtifact(artifact: VerifyArtifact) {
-    const index = this.verifyArtifacts.findIndex(
-      (item) =>
-        item.taskId === artifact.taskId &&
-        item.generation === artifact.generation &&
-        item.attempt === artifact.attempt,
-    )
-    if (index >= 0) {
-      this.verifyArtifacts[index] = artifact
-      return
-    }
-    this.verifyArtifacts.push(artifact)
   }
 }
 

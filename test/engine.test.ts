@@ -6,12 +6,11 @@ import {
   recordImplementSuccess,
   recordIntegrateResult,
   recordReviewApproved,
-  recordVerifyResult,
   selectNextRunnableTask,
   startAttempt,
 } from '../src/core/engine'
 
-import type { ReviewOutput, TaskGraph, VerifyResult } from '../src/types'
+import type { ReviewOutput, TaskGraph } from '../src/types'
 
 function createGraph(): TaskGraph {
   return {
@@ -23,11 +22,9 @@ function createGraph(): TaskGraph {
         dependsOn: [],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/greeting.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement greeting',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
       {
         id: 'T002',
@@ -35,11 +32,9 @@ function createGraph(): TaskGraph {
         dependsOn: ['T001'],
         maxAttempts: 2,
         parallelizable: false,
-        paths: ['src/farewell.ts'],
         phase: 'Core',
         reviewRubric: ['simple'],
         title: 'Implement farewell',
-        verifyCommands: ['node -e "process.exit(0)"'],
       },
     ],
   }
@@ -47,7 +42,6 @@ function createGraph(): TaskGraph {
 
 function createPassingReview(taskId: string, criterion: string): ReviewOutput {
   return {
-    changedFilesReviewed: [],
     findings: [],
     overallRisk: 'low',
     summary: 'ok',
@@ -63,25 +57,6 @@ function createPassingReview(taskId: string, criterion: string): ReviewOutput {
   }
 }
 
-function createVerifyResult(taskId: string, passed: boolean): VerifyResult {
-  return {
-    passed,
-    summary: passed ? 'ok' : 'failed',
-    taskId,
-    commands: [
-      {
-        command: 'node -e "process.exit(0)"',
-        exitCode: passed ? 0 : 1,
-        finishedAt: '2026-03-22T00:00:00.000Z',
-        passed,
-        startedAt: '2026-03-22T00:00:00.000Z',
-        stderr: '',
-        stdout: '',
-      },
-    ],
-  }
-}
-
 test('engine advances task phases and unlocks dependents from derived readiness', () => {
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
@@ -91,17 +66,7 @@ test('engine advances task phases and unlocks dependents from derived readiness'
   const executing = startAttempt(graph, initial, 'T001')
   expect(executing.tasks.T001?.status).toBe('running')
 
-  const verifying = recordImplementSuccess(executing, 'T001')
-  expect(verifying.tasks.T001).toMatchObject({
-    stage: 'verify',
-    status: 'running',
-  })
-
-  const reviewing = recordVerifyResult(
-    verifying,
-    'T001',
-    createVerifyResult('T001', true),
-  )
+  const reviewing = recordImplementSuccess(executing, 'T001')
   expect(reviewing.tasks.T001).toMatchObject({
     stage: 'review',
     status: 'running',
@@ -120,7 +85,6 @@ test('engine advances task phases and unlocks dependents from derived readiness'
   const done = recordIntegrateResult(graph, integrating, 'T001', {
     commitSha: 'commit-1',
     review: createPassingReview('T001', 'buildGreeting works'),
-    verify: createVerifyResult('T001', true),
   })
 
   expect(done.tasks.T001).toMatchObject({
@@ -141,7 +105,6 @@ test('alignStateWithGraph preserves running review when explicitly requested', (
         generation: 1,
         invalidatedBy: null,
         lastFindings: [],
-        lastVerifyPassed: true,
         stage: 'review' as const,
         status: 'running' as const,
       },
@@ -169,14 +132,9 @@ test('alignStateWithGraph preserves running review when explicitly requested', (
 test('engine moves approved reviews into integrate instead of done', () => {
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
-  const verifying = recordImplementSuccess(
+  const reviewing = recordImplementSuccess(
     startAttempt(graph, initial, 'T001'),
     'T001',
-  )
-  const reviewing = recordVerifyResult(
-    verifying,
-    'T001',
-    createVerifyResult('T001', true),
   )
 
   const integrating = recordReviewApproved(
@@ -196,10 +154,9 @@ test('engine moves approved reviews into integrate instead of done', () => {
 test('integrate result is the only path that produces done', () => {
   const graph = createGraph()
   const initial = createInitialWorkflowState(graph)
-  const reviewing = recordVerifyResult(
-    recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
+  const reviewing = recordImplementSuccess(
+    startAttempt(graph, initial, 'T001'),
     'T001',
-    createVerifyResult('T001', true),
   )
   const integrating = recordReviewApproved(
     reviewing,
@@ -209,7 +166,6 @@ test('integrate result is the only path that produces done', () => {
   const done = recordIntegrateResult(graph, integrating, 'T001', {
     commitSha: 'commit-1',
     review: createPassingReview('T001', 'buildGreeting works'),
-    verify: createVerifyResult('T001', true),
   })
 
   expect(reviewing.tasks.T001).toMatchObject({
