@@ -90,7 +90,6 @@ test('pull-request preset creates or reuses a PR and polls until approval', asyn
   } as unknown as OrchestratorRuntime
 
   const result = await preset.review({
-    actualChangedFiles: ['src/greeting.ts'],
     attempt: 1,
     commitMessage: 'Task T001: Implement greeting',
     generation: 1,
@@ -176,7 +175,6 @@ test('pull-request preset restores a missing local task branch from origin when 
   } as unknown as OrchestratorRuntime
 
   const result = await preset.review({
-    actualChangedFiles: ['src/greeting.ts'],
     attempt: 1,
     commitMessage: 'Task T001: Implement greeting',
     generation: 1,

@@ -4,9 +4,9 @@ import type { RemoteReviewerProvider } from '../agents/types'
 import type { OrchestratorRuntime, PullRequestRef } from '../core/runtime'
 import type {
   IntegratePhaseResult,
-  ReviewPhaseContext,
+  PullRequestReviewPhaseContext,
+  PullRequestWorkflowPreset,
   ReviewPhaseResult,
-  WorkflowPreset,
 } from './preset'
 
 const DEFAULT_BASE_BRANCH = 'main'
@@ -25,7 +25,7 @@ function createCheckpointCommitMessage(commitMessage: string, attempt: number) {
   return `checkpoint: ${commitMessage} (attempt ${attempt})`
 }
 
-function createPullRequestBody(context: ReviewPhaseContext) {
+function createPullRequestBody(context: PullRequestReviewPhaseContext) {
   return [
     `Task: ${context.commitMessage}`,
     `Attempt: ${context.attempt}`,
@@ -60,7 +60,7 @@ async function ensureTaskBranch(input: {
 async function ensurePullRequest(input: {
   branchName: string
   branchNeedsPush: boolean
-  context: ReviewPhaseContext
+  context: PullRequestReviewPhaseContext
   existingPullRequest: null | PullRequestRef
 }): Promise<PullRequestRef> {
   let pullRequest = input.existingPullRequest
@@ -84,7 +84,7 @@ async function ensurePullRequest(input: {
 
 async function waitForRemoteReview(input: {
   checkpointStartedAt: string
-  context: ReviewPhaseContext
+  context: PullRequestReviewPhaseContext
   pullRequest: PullRequestRef
   reviewer: RemoteReviewerProvider
   sleep: (ms: number) => Promise<void>
@@ -159,7 +159,7 @@ function summarizeIntegrateResult(input: {
 export function createPullRequestWorkflowPreset(input: {
   reviewer: RemoteReviewerProvider
   sleep?: (ms: number) => Promise<void>
-}): WorkflowPreset {
+}): PullRequestWorkflowPreset {
   const sleep =
     input.sleep ??
     (async (ms: number) => {

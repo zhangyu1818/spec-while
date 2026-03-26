@@ -80,7 +80,6 @@ test('pull-request preset creates a fresh checkpoint commit on the first review 
   } as unknown as OrchestratorRuntime
 
   const result = await preset.review({
-    actualChangedFiles: ['src/greeting.ts'],
     attempt: 2,
     commitMessage: 'Task T001: Implement greeting',
     generation: 1,
@@ -162,7 +161,6 @@ test('pull-request preset reuses the head checkpoint for the same review attempt
   } as unknown as OrchestratorRuntime
 
   const result = await preset.review({
-    actualChangedFiles: ['src/greeting.ts'],
     attempt: 2,
     commitMessage: 'Task T001: Implement greeting',
     generation: 1,

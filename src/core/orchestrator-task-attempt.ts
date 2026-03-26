@@ -104,12 +104,10 @@ export async function executeTaskAttempt(input: {
     type: 'review_started',
   })
   report = await persistState(input.runtime, input.graph, state)
-  const actualChangedFiles = await input.runtime.git.getChangedFilesSinceHead()
   let review
   let reviewPhaseKind: 'approved' | 'rejected'
   try {
-    const reviewPhase = await input.workflow.preset.review({
-      actualChangedFiles,
+    const reviewInput = {
       attempt: taskState.attempt,
       commitMessage,
       generation: taskState.generation,
@@ -118,7 +116,15 @@ export async function executeTaskAttempt(input: {
       runtime: input.runtime,
       task: input.task,
       taskContext,
-    })
+    }
+    const reviewPhase =
+      input.workflow.preset.mode === 'direct'
+        ? await input.workflow.preset.review({
+            ...reviewInput,
+            actualChangedFiles:
+              await input.runtime.git.getChangedFilesSinceHead(),
+          })
+        : await input.workflow.preset.review(reviewInput)
     reviewPhaseKind = reviewPhase.kind
     review = reviewPhase.review
     if (review.taskId !== input.task.id) {

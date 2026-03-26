@@ -30,10 +30,8 @@ export async function resumePullRequestReview(input: {
   state: WorkflowState
   workflow: WorkflowRuntime
 }): Promise<null | { report: FinalReport; state: WorkflowState }> {
-  if (
-    input.workflow.preset.mode !== 'pull-request' ||
-    !input.state.currentTaskId
-  ) {
+  const preset = input.workflow.preset
+  if (preset.mode !== 'pull-request' || !input.state.currentTaskId) {
     return null
   }
 
@@ -85,8 +83,7 @@ export async function resumePullRequestReview(input: {
   let reviewPhaseKind: 'approved' | 'rejected'
 
   try {
-    const reviewPhase = await input.workflow.preset.review({
-      actualChangedFiles: [],
+    const reviewPhase = await preset.review({
       attempt: taskState.attempt,
       commitMessage,
       generation: taskState.generation,

@@ -10,8 +10,7 @@ import type {
 
 export type WorkflowMode = 'direct' | 'pull-request'
 
-export interface ReviewPhaseContext {
-  actualChangedFiles: string[]
+interface BaseReviewPhaseContext {
   attempt: number
   commitMessage: string
   generation: number
@@ -21,6 +20,12 @@ export interface ReviewPhaseContext {
   task: TaskDefinition
   taskContext: TaskContext
 }
+
+export interface DirectReviewPhaseContext extends BaseReviewPhaseContext {
+  actualChangedFiles: string[]
+}
+
+export type PullRequestReviewPhaseContext = BaseReviewPhaseContext
 
 export type ReviewPhaseResult =
   | {
@@ -46,11 +51,19 @@ export interface IntegratePhaseResult {
   }
 }
 
-export interface WorkflowPreset {
+export interface DirectWorkflowPreset {
   integrate: (context: IntegratePhaseContext) => Promise<IntegratePhaseResult>
-  readonly mode: WorkflowMode
-  review: (context: ReviewPhaseContext) => Promise<ReviewPhaseResult>
+  readonly mode: 'direct'
+  review: (context: DirectReviewPhaseContext) => Promise<ReviewPhaseResult>
 }
+
+export interface PullRequestWorkflowPreset {
+  integrate: (context: IntegratePhaseContext) => Promise<IntegratePhaseResult>
+  readonly mode: 'pull-request'
+  review: (context: PullRequestReviewPhaseContext) => Promise<ReviewPhaseResult>
+}
+
+export type WorkflowPreset = DirectWorkflowPreset | PullRequestWorkflowPreset
 
 export interface WorkflowRuntime {
   preset: WorkflowPreset
