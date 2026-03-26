@@ -38,6 +38,16 @@ function asString(value: unknown) {
   return typeof value === 'string' ? value : ''
 }
 
+function asOwnerLogin(value: unknown) {
+  if (typeof value === 'string') {
+    return value
+  }
+  if (value && typeof value === 'object' && 'login' in value) {
+    return asString((value as { login?: unknown }).login)
+  }
+  return ''
+}
+
 export class GitHubRuntime implements GitHubPort {
   private readonly runGh: RunGh
 
@@ -57,6 +67,15 @@ export class GitHubRuntime implements GitHubPort {
       await this.runGh(['repo', 'view', '--json', 'nameWithOwner']),
     ) as { nameWithOwner?: unknown }
     return asString(payload.nameWithOwner)
+  }
+
+  private async resolveRepoOwner() {
+    const repo = await this.resolveRepo()
+    const [owner] = repo.split('/')
+    if (!owner) {
+      throw new Error(`Invalid GitHub repository name: ${repo}`)
+    }
+    return owner
   }
 
   public async createPullRequest(input: {
@@ -91,6 +110,7 @@ export class GitHubRuntime implements GitHubPort {
   public async findMergedPullRequestByHeadBranch(input: {
     headBranch: string
   }): Promise<MergedPullRequestRef | null> {
+    const owner = await this.resolveRepoOwner()
     const payload = JSON.parse(
       await this.runGh([
         'pr',
@@ -100,11 +120,16 @@ export class GitHubRuntime implements GitHubPort {
         '--state',
         'merged',
         '--json',
-        'number,title,url,mergeCommit',
+        'number,title,url,mergeCommit,headRefName,headRepositoryOwner',
       ]),
     )
     const pullRequests = asArray<Record<string, unknown>>(payload)
-    const match = pullRequests[0]
+    const match =
+      pullRequests.find(
+        (candidate) =>
+          asString(candidate.headRefName) === input.headBranch &&
+          asOwnerLogin(candidate.headRepositoryOwner) === owner,
+      ) ?? null
     if (!match) {
       return null
     }
@@ -129,6 +154,7 @@ export class GitHubRuntime implements GitHubPort {
   public async findOpenPullRequestByHeadBranch(input: {
     headBranch: string
   }): Promise<null | PullRequestRef> {
+    const owner = await this.resolveRepoOwner()
     const payload = JSON.parse(
       await this.runGh([
         'pr',
@@ -138,11 +164,16 @@ export class GitHubRuntime implements GitHubPort {
         '--state',
         'open',
         '--json',
-        'number,title,url',
+        'number,title,url,headRefName,headRepositoryOwner',
       ]),
     )
     const pullRequests = asArray<Record<string, unknown>>(payload)
-    const match = pullRequests[0]
+    const match =
+      pullRequests.find(
+        (candidate) =>
+          asString(candidate.headRefName) === input.headBranch &&
+          asOwnerLogin(candidate.headRepositoryOwner) === owner,
+      ) ?? null
     if (!match) {
       return null
     }

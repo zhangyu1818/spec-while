@@ -9,9 +9,13 @@ test('GitHubRuntime finds an open pull request by head branch', async () => {
   const runGh = vi.fn(async () =>
     JSON.stringify([
       {
+        headRefName: 'task/t001-do-work',
         number: 12,
         title: 'Task T001: Do work',
         url: 'https://github.com/acme/repo/pull/12',
+        headRepositoryOwner: {
+          login: 'acme',
+        },
       },
     ]),
   )
@@ -34,7 +38,7 @@ test('GitHubRuntime finds an open pull request by head branch', async () => {
     '--state',
     'open',
     '--json',
-    'number,title,url',
+    'number,title,url,headRefName,headRepositoryOwner',
   ])
 })
 
@@ -56,9 +60,13 @@ test('GitHubRuntime finds a merged pull request by head branch and returns its m
   const runGh = vi.fn(async () =>
     JSON.stringify([
       {
+        headRefName: 'task/t001-do-work',
         number: 12,
         title: 'Task T001: Do work',
         url: 'https://github.com/acme/repo/pull/12',
+        headRepositoryOwner: {
+          login: 'acme',
+        },
         mergeCommit: {
           oid: 'merged-sha',
         },
@@ -85,8 +93,87 @@ test('GitHubRuntime finds a merged pull request by head branch and returns its m
     '--state',
     'merged',
     '--json',
-    'number,title,url,mergeCommit',
+    'number,title,url,mergeCommit,headRefName,headRepositoryOwner',
   ])
+})
+
+test('GitHubRuntime ignores open pull requests from forks with the same branch name', async () => {
+  const runGh = vi.fn(async () =>
+    JSON.stringify([
+      {
+        headRefName: 'task/t001-do-work',
+        number: 88,
+        title: 'Fork PR',
+        url: 'https://github.com/acme/repo/pull/88',
+        headRepositoryOwner: {
+          login: 'other-user',
+        },
+      },
+      {
+        headRefName: 'task/t001-do-work',
+        number: 12,
+        title: 'Task T001: Do work',
+        url: 'https://github.com/acme/repo/pull/12',
+        headRepositoryOwner: {
+          login: 'acme',
+        },
+      },
+    ]),
+  )
+  const runtime = new GitHubRuntime('/tmp/workspace', runGh, 'acme/repo')
+
+  const result = await runtime.findOpenPullRequestByHeadBranch({
+    headBranch: 'task/t001-do-work',
+  })
+
+  expect(result).toEqual({
+    number: 12,
+    title: 'Task T001: Do work',
+    url: 'https://github.com/acme/repo/pull/12',
+  })
+})
+
+test('GitHubRuntime ignores merged pull requests from forks with the same branch name', async () => {
+  const runGh = vi.fn(async () =>
+    JSON.stringify([
+      {
+        headRefName: 'task/t001-do-work',
+        number: 88,
+        title: 'Fork PR',
+        url: 'https://github.com/acme/repo/pull/88',
+        headRepositoryOwner: {
+          login: 'other-user',
+        },
+        mergeCommit: {
+          oid: 'fork-merged-sha',
+        },
+      },
+      {
+        headRefName: 'task/t001-do-work',
+        number: 12,
+        title: 'Task T001: Do work',
+        url: 'https://github.com/acme/repo/pull/12',
+        headRepositoryOwner: {
+          login: 'acme',
+        },
+        mergeCommit: {
+          oid: 'merged-sha',
+        },
+      },
+    ]),
+  )
+  const runtime = new GitHubRuntime('/tmp/workspace', runGh, 'acme/repo')
+
+  const result = await runtime.findMergedPullRequestByHeadBranch({
+    headBranch: 'task/t001-do-work',
+  })
+
+  expect(result).toEqual({
+    mergeCommitSha: 'merged-sha',
+    number: 12,
+    title: 'Task T001: Do work',
+    url: 'https://github.com/acme/repo/pull/12',
+  })
 })
 
 test('GitHubRuntime builds a pull request snapshot from GraphQL responses only', async () => {
