@@ -94,11 +94,6 @@ const mockState = vi.hoisted(() => {
   }
   return {
     freshTaskSource,
-    loadedGraph: null as null | {
-      commitSubject: string
-      dependsOn: string[]
-      handle: string
-    }[],
     rewindCalls: [] as unknown[],
     runtime,
     staleTaskSource,
@@ -119,6 +114,13 @@ const mockState = vi.hoisted(() => {
         },
       },
     } as WorkflowConfig,
+    loadedGraph: null as
+      | null
+      | {
+          commitSubject: string
+          dependsOn: string[]
+          handle: string
+        }[],
   }
 })
 
