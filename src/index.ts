@@ -2,6 +2,7 @@ import { inspect } from 'node:util'
 
 import arg from 'arg'
 
+import { runBatchCommand } from './commands/batch'
 import { runCommand } from './commands/run'
 import { resolveWorkspaceContext } from './runtime/workspace-resolver'
 import { loadWorkflowConfig } from './workflow/config'
@@ -14,6 +15,10 @@ interface RunOptions {
   feature?: string
   untilTaskId?: string
   verbose: boolean
+}
+
+interface BatchOptions {
+  configPath: string
 }
 
 function assertNoPositionalArgs(values: PositionalArgs) {
@@ -44,9 +49,37 @@ function parseRunOptions(args: string[]) {
   return options
 }
 
+function parseBatchOptions(args: string[]) {
+  const values = arg(
+    {
+      '--config': String,
+    },
+    { argv: args },
+  )
+  assertNoPositionalArgs(values)
+  const configPath = values['--config']
+  if (!configPath) {
+    throw new Error('Missing required --config')
+  }
+  return {
+    configPath,
+  } satisfies BatchOptions
+}
+
 export async function runCli(argv = process.argv.slice(2)) {
   const [command = 'run', ...args] = argv
   switch (command) {
+    case 'batch': {
+      const options = parseBatchOptions(args)
+      const result = await runBatchCommand({
+        configPath: options.configPath,
+        cwd: process.cwd(),
+      })
+      process.stdout.write(
+        `${inspect(result, { colors: false, depth: null })}\n`,
+      )
+      return
+    }
     case 'run': {
       const options = parseRunOptions(args)
       const config = await loadWorkflowConfig(process.cwd())

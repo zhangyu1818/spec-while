@@ -4,13 +4,15 @@
 
 It reads workflow settings from `while.yaml`, opens the configured task source, executes one task at a time, reviews the result, integrates approved work, and creates one git commit per completed task. The built-in task sources are `spec-kit`, which consumes `spec.md`, `plan.md`, and `tasks.md` under `specs/<feature>/`, and `openspec`, which consumes an OpenSpec change under `openspec/changes/<change>/`.
 
+It also provides a standalone `batch` command for YAML-driven file processing that is independent from the feature/task orchestration workflow.
+
 ## Requirements
 
 - Node.js 18 or newer
-- A git repository with an initial commit
-- A workspace with the directory layout required by the selected task source
-- The files required by the selected task source
-- A clean worktree before `run`
+- For `run`: a git repository with an initial commit
+- For `run`: a workspace with the directory layout required by the selected task source
+- For `run`: the files required by the selected task source
+- For `run`: a clean worktree before `run`
 
 Current built-in source requirements:
 
@@ -38,7 +40,7 @@ pnpm exec spec-while run
 
 ## Configuration
 
-`while.yaml` is the only public workflow configuration entry. When it is absent, the CLI runs `task.source: spec-kit`, `task.maxIterations: 5`, and `workflow.mode: direct` with `codex` for both roles.
+`while.yaml` configures the `run` workflow only. When it is absent, the CLI runs `task.source: spec-kit`, `task.maxIterations: 5`, and `workflow.mode: direct` with `codex` for both roles.
 
 ```yaml
 task:
@@ -89,6 +91,48 @@ Useful flags:
 - For `task.source: openspec`, `--feature <featureId>` selects the OpenSpec change id
 - `--until-task <taskSelector>`: stop after the target task reaches `done`
 - `--verbose`: stream agent events to `stderr`
+
+### `spec-while batch`
+
+Runs a standalone YAML-driven batch job. This command does not read `while.yaml`, does not require `specs/`, and does not use the task-source workflow.
+
+```bash
+cd /path/to/workspace
+pnpm exec spec-while batch --config ./batch.yaml
+```
+
+Batch config example:
+
+```yaml
+provider: codex
+workdir: ./src
+prompt: |
+  Read the target file and return structured output for it.
+schema:
+  type: object
+  properties:
+    summary:
+      type: string
+    tags:
+      type: array
+      items:
+        type: string
+  required:
+    - summary
+```
+
+Batch behavior:
+
+- `workdir` defaults to the current working directory when omitted
+- `provider`, `prompt`, and `schema` are required
+- each run scans the configured working directory for files
+- execution state is written beside the YAML file in `state.json`
+- structured results are written beside the YAML file in `results.json`
+- rerunning the command resumes unfinished work and skips files that already have accepted results
+- when the current `pending` queue is exhausted and `failed` is non-empty, the command persists a recycle transition that moves `failed` back into `pending` for the next round
+- the command exits only when both `pending` and `failed` are empty
+- there is no retry limit; files that keep failing continue to be retried round by round
+- `claude` is accepted as a provider value, but no batch adapter is configured by default in CLI mode
 
 ## Task Lifecycle
 
@@ -177,9 +221,11 @@ Its contract with the selected task source is simple:
 - the task source parses source artifacts and provides prompts plus completion operations
 - `spec-while` orchestrates implement, review, integrate, and persistence around that protocol
 
+The standalone `batch` command is separate from this contract. It does not use task sources, task graphs, review/integrate stages, or git-first completion.
+
 ## Runtime Layout
 
-Each selected feature or change keeps runtime state under:
+`run` keeps runtime state under:
 
 ```text
 <source-entry>/<id>/.while/
@@ -194,6 +240,25 @@ Important files:
 - `tasks/<taskHandle>/g<generation>/a<attempt>/implement.json`
 - `tasks/<taskHandle>/g<generation>/a<attempt>/review.json`
 - `tasks/<taskHandle>/g<generation>/a<attempt>/integrate.json`
+
+`batch` keeps runtime files beside the YAML config:
+
+```text
+<config-dir>/
+├── batch.yaml
+├── state.json
+└── results.json
+```
+
+`state.json` contains:
+
+- `pending`
+- `inProgress`
+- `failed`
+
+`failed` is the current round's failure buffer. When `pending` becomes empty, those paths are persisted back into `pending` and retried in the next round.
+
+`results.json` maps file paths relative to `workdir` to accepted structured output.
 
 ## Publishing
 

@@ -91,8 +91,12 @@ The system MUST support a root capability.
     designPath,
     proposalPath,
     root,
-    rootSpecPath,
     specPath,
     tasksPath,
+    ...(rootSpecPath
+      ? {
+          rootSpecPath,
+        }
+      : {}),
   }
 }

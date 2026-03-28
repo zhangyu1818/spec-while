@@ -106,3 +106,30 @@ test('spec-while run rejects features missing plan.md', async () => {
   expect(result.code).not.toBe(0)
   expect(result.stderr).toMatch(/001-demo.*plan\.md/i)
 })
+
+test('spec-while batch does not require specs directory', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'while-batch-cli-'))
+  await writeFile(
+    path.join(root, 'batch.yaml'),
+    [
+      'provider: codex',
+      'workdir: ./missing',
+      'prompt: |',
+      '  summarize file',
+      'schema:',
+      '  type: object',
+      '  properties:',
+      '    summary:',
+      '      type: string',
+      '  required:',
+      '    - summary',
+      '',
+    ].join('\n'),
+  )
+
+  const result = await runCli(['batch', '--config', './batch.yaml'], root)
+
+  expect(result.code).not.toBe(0)
+  expect(result.stderr).not.toMatch(/specs/i)
+  expect(result.stderr).toMatch(/workdir does not exist/i)
+})

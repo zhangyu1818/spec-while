@@ -13,7 +13,7 @@ function globToRegExp(pattern: string) {
   const normalized = normalizeGlobPath(pattern)
   let source = ''
   for (let index = 0; index < normalized.length; index += 1) {
-    const char = normalized[index]
+    const char = normalized[index] ?? ''
     const next = normalized[index + 1]
     const nextNext = normalized[index + 2]
     if (char === '*' && next === '*' && nextNext === '/') {

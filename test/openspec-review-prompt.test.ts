@@ -129,10 +129,20 @@ test('openspec source includes the apply instruction text in the review prompt',
     workspaceRoot: fixture.root,
   })
   const prompt = await session.buildReviewPrompt({
+    actualChangedFiles: [],
     attempt: 1,
     generation: 1,
     lastFindings: [],
     taskHandle: '1.1',
+    implement: {
+      assumptions: [],
+      needsHumanAttention: false,
+      notes: [],
+      status: 'implemented',
+      summary: 'done',
+      taskHandle: '1.1',
+      unresolvedItems: [],
+    },
   })
 
   expect(prompt.instructions).toContain(

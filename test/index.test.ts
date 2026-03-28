@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 const mockState = vi.hoisted(() => {
   return {
+    batchCalls: [] as unknown[],
     configCalls: [] as unknown[],
     resolveCalls: [] as unknown[],
     runCalls: [] as unknown[],
@@ -52,9 +53,19 @@ vi.mock('../src/commands/run', () => {
   }
 })
 
+vi.mock('../src/commands/batch', () => {
+  return {
+    runBatchCommand: vi.fn(async (options) => {
+      mockState.batchCalls.push(options)
+      return { batch: true }
+    }),
+  }
+})
+
 const { handleFatalError, runCli } = await import('../src/index')
 
 beforeEach(() => {
+  mockState.batchCalls = []
   mockState.configCalls = []
   mockState.resolveCalls = []
   mockState.runCalls = []
@@ -99,6 +110,25 @@ test('runCli dispatches run command and prints result', async () => {
     },
   })
   expect(stdout).toHaveBeenCalledWith('{ ok: true }\n')
+  cwd.mockRestore()
+})
+
+test('runCli dispatches batch command and prints result without loading workflow config', async () => {
+  const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+  const cwd = vi.spyOn(process, 'cwd').mockReturnValue('/tmp/current')
+
+  await runCli(['batch', '--config', './jobs/batch.yaml'])
+
+  expect(mockState.batchCalls).toEqual([
+    {
+      configPath: './jobs/batch.yaml',
+      cwd: '/tmp/current',
+    },
+  ])
+  expect(mockState.configCalls).toEqual([])
+  expect(mockState.resolveCalls).toEqual([])
+  expect(mockState.runCalls).toEqual([])
+  expect(stdout).toHaveBeenCalledWith('{ batch: true }\n')
   cwd.mockRestore()
 })
 

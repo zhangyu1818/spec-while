@@ -156,3 +156,50 @@ test('CodexAgentClient creates a fresh thread for each role invocation', async (
   expect(mockState.constructorCalls).toBe(1)
   expect(startThreadCallCount).toBe(2)
 })
+
+test('CodexAgentClient can run standalone structured prompts', async () => {
+  let receivedPrompt = ''
+  let receivedSchema: Record<string, unknown> | undefined
+
+  mockState.client = {
+    startThread() {
+      return {
+        async run(prompt, runOptions) {
+          receivedPrompt = prompt
+          receivedSchema = runOptions.outputSchema
+          return {
+            finalResponse: JSON.stringify({
+              summary: 'ok',
+            }),
+          }
+        },
+      }
+    },
+  }
+
+  const client = new CodexAgentClient({
+    workspaceRoot: '/tmp/project',
+  })
+
+  const result = await client.runStructured({
+    prompt: 'Summarize the file.',
+    outputSchema: {
+      required: ['summary'],
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+        },
+      },
+    },
+  })
+
+  expect(receivedPrompt).toBe('Summarize the file.')
+  expect(receivedSchema).toMatchObject({
+    required: ['summary'],
+    type: 'object',
+  })
+  expect(result).toEqual({
+    summary: 'ok',
+  })
+})

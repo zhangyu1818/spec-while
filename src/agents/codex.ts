@@ -209,6 +209,10 @@ export class CodexAgentClient implements ImplementerProvider, ReviewerProvider {
     })
     return validateReviewOutput(output)
   }
+
+  public async runStructured(input: CodexStructuredInput) {
+    return this.invokeStructured<unknown>(input)
+  }
 }
 
 export function createCodexProvider(

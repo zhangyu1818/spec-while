@@ -2,14 +2,17 @@
 
 ## Overview
 
-`spec-while` is a single-feature, task-by-task orchestrator built around a task source protocol.
+`spec-while` has two execution surfaces:
+
+- `run`: a single-feature, task-by-task orchestrator built around a task source protocol
+- `batch`: a standalone YAML-driven file processing command
 
 It consumes:
 
 - the directory layout required by the selected task source
 - the files required by the configured task source
 
-The only public workflow configuration entry is `while.yaml`.
+`while.yaml` is the public workflow configuration entry for `run`.
 
 The built-in task sources are:
 
@@ -20,7 +23,7 @@ It does not execute the Spec Kit command runtime. It does not run Spec Kit hooks
 
 ## Workflow Preset
 
-An optional `while.yaml` at the workspace root configures task source and workflow behavior.
+An optional `while.yaml` at the workspace root configures `run` task source and workflow behavior.
 
 Current configuration surface:
 
@@ -70,6 +73,46 @@ For `task.source: openspec`, `--feature` identifies the OpenSpec change id.
 - resumes from existing `.while/state.json` when state already exists
 - requires a clean worktree
 - supports `--until-task`
+
+### `spec-while batch`
+
+- accepts `--config <path>` pointing to a standalone YAML file
+- does not require `while.yaml`
+- does not require a `specs/` directory
+- does not require a clean worktree
+- resolves omitted `workdir` to the current working directory
+- persists runtime files beside the YAML config
+
+The batch YAML supports:
+
+- `provider`
+- `prompt`
+- `schema`
+- optional `workdir`
+
+The batch runtime persists:
+
+- `state.json`
+- `results.json`
+
+`state.json` stores:
+
+- `pending`
+- `inProgress`
+- `failed`
+
+`results.json` stores accepted structured output keyed by file path relative to `workdir`.
+
+On each batch run, the system:
+
+1. loads the YAML config
+2. scans `workdir` for files while excluding runtime output and common dependency directories
+3. restores unfinished `inProgress` work back into the runnable queue
+4. skips files that already have accepted results
+5. processes remaining files one at a time through the configured provider
+6. validates each result against the configured schema before writing it
+7. when `pending` becomes empty and `failed` is non-empty, persists a state transition that moves all `failed` paths into `pending` for the next round
+8. terminates only when both `pending` and `failed` are empty
 
 ## Task Graph
 
@@ -129,6 +172,13 @@ Review phase context receives:
 - a task-source-built prompt
 - implement result
 - `actualChangedFiles`
+
+The standalone `batch` command uses a separate structured-output contract:
+
+- file path
+- file content context
+- configured prompt
+- configured schema
 
 ## Workflow Semantics
 
@@ -194,7 +244,7 @@ In `pull-request` mode, review changed-file context comes from the live PR snaps
 
 ## Runtime Storage
 
-Each selected feature or change stores runtime data under:
+`run` stores runtime data under:
 
 ```text
 <source-entry>/<id>/.while/
@@ -213,3 +263,12 @@ The runtime layout includes:
 `.while` is runtime state, not the long-term source of truth.
 
 For pull-request review recovery, the store must be able to reload the persisted `implement` artifact by `taskHandle + generation + attempt`.
+
+`batch` stores runtime data beside the YAML config file:
+
+```text
+<config-dir>/state.json
+<config-dir>/results.json
+```
+
+Batch reruns must preserve accepted results, recover unfinished `inProgress` files into runnable work, recycle round failures from `failed` back into `pending` when the current queue drains, and continue until both `pending` and `failed` are empty. The current behavior does not impose a retry cap.
