@@ -2,8 +2,30 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
 const mockState = vi.hoisted(() => {
   return {
+    configCalls: [] as unknown[],
     resolveCalls: [] as unknown[],
     runCalls: [] as unknown[],
+  }
+})
+
+vi.mock('../src/workflow/config', () => {
+  return {
+    loadWorkflowConfig: vi.fn(async (workspaceRoot: string) => {
+      mockState.configCalls.push(workspaceRoot)
+      return {
+        task: {
+          maxIterations: 5,
+          source: 'openspec',
+        },
+        workflow: {
+          mode: 'direct',
+          roles: {
+            implementer: { provider: 'codex' },
+            reviewer: { provider: 'codex' },
+          },
+        },
+      }
+    }),
   }
 })
 
@@ -33,6 +55,7 @@ vi.mock('../src/commands/run', () => {
 const { handleFatalError, runCli } = await import('../src/index')
 
 beforeEach(() => {
+  mockState.configCalls = []
   mockState.resolveCalls = []
   mockState.runCalls = []
 })
@@ -59,12 +82,20 @@ test('runCli dispatches run command and prints result', async () => {
     {
       cwd: '/tmp/current',
       feature: '001-demo',
+      taskSource: 'openspec',
     },
   ])
+  expect(mockState.configCalls).toEqual(['/tmp/current'])
   expect(mockState.runCalls[0]).toMatchObject({
     options: {
       untilTaskId: 'T002',
       verbose: true,
+      config: {
+        task: {
+          maxIterations: 5,
+          source: 'openspec',
+        },
+      },
     },
   })
   expect(stdout).toHaveBeenCalledWith('{ ok: true }\n')

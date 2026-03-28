@@ -28,6 +28,7 @@ import type {
 import type { WorkspaceContext } from '../types'
 
 export interface RunCommandOptions {
+  config?: WorkflowConfig
   untilTaskId?: string
   verbose?: boolean
 }
@@ -187,7 +188,8 @@ export async function loadWorkflowExecution(
   context: WorkspaceContext,
   options: RunCommandOptions = {},
 ): Promise<WorkflowExecution> {
-  const config = await loadWorkflowConfig(context.workspaceRoot)
+  const config =
+    options.config ?? (await loadWorkflowConfig(context.workspaceRoot))
   const workflow = resolveWorkflowRuntime({
     config,
     context,

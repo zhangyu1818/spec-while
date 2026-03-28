@@ -6,16 +6,15 @@
 
 It consumes:
 
-- the `specs/<feature>/...` directory layout
+- the directory layout required by the selected task source
 - the files required by the configured task source
 
 The only public workflow configuration entry is `while.yaml`.
 
-The current built-in task source is `spec-kit`, which consumes:
+The built-in task sources are:
 
-- `spec.md`
-- `plan.md`
-- `tasks.md`
+- `spec-kit`, which consumes `spec.md`, `plan.md`, and `tasks.md` under `specs/<feature>/`
+- `openspec`, which consumes `proposal.md`, `design.md`, `tasks.md`, and `specs/**/*.md` under `openspec/changes/<change>/`
 
 It does not execute the Spec Kit command runtime. It does not run Spec Kit hooks, checklists, or skill installations.
 
@@ -41,22 +40,27 @@ workflow:
 
 Current support level:
 
-- `task.source: spec-kit` is the only built-in source today
+- built-in sources are `spec-kit` and `openspec`
 - `task.maxIterations` is a global retry budget applied to every task
 - `direct` uses a local reviewer and local integrate
 - `pull-request` uses a remote GitHub PR reviewer and squash merge integrate
 
 ## Workspace Resolution
 
-The current working directory is the workspace root and must contain a `specs/` directory.
+The current working directory is the workspace root and must contain the source-specific root directory.
 
-If `cwd/specs` does not exist, the CLI fails with a clear user-facing error.
+- `task.source: spec-kit` requires `cwd/specs`
+- `task.source: openspec` requires `cwd/openspec/changes`
+
+If the required source root does not exist, the CLI fails with a clear user-facing error.
 
 Feature resolution order:
 
 1. `--feature`
-2. current git branch prefix
-3. the only feature directory under `specs/`
+2. current git branch prefix for `spec-kit`
+3. the only entry under the selected source root
+
+For `task.source: openspec`, `--feature` identifies the OpenSpec change id.
 
 ## Commands
 
@@ -85,6 +89,15 @@ The built-in `spec-kit` source:
 - records the nearest `##` heading as the task phase label
 - does not parse enhanced fields like `Depends`, `Acceptance`, `Review Rubric`, `Goal`, or `storyId`
 - exposes no explicit dependencies from raw task lines, so built-in `spec-kit` tasks execute in file order unless later task sources provide dependency data
+
+The built-in `openspec` source:
+
+- parses checkbox task lines from `tasks.md`
+- records the nearest `##` heading as the task group label
+- uses explicit numbering such as `1.1` or `2.3` as the stable task handle
+- falls back to an ordinal-only synthetic handle when no explicit numbering exists
+- exposes no explicit dependencies, so tasks execute in file order
+- aligns implement/review prompts with `openspec instructions apply --json`, while still keeping checkbox writes under `spec-while` integrate control
 
 Validation rejects:
 
@@ -146,6 +159,12 @@ Each completed task creates one commit with a source-provided subject. For the b
 Task <taskId>: <task title>
 ```
 
+For the built-in `openspec` source, the format is:
+
+```text
+Task <changeId>/<taskHandle>: <task title>
+```
+
 The commit includes source changes and the task source completion update.
 
 In `pull-request` mode:
@@ -175,10 +194,10 @@ In `pull-request` mode, review changed-file context comes from the live PR snaps
 
 ## Runtime Storage
 
-Each feature stores runtime data under:
+Each selected feature or change stores runtime data under:
 
 ```text
-specs/<feature>/.while/
+<source-entry>/<id>/.while/
 ```
 
 The runtime layout includes:

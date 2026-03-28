@@ -2,13 +2,13 @@
 
 `spec-while` is a git-first task orchestrator built around a task source protocol.
 
-It reads workflow settings from `while.yaml`, opens the configured task source, executes one task at a time, reviews the result, integrates approved work, and creates one git commit per completed task. The current built-in task source is `spec-kit`, which consumes `spec.md`, `plan.md`, and `tasks.md` under `specs/<feature>/`.
+It reads workflow settings from `while.yaml`, opens the configured task source, executes one task at a time, reviews the result, integrates approved work, and creates one git commit per completed task. The built-in task sources are `spec-kit`, which consumes `spec.md`, `plan.md`, and `tasks.md` under `specs/<feature>/`, and `openspec`, which consumes an OpenSpec change under `openspec/changes/<change>/`.
 
 ## Requirements
 
 - Node.js 18 or newer
 - A git repository with an initial commit
-- A workspace with `specs/<feature>/`
+- A workspace with the directory layout required by the selected task source
 - The files required by the selected task source
 - A clean worktree before `run`
 
@@ -18,6 +18,11 @@ Current built-in source requirements:
 - `specs/<feature>/spec.md`
 - `specs/<feature>/plan.md`
 - `specs/<feature>/tasks.md`
+- `task.source: openspec`
+- `openspec/changes/<change>/proposal.md`
+- `openspec/changes/<change>/design.md`
+- `openspec/changes/<change>/tasks.md`
+- At least one file under `openspec/changes/<change>/specs/**/*.md`
 
 ## Install
 
@@ -71,7 +76,7 @@ workflow:
 
 ### `spec-while run`
 
-Runs the current feature workflow from the existing `.while` state or initializes a new one. Run it from the workspace root so the current directory contains `specs/`.
+Runs the current feature workflow from the existing `.while` state or initializes a new one. Run it from the workspace root so the current directory contains the source-specific root, such as `specs/` for `spec-kit` or `openspec/changes/` for `openspec`.
 
 ```bash
 cd /path/to/workspace
@@ -81,6 +86,7 @@ pnpm exec spec-while run --feature 001-demo
 Useful flags:
 
 - `--feature <featureId>`: select the feature explicitly
+- For `task.source: openspec`, `--feature <featureId>` selects the OpenSpec change id
 - `--until-task <taskSelector>`: stop after the target task reaches `done`
 - `--verbose`: stream agent events to `stderr`
 
@@ -129,6 +135,32 @@ Current built-in `spec-kit` behavior:
 - implement/review prompts include the current task line, the current phase, `spec.md`, `plan.md`, and the full `tasks.md`
 - completion is still written back through `tasks.md` checkboxes
 
+## Built-in `openspec` Expectations
+
+The built-in `openspec` task source consumes an existing OpenSpec change directory and aligns implement/review prompts with `openspec instructions apply --json`.
+
+Example configuration:
+
+```yaml
+task:
+  source: openspec
+  maxIterations: 5
+```
+
+Example run:
+
+```bash
+pnpm exec spec-while run --feature example-change
+```
+
+Current built-in `openspec` behavior:
+
+- `--feature` maps to `openspec/changes/<change>`
+- stable task handles come from explicit numbering in `tasks.md`, such as `1.1` and `2.3`
+- implement/review prompts include the current task, task group, `proposal.md`, `design.md`, expanded `specs/**/*.md`, full `tasks.md`, and the OpenSpec apply instruction/state/progress
+- completion is still written by `spec-while` after review/integrate success; it does not adopt `/opsx:apply`'s immediate checkbox update behavior
+- `spec-while` consumes OpenSpec artifacts and CLI JSON, but it does not run `/opsx:propose`
+
 Task retry budget is configured globally in `while.yaml`:
 
 ```yaml
@@ -147,10 +179,10 @@ Its contract with the selected task source is simple:
 
 ## Runtime Layout
 
-Each feature keeps runtime state under:
+Each selected feature or change keeps runtime state under:
 
 ```text
-specs/<feature>/.while/
+<source-entry>/<id>/.while/
 ```
 
 Important files:

@@ -4,6 +4,7 @@ import arg from 'arg'
 
 import { runCommand } from './commands/run'
 import { resolveWorkspaceContext } from './runtime/workspace-resolver'
+import { loadWorkflowConfig } from './workflow/config'
 
 interface PositionalArgs {
   _: string[]
@@ -48,11 +49,14 @@ export async function runCli(argv = process.argv.slice(2)) {
   switch (command) {
     case 'run': {
       const options = parseRunOptions(args)
+      const config = await loadWorkflowConfig(process.cwd())
       const context = await resolveWorkspaceContext({
         cwd: process.cwd(),
         ...(options.feature ? { feature: options.feature } : {}),
+        taskSource: config.task.source,
       })
       const result = await runCommand(context, {
+        config,
         ...(options.untilTaskId ? { untilTaskId: options.untilTaskId } : {}),
         verbose: options.verbose,
       })

@@ -8,13 +8,26 @@ import type { WorkspaceContext } from '../types'
 export interface ResolveWorkspaceContextInput {
   cwd: string
   feature?: string | undefined
+  taskSource?: string | undefined
 }
 
-async function resolveWorkspaceRoot(cwd: string) {
+function resolveFeatureRoot(workspaceRoot: string, taskSource: string) {
+  if (taskSource === 'openspec') {
+    return path.join(workspaceRoot, 'openspec', 'changes')
+  }
+  return path.join(workspaceRoot, 'specs')
+}
+
+async function resolveWorkspaceRoot(cwd: string, taskSource: string) {
   const workspaceRoot = path.resolve(cwd)
-  const specsPath = path.join(workspaceRoot, 'specs')
-  const specsExists = await fsExtra.pathExists(specsPath)
-  if (!specsExists) {
+  const featureRoot = resolveFeatureRoot(workspaceRoot, taskSource)
+  const featureRootExists = await fsExtra.pathExists(featureRoot)
+  if (!featureRootExists) {
+    if (taskSource === 'openspec') {
+      throw new Error(
+        'Current working directory must contain an openspec/changes/ directory. Run spec-while from the workspace root.',
+      )
+    }
     throw new Error(
       'Current working directory must contain a specs/ directory. Run spec-while from the workspace root.',
     )
@@ -22,13 +35,21 @@ async function resolveWorkspaceRoot(cwd: string) {
   return workspaceRoot
 }
 
-async function readFeatureDirs(workspaceRoot: string) {
-  const specsDir = path.join(workspaceRoot, 'specs')
-  const entries = await fsExtra.readdir(specsDir, {
+async function readFeatureDirs(workspaceRoot: string, taskSource: string) {
+  const featureRoot = resolveFeatureRoot(workspaceRoot, taskSource)
+  const entries = await fsExtra.readdir(featureRoot, {
     withFileTypes: true,
   })
   return entries
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => {
+      if (!entry.isDirectory()) {
+        return false
+      }
+      if (taskSource === 'openspec' && entry.name === 'archive') {
+        return false
+      }
+      return true
+    })
     .map((entry) => entry.name)
 }
 
@@ -59,12 +80,13 @@ function matchFeatureByPrefix(featureDirs: string[], branch: string) {
 export async function resolveWorkspaceContext(
   input: ResolveWorkspaceContextInput,
 ): Promise<WorkspaceContext> {
-  const workspaceRoot = await resolveWorkspaceRoot(input.cwd)
+  const taskSource = input.taskSource ?? 'spec-kit'
+  const workspaceRoot = await resolveWorkspaceRoot(input.cwd, taskSource)
 
-  const featureDirs = await readFeatureDirs(workspaceRoot)
+  const featureDirs = await readFeatureDirs(workspaceRoot, taskSource)
   let featureId = input.feature ?? null
 
-  if (!featureId) {
+  if (!featureId && taskSource === 'spec-kit') {
     const branch = await detectGitBranch(workspaceRoot)
     if (branch) {
       featureId = matchFeatureByPrefix(featureDirs, branch)
@@ -83,9 +105,15 @@ export async function resolveWorkspaceContext(
     throw new Error('Unable to determine feature. Pass --feature explicitly.')
   }
 
-  const featureDir = path.join(workspaceRoot, 'specs', featureId)
+  const featureDir = path.join(
+    resolveFeatureRoot(workspaceRoot, taskSource),
+    featureId,
+  )
   const featureExists = await fsExtra.pathExists(featureDir)
   if (!featureExists) {
+    if (taskSource === 'openspec') {
+      throw new Error(`OpenSpec change directory does not exist: ${featureId}`)
+    }
     throw new Error(`Feature directory does not exist: ${featureId}`)
   }
   return {

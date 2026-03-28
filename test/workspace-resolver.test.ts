@@ -32,6 +32,32 @@ async function createWorkspace(
   return root
 }
 
+async function createOpenSpecWorkspace(changeIds: string[]) {
+  const root = await mkdtemp(path.join(tmpdir(), 'while-openspec-workspace-'))
+  await writeFile(path.join(root, 'while.yaml'), 'task:\n  source: openspec\n')
+  for (const changeId of changeIds) {
+    const changeDir = path.join(root, 'openspec', 'changes', changeId)
+    await mkdir(path.join(changeDir, 'specs', 'example-capability'), {
+      recursive: true,
+    })
+    await writeFile(
+      path.join(root, 'openspec', 'config.yaml'),
+      'schema: spec-driven\n',
+    )
+    await writeFile(path.join(changeDir, 'proposal.md'), '# proposal\n')
+    await writeFile(path.join(changeDir, 'design.md'), '# design\n')
+    await writeFile(
+      path.join(changeDir, 'tasks.md'),
+      '## 1. CLI 与配置\n- [ ] 1.1 示例任务\n',
+    )
+    await writeFile(
+      path.join(changeDir, 'specs', 'example-capability', 'spec.md'),
+      '# spec\n',
+    )
+  }
+  return root
+}
+
 async function createGitWorkspace() {
   const root = await createWorkspace(['001-demo', '002-other'])
   await execa('git', ['init'], { cwd: root })
@@ -156,5 +182,27 @@ test('resolveWorkspaceContext does not validate source files like tasks.md', asy
     }),
   ).resolves.toMatchObject({
     featureId: '001-demo',
+  })
+})
+
+test('resolveWorkspaceContext resolves the only openspec change when taskSource is openspec', async () => {
+  const root = await createOpenSpecWorkspace(['example-change'])
+
+  await expect(
+    resolveWorkspaceContext({
+      cwd: root,
+      taskSource: 'openspec',
+    }),
+  ).resolves.toMatchObject({
+    featureDir: path.join(root, 'openspec', 'changes', 'example-change'),
+    featureId: 'example-change',
+    workspaceRoot: root,
+    runtimeDir: path.join(
+      root,
+      'openspec',
+      'changes',
+      'example-change',
+      '.while',
+    ),
   })
 })

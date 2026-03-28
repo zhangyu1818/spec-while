@@ -76,6 +76,7 @@ const mockState = (() => {
     callSequence: [] as string[],
     codexInstances: [] as MockCodexInstance[],
     config: createConfig(),
+    openTaskSourceCalls: [] as unknown[],
     runtime,
     runWorkflowCalls: [] as unknown[],
     taskSource,
@@ -146,7 +147,8 @@ vi.mock('../src/agents/codex', () => {
 
 vi.mock('../src/task-sources/registry', () => {
   return {
-    openTaskSource: vi.fn(async () => {
+    openTaskSource: vi.fn(async (...args: unknown[]) => {
+      mockState.openTaskSourceCalls.push(args)
       mockState.callSequence.push('task-source')
       return mockState.taskSource
     }),
@@ -209,6 +211,7 @@ beforeEach(() => {
   mockState.callSequence = []
   mockState.codexInstances = []
   mockState.config = createConfig()
+  mockState.openTaskSourceCalls = []
   mockState.runWorkflowCalls = []
   mockState.workflowConfigError = null
   mockState.workflowConfigCalls = []
@@ -279,7 +282,6 @@ test('loadWorkflowExecution rejects unsupported remote reviewers in pull-request
 
   expect(mockState.codexInstances).toHaveLength(1)
 })
-
 test('loadWorkflowExecution returns an executable plan with resolved config', async () => {
   const context = createContext()
 
@@ -307,4 +309,25 @@ test('loadWorkflowExecution returns an executable plan with resolved config', as
     workflow: execution.workflow,
   })
   expect(mockState.runWorkflowCalls[0]).not.toHaveProperty('agent')
+})
+test('loadWorkflowExecution reuses preloaded config without re-reading while.yaml', async () => {
+  const context = createContext()
+  const config = createConfig()
+  config.task.source = 'openspec'
+
+  await loadWorkflowExecution(context, {
+    config,
+  })
+
+  expect(mockState.workflowConfigCalls).toEqual([])
+  expect(mockState.openTaskSourceCalls).toEqual([
+    [
+      'openspec',
+      {
+        featureDir: '/tmp/specs/001-demo',
+        featureId: '001-demo',
+        workspaceRoot: '/tmp',
+      },
+    ],
+  ])
 })
