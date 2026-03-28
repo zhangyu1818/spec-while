@@ -10,7 +10,7 @@ It reads workflow settings from `while.yaml`, opens the configured task source, 
 - A git repository with an initial commit
 - A workspace with `specs/<feature>/`
 - The files required by the selected task source
-- A clean worktree before `run` or `rewind`
+- A clean worktree before `run`
 
 Current built-in source requirements:
 
@@ -84,17 +84,6 @@ Useful flags:
 - `--until-task <taskSelector>`: stop after the target task reaches `done`
 - `--verbose`: stream agent events to `stderr`
 
-### `spec-while rewind`
-
-Rewinds code and workflow state to the point before a completed task.
-
-```bash
-cd /path/to/workspace
-pnpm exec spec-while rewind --feature 001-demo --task T001
-```
-
-`rewind` performs a hard git reset to the parent of the task commit, deletes the current `.while` directory for that feature, and rebuilds workflow state from the rewound repository state.
-
 ## Task Lifecycle
 
 Each task follows this lifecycle:
@@ -118,7 +107,6 @@ Completion is git-first:
 
 - one completed task = one git commit
 - `.while` is runtime state and is not committed
-- `rewind` restores both code and workflow state by resetting git and rebuilding `.while`
 
 ## Built-in `spec-kit` Expectations
 
@@ -155,7 +143,7 @@ task:
 Its contract with the selected task source is simple:
 
 - the task source parses source artifacts and provides prompts plus completion operations
-- `spec-while` orchestrates implement, review, integrate, rewind, and persistence around that protocol
+- `spec-while` orchestrates implement, review, integrate, and persistence around that protocol
 
 ## Runtime Layout
 

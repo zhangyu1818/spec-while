@@ -45,12 +45,9 @@ test('pull-request preset treats local cleanup failures after squash merge as no
     getCurrentBranch: vi.fn(async () => 'task/t001-implement-greeting'),
     getHeadSha: vi.fn(async () => 'local-head-sha'),
     getHeadTimestamp: vi.fn(async () => '2026-03-25T08:01:00.000Z'),
-    getParentCommit: vi.fn(async () => 'parent-sha'),
-    isAncestorOfHead: vi.fn(async () => true),
     pullFastForward: vi.fn(async () => {}),
     pushBranch: vi.fn(async () => {}),
     requireCleanWorktree: vi.fn(async () => {}),
-    resetHard: vi.fn(async () => {}),
     checkoutBranch: vi.fn(async () => {
       throw new Error('checkout main failed')
     }),

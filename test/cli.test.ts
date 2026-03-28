@@ -1,21 +1,10 @@
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { execa } from 'execa'
 import { expect, test } from 'vitest'
-
-import { runWorkflow } from '../src/core/orchestrator'
-import { buildTaskTopology } from '../src/core/task-topology'
-import { createOrchestratorRuntime } from '../src/runtime/fs-runtime'
-import { openTaskSource } from '../src/task-sources/registry'
-import {
-  createWorkflow,
-  ScriptedWorkflowProvider,
-} from './workflow-test-helpers'
-
-import type { WorkflowState } from '../src/types'
 
 const cliEntry = fileURLToPath(
   new URL('../bin/spec-while.mjs', import.meta.url),
@@ -87,69 +76,12 @@ test('spec-while rejects unknown commands', async () => {
   expect(result.stderr).toMatch(/unknown command/i)
 })
 
-test('spec-while rewind works when run from the workspace root', async () => {
-  const { featureDir, root } = await createWorkspace()
-  const runtime = createOrchestratorRuntime({
-    featureDir,
-    workspaceRoot: root,
-    taskSource: await openTaskSource('spec-kit', {
-      featureDir,
-      featureId: '001-demo',
-      workspaceRoot: root,
-    }),
-  })
-  const graph = buildTaskTopology(runtime.taskSource, '001-demo', 5)
-  await runWorkflow({
-    graph,
-    runtime,
-    workflow: createWorkflow(
-      new ScriptedWorkflowProvider(
-        [
-          {
-            assumptions: [],
-            needsHumanAttention: false,
-            notes: [],
-            status: 'implemented',
-            summary: 'done',
-            taskHandle: 'T001',
-            unresolvedItems: [],
-          },
-        ],
-        [
-          {
-            findings: [],
-            overallRisk: 'low',
-            summary: 'ok',
-            taskHandle: 'T001',
-            verdict: 'pass',
-            acceptanceChecks: [
-              {
-                criterion: 'parser exists',
-                note: 'ok',
-                status: 'pass',
-              },
-            ],
-          },
-        ],
-      ),
-    ),
-  })
-
+test('spec-while rejects rewind as an unknown command', async () => {
+  const { root } = await createWorkspace()
   const result = await runCli(['rewind', '--task', 'T001'], root)
 
-  expect(result.code).toBe(0)
-  const state = JSON.parse(
-    await readFile(path.join(featureDir, '.while', 'state.json'), 'utf8'),
-  ) as WorkflowState
-  const tasksMd = await readFile(path.join(featureDir, 'tasks.md'), 'utf8')
-  expect(state.tasks.T001).toMatchObject({
-    attempt: 0,
-    generation: 2,
-    status: 'pending',
-  })
-  expect(tasksMd).toMatch(/- \[ \] T001/)
-  expect(result.stdout).toMatch(/T001/)
-  expect(result.stderr).toBe('')
+  expect(result.code).not.toBe(0)
+  expect(result.stderr).toMatch(/unknown command: rewind/i)
 })
 
 test('spec-while rejects nested cwd values that do not contain specs directly', async () => {

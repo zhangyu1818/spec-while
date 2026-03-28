@@ -46,12 +46,9 @@ test('pull-request preset finalizes and squashes an approved task branch', async
     getCurrentBranch: vi.fn(async () => 'task/t001-implement-greeting'),
     getHeadSha: vi.fn(async () => 'merged-sha'),
     getHeadTimestamp: vi.fn(async () => '2026-03-25T08:01:00.000Z'),
-    getParentCommit: vi.fn(async () => 'parent-sha'),
-    isAncestorOfHead: vi.fn(async () => true),
     pullFastForward: vi.fn(async () => {}),
     pushBranch: vi.fn(async () => {}),
     requireCleanWorktree: vi.fn(async () => {}),
-    resetHard: vi.fn(async () => {}),
   })
   const github = createGitHubPortStub({
     getPullRequestSnapshot: vi.fn(async () => createSnapshot()),
@@ -114,12 +111,9 @@ test('pull-request preset restores a missing local task branch from origin durin
     getCurrentBranch: vi.fn(async () => 'main'),
     getHeadSha: vi.fn(async () => 'merged-sha'),
     getHeadTimestamp: vi.fn(async () => '2026-03-25T08:01:00.000Z'),
-    getParentCommit: vi.fn(async () => 'parent-sha'),
-    isAncestorOfHead: vi.fn(async () => true),
     pullFastForward: vi.fn(async () => {}),
     pushBranch: vi.fn(async () => {}),
     requireCleanWorktree: vi.fn(async () => {}),
-    resetHard: vi.fn(async () => {}),
     checkoutBranch: vi
       .fn()
       .mockRejectedValueOnce(new Error('missing local branch'))
@@ -175,12 +169,9 @@ test('pull-request integrate rolls back the task checkbox when finalize commit f
     getCurrentBranch: vi.fn(async () => 'task/t001-implement-greeting'),
     getHeadSha: vi.fn(async () => 'merged-sha'),
     getHeadTimestamp: vi.fn(async () => '2026-03-25T08:01:00.000Z'),
-    getParentCommit: vi.fn(async () => 'parent-sha'),
-    isAncestorOfHead: vi.fn(async () => true),
     pullFastForward: vi.fn(async () => {}),
     pushBranch: vi.fn(async () => {}),
     requireCleanWorktree: vi.fn(async () => {}),
-    resetHard: vi.fn(async () => {}),
     commitTask: vi.fn(async () => {
       throw new Error('commit exploded')
     }),

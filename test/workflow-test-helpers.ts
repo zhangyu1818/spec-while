@@ -140,7 +140,6 @@ export function createReview(
 }
 
 export interface CreateRuntimeInput {
-  ancestorCommits?: string[]
   changedFiles?: string[][]
   commitFailures?: (Error | null)[]
   taskContexts?: Record<
@@ -199,7 +198,6 @@ export function createRuntime(input?: CreateRuntimeInput): RuntimeBundle {
   })
   const git = new FakeGit(
     input?.changedFiles ?? [['src/greeting.ts'], ['src/farewell.ts']],
-    new Set(input?.ancestorCommits ?? []),
     input?.commitFailures ?? [],
   )
   const github = new FakeGitHub()

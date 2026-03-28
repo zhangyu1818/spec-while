@@ -5,11 +5,8 @@ import {
   createInitialWorkflowState,
   recordImplementFailure,
   recordImplementSuccess,
-  recordIntegrateResult,
-  recordReviewApproved,
   recordReviewFailure,
   recordReviewResult,
-  rewindTaskGeneration,
   startAttempt,
 } from '../src/core/engine'
 
@@ -159,52 +156,6 @@ test('engine records review execution failures as rework before max attempts', (
     status: 'rework',
   })
   expect('reason' in taskState).toBe(false)
-})
-
-test('rewindTaskGeneration starts a fresh generation for target and descendants', () => {
-  const graph = createGraph()
-  const initial = createInitialWorkflowState(graph)
-  const firstRun = recordIntegrateResult(
-    graph,
-    recordReviewApproved(
-      recordImplementSuccess(startAttempt(graph, initial, 'T001'), 'T001'),
-      'T001',
-      createPassingReview('T001', 'buildGreeting works'),
-    ),
-    'T001',
-    {
-      commitSha: 'commit-1',
-      review: createPassingReview('T001', 'buildGreeting works'),
-    },
-  )
-  const secondRun = recordIntegrateResult(
-    graph,
-    recordReviewApproved(
-      recordImplementSuccess(startAttempt(graph, firstRun, 'T002'), 'T002'),
-      'T002',
-      createPassingReview('T002', 'buildFarewell works'),
-    ),
-    'T002',
-    {
-      commitSha: 'commit-2',
-      review: createPassingReview('T002', 'buildFarewell works'),
-    },
-  )
-
-  const rewound = rewindTaskGeneration(graph, secondRun, 'T001')
-
-  expect(rewound.state.tasks.T001).toMatchObject({
-    attempt: 0,
-    generation: 2,
-    invalidatedBy: null,
-    status: 'pending',
-  })
-  expect(rewound.state.tasks.T002).toMatchObject({
-    attempt: 0,
-    generation: 2,
-    invalidatedBy: 'T001',
-    status: 'pending',
-  })
 })
 
 test('buildReport summarizes workflow state without exposing internal invalidation details', () => {

@@ -1,8 +1,7 @@
 import { expect, test } from 'vitest'
 
-import { rewindTask, runWorkflow } from '../src/core/orchestrator'
+import { runWorkflow } from '../src/core/orchestrator'
 import {
-  createGraph,
   createImplement,
   createReview,
   createRuntime,
@@ -168,88 +167,4 @@ test('runWorkflow records integrate failure events when commit integration fails
     [{ checked: true, taskHandle: 'T001' }],
     [{ checked: false, taskHandle: 'T001' }],
   ])
-})
-
-test('rewindTask resets rolled-back task commits into a new pending generation', async () => {
-  const graph = createGraph()
-  const { git, runtime, store, workspace } = createRuntime()
-  const workflow = createWorkflow(
-    new ScriptedWorkflowProvider(
-      [
-        createImplement('T001', 'src/greeting.ts'),
-        createImplement('T002', 'src/farewell.ts'),
-      ],
-      [
-        {
-          findings: [],
-          overallRisk: 'low',
-          summary: 'ok',
-          taskHandle: 'T001',
-          verdict: 'pass',
-          acceptanceChecks: [
-            {
-              criterion: 'buildGreeting works',
-              note: 'ok',
-              status: 'pass',
-            },
-          ],
-        },
-        {
-          findings: [],
-          overallRisk: 'low',
-          summary: 'ok',
-          taskHandle: 'T002',
-          verdict: 'pass',
-          acceptanceChecks: [
-            {
-              criterion: 'buildFarewell works',
-              note: 'ok',
-              status: 'pass',
-            },
-          ],
-        },
-      ],
-    ),
-  )
-
-  await runWorkflow({
-    graph,
-    runtime,
-    workflow,
-  })
-
-  const rewound = await rewindTask({
-    runtime,
-    taskHandle: 'T001',
-    loadGraph: async () => graph,
-  })
-
-  expect(git.resetTargets).toEqual(['commit-1-parent'])
-  expect(rewound.tasks.T001).toMatchObject({
-    generation: 2,
-    invalidatedBy: null,
-    status: 'pending',
-  })
-  expect(rewound.tasks.T002).toMatchObject({
-    generation: 2,
-    invalidatedBy: 'T001',
-    status: 'pending',
-  })
-  expect(store.report?.summary.finalStatus).toBe('in_progress')
-  expect(workspace.checkboxUpdates).toEqual([
-    [{ checked: true, taskHandle: 'T001' }],
-    [{ checked: true, taskHandle: 'T002' }],
-  ])
-})
-
-test('rewindTask rejects rewinding before any workflow state exists', async () => {
-  const { runtime } = createRuntime()
-
-  await expect(
-    rewindTask({
-      runtime,
-      taskHandle: 'T001',
-      loadGraph: async () => createGraph(),
-    }),
-  ).rejects.toThrow(/before workflow state exists/i)
 })

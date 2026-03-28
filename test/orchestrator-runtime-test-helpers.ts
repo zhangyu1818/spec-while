@@ -66,12 +66,9 @@ export function createGitPortStub(overrides: Partial<GitPort> = {}): GitPort {
     getHeadSha: vi.fn(async () => 'head-sha'),
     getHeadSubject: vi.fn(async () => 'Task T001: Demo'),
     getHeadTimestamp: vi.fn(async () => '2026-03-25T08:00:00.000Z'),
-    getParentCommit: vi.fn(async () => 'parent-sha'),
-    isAncestorOfHead: vi.fn(async () => false),
     pullFastForward: vi.fn(async () => {}),
     pushBranch: vi.fn(async () => {}),
     requireCleanWorktree: vi.fn(async () => {}),
-    resetHard: vi.fn(async () => {}),
     ...overrides,
   }
 }

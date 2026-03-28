@@ -43,11 +43,9 @@ export class FakeGit {
   private headSubject: string
   public readonly commitMessages: string[] = []
   public readonly currentBranches = ['main']
-  public readonly resetTargets: string[] = []
 
   public constructor(
     private readonly changedFiles: string[][] = [[], []],
-    private readonly ancestorCommits = new Set<string>(),
     private readonly commitFailures: (Error | null)[] = [],
     headSubject = 'Initial commit',
   ) {
@@ -77,9 +75,7 @@ export class FakeGit {
     this.commitMessages.push(input.message)
     this.headSubject = input.message
     this.commitIndex += 1
-    const commitSha = `commit-${this.commitIndex}`
-    this.ancestorCommits.add(commitSha)
-    return { commitSha }
+    return { commitSha: `commit-${this.commitIndex}` }
   }
 
   public async deleteLocalBranch(name: string) {
@@ -108,24 +104,11 @@ export class FakeGit {
     return '2026-03-25T08:00:00.000Z'
   }
 
-  public async getParentCommit(commitSha: string) {
-    return `${commitSha}-parent`
-  }
-
-  public async isAncestorOfHead(commitSha: string) {
-    return this.ancestorCommits.has(commitSha)
-  }
-
   public async pullFastForward() {}
 
   public async pushBranch() {}
 
   public async requireCleanWorktree() {}
-
-  public async resetHard(commitSha: string) {
-    this.resetTargets.push(commitSha)
-    this.ancestorCommits.clear()
-  }
 }
 
 export class InMemoryStore implements WorkflowStore {

@@ -1,14 +1,8 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-interface RewindCall {
-  context: unknown
-  taskHandle: string
-}
-
 const mockState = vi.hoisted(() => {
   return {
     resolveCalls: [] as unknown[],
-    rewindCalls: [] as RewindCall[],
     runCalls: [] as unknown[],
   }
 })
@@ -36,19 +30,9 @@ vi.mock('../src/commands/run', () => {
   }
 })
 
-vi.mock('../src/commands/rewind', () => {
-  return {
-    rewindCommand: vi.fn(async (context, taskHandle) => {
-      mockState.rewindCalls.push({ context, taskHandle })
-      return { rewound: taskHandle }
-    }),
-  }
-})
-
 const { handleFatalError, runCli } = await import('../src/index')
 
 beforeEach(() => {
-  mockState.rewindCalls = []
   mockState.resolveCalls = []
   mockState.runCalls = []
 })
@@ -100,27 +84,14 @@ test('runCli rejects removed workspace flag and unexpected positional arguments'
     ]),
   ).rejects.toThrow(/unknown|unexpected option/i)
   await expect(
-    runCli([
-      'rewind',
-      removedWorkspaceFlag,
-      '/tmp/workspace',
-      '--task',
-      'T001',
-    ]),
+    runCli(['rewind', removedWorkspaceFlag, '/tmp/workspace']),
   ).rejects.toThrow(/unknown|unexpected option/i)
-  await expect(
-    runCli(['rewind', '--feature', '001-demo', '--task', 'T001', 'extra']),
-  ).rejects.toThrow(/Unexpected positional arguments: extra/)
 })
 
-test('runCli dispatches rewind command and requires task id', async () => {
-  await runCli(['rewind', '--feature', '001-demo', '--task', 'T001'])
-
-  expect(mockState.rewindCalls[0]).toMatchObject({
-    taskHandle: 'T001',
-  })
-
-  await expect(runCli(['rewind'])).rejects.toThrow(/Missing --task/)
+test('runCli rejects rewind as an unknown command', async () => {
+  await expect(runCli(['rewind', '--task', 'T001'])).rejects.toThrow(
+    /Unknown command: rewind/,
+  )
 })
 
 test('runCli rejects removed resume command and unknown commands', async () => {

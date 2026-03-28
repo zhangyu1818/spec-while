@@ -2,7 +2,6 @@ import { inspect } from 'node:util'
 
 import arg from 'arg'
 
-import { rewindCommand } from './commands/rewind'
 import { runCommand } from './commands/run'
 import { resolveWorkspaceContext } from './runtime/workspace-resolver'
 
@@ -14,11 +13,6 @@ interface RunOptions {
   feature?: string
   untilTaskId?: string
   verbose: boolean
-}
-
-interface RewindOptions {
-  feature?: string
-  taskId: string
 }
 
 function assertNoPositionalArgs(values: PositionalArgs) {
@@ -49,27 +43,6 @@ function parseRunOptions(args: string[]) {
   return options
 }
 
-function parseRewindOptions(args: string[]) {
-  const values = arg(
-    {
-      '--feature': String,
-      '--task': String,
-    },
-    { argv: args },
-  )
-  assertNoPositionalArgs(values)
-  if (!values['--task']) {
-    throw new Error('Missing --task')
-  }
-  const options: RewindOptions = {
-    taskId: values['--task'],
-  }
-  if (values['--feature']) {
-    options.feature = values['--feature']
-  }
-  return options
-}
-
 export async function runCli(argv = process.argv.slice(2)) {
   const [command = 'run', ...args] = argv
   switch (command) {
@@ -83,18 +56,6 @@ export async function runCli(argv = process.argv.slice(2)) {
         ...(options.untilTaskId ? { untilTaskId: options.untilTaskId } : {}),
         verbose: options.verbose,
       })
-      process.stdout.write(
-        `${inspect(result, { colors: false, depth: null })}\n`,
-      )
-      return
-    }
-    case 'rewind': {
-      const options = parseRewindOptions(args)
-      const context = await resolveWorkspaceContext({
-        cwd: process.cwd(),
-        ...(options.feature ? { feature: options.feature } : {}),
-      })
-      const result = await rewindCommand(context, options.taskId)
       process.stdout.write(
         `${inspect(result, { colors: false, depth: null })}\n`,
       )
