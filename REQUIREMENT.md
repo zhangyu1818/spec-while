@@ -77,6 +77,7 @@ For `task.source: openspec`, `--feature` identifies the OpenSpec change id.
 ### `spec-while batch`
 
 - accepts `--config <path>` pointing to a standalone YAML file
+- accepts optional `--verbose` to print per-file failure reasons to `stderr`
 - does not require `while.yaml`
 - does not require a `specs/` directory
 - does not require a clean worktree
@@ -113,6 +114,8 @@ On each batch run, the system:
 6. validates each result against the configured schema before writing it
 7. when `pending` becomes empty and `failed` is non-empty, persists a state transition that moves all `failed` paths into `pending` for the next round
 8. terminates only when both `pending` and `failed` are empty
+9. drops historical state entries whose files are no longer present in the current `workdir` scan
+10. keeps file-level failures silent by default, while allowing `--verbose` to print failure reasons to `stderr`
 
 ## Task Graph
 
@@ -271,4 +274,4 @@ For pull-request review recovery, the store must be able to reload the persisted
 <config-dir>/results.json
 ```
 
-Batch reruns must preserve accepted results, recover unfinished `inProgress` files into runnable work, recycle round failures from `failed` back into `pending` when the current queue drains, and continue until both `pending` and `failed` are empty. The current behavior does not impose a retry cap.
+Batch reruns must preserve accepted results, recover unfinished `inProgress` files into runnable work, recycle round failures from `failed` back into `pending` when the current queue drains, drop state entries whose files no longer exist in the current scan, and continue until both `pending` and `failed` are empty. The current behavior does not impose a retry cap for file-level failures. Failure reasons stay silent by default and are only printed when `--verbose` is enabled.

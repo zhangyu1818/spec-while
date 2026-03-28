@@ -128,10 +128,11 @@ Batch behavior:
 - each run scans the configured working directory for files
 - execution state is written beside the YAML file in `state.json`
 - structured results are written beside the YAML file in `results.json`
+- `--verbose` prints per-file failure reasons to `stderr`
 - rerunning the command resumes unfinished work and skips files that already have accepted results
 - when the current `pending` queue is exhausted and `failed` is non-empty, the command persists a recycle transition that moves `failed` back into `pending` for the next round
 - the command exits only when both `pending` and `failed` are empty
-- there is no retry limit; files that keep failing continue to be retried round by round
+- there is no retry limit for file-level failures; failed files continue to be retried round by round
 - `claude` is accepted as a provider value, but no batch adapter is configured by default in CLI mode
 
 ## Task Lifecycle
@@ -256,7 +257,7 @@ Important files:
 - `inProgress`
 - `failed`
 
-`failed` is the current round's failure buffer. When `pending` becomes empty, those paths are persisted back into `pending` and retried in the next round.
+`failed` is the current round's failure buffer. When `pending` becomes empty, those paths are persisted back into `pending` and retried in the next round. Historical state entries whose files no longer exist are dropped when a new run starts.
 
 `results.json` maps file paths relative to `workdir` to accepted structured output.
 

@@ -35,6 +35,7 @@ export interface BatchState {
 export interface RunBatchCommandInput {
   configPath: string
   cwd?: string
+  verbose?: boolean
 }
 
 export interface RunBatchCommandResult {
@@ -127,15 +128,21 @@ function mergeBatchState(input: {
   results: Record<string, unknown>
   state: BatchState
 }): BatchState {
+  const discovered = new Set(input.discoveredFiles)
   const completed = new Set(Object.keys(input.results))
   const failed = unique(input.state.failed).filter(
-    (filePath) => !completed.has(filePath),
+    (filePath) => discovered.has(filePath) && !completed.has(filePath),
   )
   const failedSet = new Set(failed)
   const pending = unique([
     ...input.state.inProgress,
     ...input.state.pending,
-  ]).filter((filePath) => !completed.has(filePath) && !failedSet.has(filePath))
+  ]).filter(
+    (filePath) =>
+      discovered.has(filePath) &&
+      !completed.has(filePath) &&
+      !failedSet.has(filePath),
+  )
   const pendingSet = new Set(pending)
 
   for (const filePath of input.discoveredFiles) {
@@ -159,6 +166,14 @@ function mergeBatchState(input: {
 
 function removeFile(items: string[], filePath: string) {
   return items.filter((item) => item !== filePath)
+}
+
+function writeBatchFailure(filePath: string, error: unknown) {
+  process.stderr.write(
+    `[batch] failed ${filePath}: ${
+      error instanceof Error ? error.message : String(error)
+    }\n`,
+  )
 }
 
 async function recycleFailedFiles(
@@ -252,7 +267,10 @@ export async function runBatchCommand(
       }
       await writeJsonAtomic(statePath, state)
       processedFiles.push(filePath)
-    } catch {
+    } catch (error) {
+      if (input.verbose) {
+        writeBatchFailure(filePath, error)
+      }
       state = {
         failed: unique([...state.failed, filePath]),
         inProgress: removeFile(state.inProgress, filePath),

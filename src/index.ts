@@ -19,6 +19,7 @@ interface RunOptions {
 
 interface BatchOptions {
   configPath: string
+  verbose: boolean
 }
 
 function assertNoPositionalArgs(values: PositionalArgs) {
@@ -53,6 +54,7 @@ function parseBatchOptions(args: string[]) {
   const values = arg(
     {
       '--config': String,
+      '--verbose': Boolean,
     },
     { argv: args },
   )
@@ -63,6 +65,7 @@ function parseBatchOptions(args: string[]) {
   }
   return {
     configPath,
+    verbose: values['--verbose'] ?? false,
   } satisfies BatchOptions
 }
 
@@ -74,6 +77,7 @@ export async function runCli(argv = process.argv.slice(2)) {
       const result = await runBatchCommand({
         configPath: options.configPath,
         cwd: process.cwd(),
+        verbose: options.verbose,
       })
       process.stdout.write(
         `${inspect(result, { colors: false, depth: null })}\n`,

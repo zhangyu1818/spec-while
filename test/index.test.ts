@@ -117,12 +117,13 @@ test('runCli dispatches batch command and prints result without loading workflow
   const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
   const cwd = vi.spyOn(process, 'cwd').mockReturnValue('/tmp/current')
 
-  await runCli(['batch', '--config', './jobs/batch.yaml'])
+  await runCli(['batch', '--config', './jobs/batch.yaml', '--verbose'])
 
   expect(mockState.batchCalls).toEqual([
     {
       configPath: './jobs/batch.yaml',
       cwd: '/tmp/current',
+      verbose: true,
     },
   ])
   expect(mockState.configCalls).toEqual([])
