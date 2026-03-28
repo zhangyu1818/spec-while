@@ -67,13 +67,6 @@ Feature resolution order:
 - requires a clean worktree
 - supports `--until-task`
 
-### `spec-while rewind --task <taskSelector>`
-
-- requires the target task to be `done`
-- requires a clean worktree
-- resets git to the parent of the task commit
-- deletes and rebuilds the feature `.while` directory
-
 ## Task Graph
 
 The selected task source exposes task handles and dependencies, and the orchestrator derives a validated task topology from that protocol.
@@ -173,19 +166,6 @@ In `pull-request` mode:
 The `.while` directory is excluded from task commits.
 
 Completed task state stores `commitSha`.
-
-## Rewind Semantics
-
-`rewind` reverts both code and workflow state.
-
-After git reset:
-
-- tasks whose `commitSha` is still an ancestor of `HEAD` are restored as `done`
-- all rolled-back tasks return to `pending`
-- the explicitly rewound task and every rolled-back task enter a new `generation`
-- `attempt` resets to `0` for those tasks
-
-Task source completion markers are restored by git history, not by manual string edits. For the built-in `spec-kit` source, this means `tasks.md` checkboxes.
 
 ## Scope and Verification
 
