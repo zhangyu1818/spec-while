@@ -255,3 +255,63 @@ test('codex remote reviewer only keeps the latest active comment from each threa
     expect(result.review.summary).toBe('latest thread feedback')
   }
 })
+
+test('codex remote reviewer emits a fallback acceptance check when completion criteria is empty on approval', async () => {
+  const reviewer = createCodexRemoteReviewerProvider()
+  const task = createGraph().tasks[0]!
+
+  const result = await reviewer.evaluatePullRequestReview({
+    checkpointStartedAt: '2026-03-25T08:00:00.000Z',
+    completionCriteria: [],
+    taskHandle: task.handle,
+    pullRequest: createSnapshot({
+      reactions: [
+        {
+          content: '+1',
+          createdAt: '2026-03-25T08:05:00.000Z',
+          userLogin: 'chatgpt-codex-connector[bot]',
+        },
+      ],
+    }),
+  })
+
+  expect(result.kind).toBe('approved')
+  if (result.kind === 'approved') {
+    expect(result.review.acceptanceChecks).toHaveLength(1)
+  }
+})
+
+test('codex remote reviewer emits a fallback acceptance check when completion criteria is empty on rejection', async () => {
+  const reviewer = createCodexRemoteReviewerProvider()
+  const task = createGraph().tasks[0]!
+
+  const result = await reviewer.evaluatePullRequestReview({
+    checkpointStartedAt: '2026-03-25T08:00:00.000Z',
+    completionCriteria: [],
+    taskHandle: task.handle,
+    pullRequest: createSnapshot({
+      reviewThreads: [
+        {
+          id: 'thread-empty-criteria',
+          isOutdated: false,
+          isResolved: false,
+          comments: [
+            {
+              body: 'please fix this edge case',
+              createdAt: '2026-03-25T08:05:00.000Z',
+              line: 18,
+              path: 'src/greeting.ts',
+              url: 'https://example.com/thread/empty-criteria',
+              userLogin: 'chatgpt-codex-connector[bot]',
+            },
+          ],
+        },
+      ],
+    }),
+  })
+
+  expect(result.kind).toBe('rejected')
+  if (result.kind === 'rejected') {
+    expect(result.review.acceptanceChecks).toHaveLength(1)
+  }
+})

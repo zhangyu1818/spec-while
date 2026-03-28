@@ -26,11 +26,17 @@ export async function rewindCommand(
   return rewindTask({
     runtime,
     taskHandle,
-    loadGraph: async () =>
-      buildTaskTopology(
-        taskSource,
+    async loadGraph() {
+      const refreshedTaskSource = await openTaskSource(config.task.source, {
+        featureDir: context.featureDir,
+        featureId: context.featureId,
+        workspaceRoot: context.workspaceRoot,
+      })
+      return buildTaskTopology(
+        refreshedTaskSource,
         context.featureId,
         config.task.maxIterations,
-      ),
+      )
+    },
   })
 }
