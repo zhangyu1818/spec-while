@@ -129,6 +129,20 @@ test('validateWorkflowEvent accepts integrate lifecycle events', () => {
   }
 })
 
+test('validateWorkflowEvent rejects retired rewind event types', () => {
+  for (const type of ['task_rewound', 'task_invalidated'] as const) {
+    expect(() => {
+      validateWorkflowEvent({
+        attempt: 0,
+        generation: 1,
+        taskHandle: 'T001',
+        timestamp: '2026-03-28T00:00:00.000Z',
+        type,
+      })
+    }).toThrow(/invalid enum value|task_rewound|task_invalidated/i)
+  }
+})
+
 test('validateReviewOutput rejects pass verdicts with remaining findings', () => {
   expect(() => {
     validateReviewOutput({

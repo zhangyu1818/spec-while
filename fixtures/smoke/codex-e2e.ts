@@ -14,8 +14,7 @@ const repoRoot = path.resolve(
 const templateRoot = path.join(repoRoot, 'fixtures', 'e2e', 'simple-task')
 const whileEntry = path.join(repoRoot, 'src', 'index.ts')
 interface CreateWhileE2eArgsInput {
-  command: 'rewind' | 'run'
-  taskId?: string
+  command: 'run'
   untilTaskId?: string
   workspaceRoot: string
 }
@@ -35,16 +34,11 @@ export function createWhileE2eArgs(input: CreateWhileE2eArgsInput) {
     '--import',
     'tsx',
     whileEntry,
-    input.command,
+    'run',
     '--feature',
     '001-simple',
+    '--verbose',
   ]
-  if (input.command === 'run') {
-    args.push('--verbose')
-  }
-  if (input.command === 'rewind') {
-    args.push('--task', input.taskId ?? '')
-  }
   if (input.untilTaskId) {
     args.push('--until-task', input.untilTaskId)
   }
@@ -181,69 +175,6 @@ async function main() {
       trackedFiles.some((file) => file.includes('.while')),
       false,
     )
-
-    await runWhileE2e({
-      command: 'rewind',
-      taskId: 'T001',
-      workspaceRoot,
-    })
-
-    const tasksMdAfterReopen = await readFile(
-      path.join(workspaceRoot, 'specs', '001-simple', 'tasks.md'),
-      'utf8',
-    )
-    const stateAfterReopen = JSON.parse(
-      await readFile(
-        path.join(workspaceRoot, 'specs', '001-simple', '.while', 'state.json'),
-        'utf8',
-      ),
-    ) as WorkflowState
-    const reportAfterReopen = JSON.parse(
-      await readFile(
-        path.join(
-          workspaceRoot,
-          'specs',
-          '001-simple',
-          '.while',
-          'report.json',
-        ),
-        'utf8',
-      ),
-    ) as FinalReport
-    const greetingSource = await readFile(
-      path.join(workspaceRoot, 'src', 'greeting.ts'),
-      'utf8',
-    )
-    const farewellSource = await readFile(
-      path.join(workspaceRoot, 'src', 'farewell.ts'),
-      'utf8',
-    )
-    const messagesAfterReopen = await gitLogMessages(workspaceRoot)
-
-    assert.match(tasksMdAfterReopen, /- \[ \] T001/)
-    assert.match(tasksMdAfterReopen, /- \[ \] T002/)
-    assert.equal(reportAfterReopen.summary.finalStatus, 'in_progress')
-    assert.deepEqual(messagesAfterReopen, ['Initial commit'])
-    assert.match(greetingSource, /TODO: implement greeting/)
-    assert.match(farewellSource, /TODO: implement farewell/)
-    assert.deepEqual(stateAfterReopen.tasks.T001, {
-      attempt: 0,
-      generation: 2,
-      invalidatedBy: null,
-      lastFindings: [],
-      status: 'pending',
-    })
-    assert.deepEqual(stateAfterReopen.tasks.T002, {
-      attempt: 0,
-      generation: 2,
-      invalidatedBy: 'T001',
-      lastFindings: [],
-      status: 'pending',
-    })
-    assert.deepEqual(reportAfterReopen.tasks, [
-      { attempt: 0, generation: 2, status: 'pending', taskHandle: 'T001' },
-      { attempt: 0, generation: 2, status: 'pending', taskHandle: 'T002' },
-    ])
 
     process.stdout.write(`${JSON.stringify({ workspaceRoot }, null, 2)}\n`)
   } finally {

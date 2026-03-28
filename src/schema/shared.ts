@@ -37,8 +37,6 @@ export const workflowEventTypeValues = [
   'integrate_started',
   'integrate_completed',
   'integrate_failed',
-  'task_rewound',
-  'task_invalidated',
 ] as const
 export const finalStatusValues = [
   'blocked',

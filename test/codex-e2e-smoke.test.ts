@@ -9,12 +9,4 @@ test('createWhileE2eArgs only passes --verbose to run', () => {
       workspaceRoot: '/tmp/workspace',
     }),
   ).toContain('--verbose')
-
-  expect(
-    createWhileE2eArgs({
-      command: 'rewind',
-      taskId: 'T001',
-      workspaceRoot: '/tmp/workspace',
-    }),
-  ).not.toContain('--verbose')
 })
