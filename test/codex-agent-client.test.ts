@@ -157,7 +157,7 @@ test('CodexAgentClient creates a fresh thread for each role invocation', async (
   expect(startThreadCallCount).toBe(2)
 })
 
-test('CodexAgentClient can run standalone structured prompts', async () => {
+test('CodexAgentClient can invoke standalone structured prompts', async () => {
   let receivedPrompt = ''
   let receivedSchema: Record<string, unknown> | undefined
 
@@ -181,7 +181,7 @@ test('CodexAgentClient can run standalone structured prompts', async () => {
     workspaceRoot: '/tmp/project',
   })
 
-  const result = await client.runStructured({
+  const result = await client.invokeStructured({
     prompt: 'Summarize the file.',
     outputSchema: {
       required: ['summary'],

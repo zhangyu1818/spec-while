@@ -45,7 +45,7 @@ class CodexBatchStructuredOutputProvider implements BatchStructuredOutputProvide
   public constructor(private readonly client: CodexAgentClient) {}
 
   public async runFile(input: BatchFileInput) {
-    return this.client.runStructured({
+    return this.client.invokeStructured<unknown>({
       outputSchema: input.outputSchema,
       prompt: buildBatchPrompt(input),
     })

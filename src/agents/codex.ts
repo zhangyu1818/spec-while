@@ -166,7 +166,16 @@ export class CodexAgentClient implements ImplementerProvider, ReviewerProvider {
     return this.clientPromise
   }
 
-  private async invokeStructured<T>(input: CodexStructuredInput): Promise<T> {
+  public async implement(input: ImplementAgentInput) {
+    const prompt = await buildImplementerPrompt(input)
+    const output = await this.invokeStructured<unknown>({
+      outputSchema: implementOutputSchema,
+      prompt,
+    })
+    return validateImplementOutput(output)
+  }
+
+  public async invokeStructured<T>(input: CodexStructuredInput): Promise<T> {
     const client = await this.getClient()
     const thread = client.startThread({
       workingDirectory: this.options.workspaceRoot,
@@ -192,15 +201,6 @@ export class CodexAgentClient implements ImplementerProvider, ReviewerProvider {
     }
   }
 
-  public async implement(input: ImplementAgentInput) {
-    const prompt = await buildImplementerPrompt(input)
-    const output = await this.invokeStructured<unknown>({
-      outputSchema: implementOutputSchema,
-      prompt,
-    })
-    return validateImplementOutput(output)
-  }
-
   public async review(input: ReviewAgentInput) {
     const prompt = await buildReviewerPrompt(input)
     const output = await this.invokeStructured<unknown>({
@@ -208,10 +208,6 @@ export class CodexAgentClient implements ImplementerProvider, ReviewerProvider {
       prompt,
     })
     return validateReviewOutput(output)
-  }
-
-  public async runStructured(input: CodexStructuredInput) {
-    return this.invokeStructured<unknown>(input)
   }
 }
 
