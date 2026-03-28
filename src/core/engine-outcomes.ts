@@ -1,6 +1,5 @@
 import {
   cloneState,
-  collectDescendants,
   getMaxIterations,
   getTaskState,
   shouldPassZeroGate,
@@ -118,37 +117,6 @@ export function recordReviewFailure(
           status: 'rework',
         }
   return next
-}
-
-export function rewindTaskGeneration(
-  graph: TaskGraph,
-  state: WorkflowState,
-  taskHandle: string,
-) {
-  const next = cloneState(state)
-  const descendants = collectDescendants(graph, taskHandle)
-  const resetTaskHandles = [taskHandle, ...descendants]
-  const uncheckedTaskHandles: string[] = []
-
-  next.currentTaskHandle = null
-  for (const currentTaskHandle of resetTaskHandles) {
-    const taskState = getTaskState(next, currentTaskHandle)
-    if (taskState.status === 'done') {
-      uncheckedTaskHandles.push(currentTaskHandle)
-    }
-    next.tasks[currentTaskHandle] = {
-      attempt: 0,
-      generation: taskState.generation + 1,
-      invalidatedBy: currentTaskHandle === taskHandle ? null : taskHandle,
-      lastFindings: [],
-      status: 'pending',
-    }
-  }
-
-  return {
-    state: next,
-    uncheckedTaskIds: uncheckedTaskHandles,
-  }
 }
 
 export function buildReport(

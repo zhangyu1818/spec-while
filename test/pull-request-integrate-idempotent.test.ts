@@ -47,12 +47,9 @@ test('pull-request integrate treats an already merged pull request as completed 
     getHeadSha: vi.fn(async () => 'merged-sha'),
     getHeadSubject: vi.fn(async () => 'Task T001: Implement greeting'),
     getHeadTimestamp: vi.fn(async () => '2026-03-25T08:01:00.000Z'),
-    getParentCommit: vi.fn(async () => 'parent-sha'),
-    isAncestorOfHead: vi.fn(async () => true),
     pullFastForward: vi.fn(async () => {}),
     pushBranch: vi.fn(async () => {}),
     requireCleanWorktree: vi.fn(async () => {}),
-    resetHard: vi.fn(async () => {}),
   })
   const github = createGitHubPortStub({
     findOpenPullRequestByHeadBranch: vi.fn(async () => null),

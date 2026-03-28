@@ -16,7 +16,6 @@ export {
   recordIntegrateResult,
   recordReviewApproved,
   recordReviewFailure,
-  rewindTaskGeneration,
 } from './engine-outcomes'
 
 export function createInitialWorkflowState(graph: TaskGraph): WorkflowState {

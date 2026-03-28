@@ -110,21 +110,6 @@ export class GitRuntime implements GitPort {
     return runGit(this.workspaceRoot, ['log', '-1', '--format=%cI', 'HEAD'])
   }
 
-  public async getParentCommit(commitSha: string) {
-    return runGit(this.workspaceRoot, ['rev-parse', `${commitSha}^`])
-  }
-
-  public async isAncestorOfHead(commitSha: string) {
-    try {
-      await execa('git', ['merge-base', '--is-ancestor', commitSha, 'HEAD'], {
-        cwd: this.workspaceRoot,
-      })
-      return true
-    } catch {
-      return false
-    }
-  }
-
   public async pullFastForward(branch: string) {
     await runGit(this.workspaceRoot, ['pull', '--ff-only', 'origin', branch])
   }
@@ -148,9 +133,5 @@ export class GitRuntime implements GitPort {
     if (relevantLines.length !== 0) {
       throw new Error('Worktree must be clean before running spec-while')
     }
-  }
-
-  public async resetHard(commitSha: string) {
-    await runGit(this.workspaceRoot, ['reset', '--hard', commitSha])
   }
 }

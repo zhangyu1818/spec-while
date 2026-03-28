@@ -65,12 +65,9 @@ export interface GitPort {
   getHeadSha: () => Promise<string>
   getHeadSubject: () => Promise<string>
   getHeadTimestamp: () => Promise<string>
-  getParentCommit: (commitSha: string) => Promise<string>
-  isAncestorOfHead: (commitSha: string) => Promise<boolean>
   pullFastForward: (branch: string) => Promise<void>
   pushBranch: (name: string, options?: GitPushBranchOptions) => Promise<void>
   requireCleanWorktree: () => Promise<void>
-  resetHard: (commitSha: string) => Promise<void>
 }
 
 export interface PullRequestRef {
