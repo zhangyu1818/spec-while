@@ -230,7 +230,6 @@ export async function runBatchCommand(
   })
   const validateOutput = ajv.compile(config.schema)
   const processedFiles: string[] = []
-  const failedFiles: string[] = []
 
   while (state.pending.length !== 0 || state.failed.length !== 0) {
     if (state.pending.length === 0) {
@@ -277,13 +276,12 @@ export async function runBatchCommand(
         pending: state.pending,
       }
       await writeJsonAtomic(statePath, state)
-      failedFiles.push(filePath)
     }
   }
 
   return {
     config,
-    failedFiles,
+    failedFiles: state.failed,
     processedFiles,
     results,
     state,

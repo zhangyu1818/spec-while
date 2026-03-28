@@ -221,7 +221,7 @@ test('runBatchCommand recycles failed files into the next round until they succe
     },
   }
 
-  await runBatchCommand({
+  const result = await runBatchCommand({
     configPath,
     cwd: root,
   })
@@ -247,6 +247,7 @@ test('runBatchCommand recycles failed files into the next round until they succe
     inProgress: [],
     pending: [],
   })
+  expect(result.failedFiles).toEqual([])
   expect(results).toEqual({
     'a.txt': { summary: 'a.txt' },
     'b.txt': { summary: 'b.txt' },
