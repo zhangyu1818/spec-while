@@ -11,10 +11,6 @@ import type {
 } from '../types'
 import type { OpenSpecTask } from './parse-tasks-md'
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)
-}
-
 function createImplementPrompt(
   task: OpenSpecTask,
   input: {
@@ -84,24 +80,34 @@ function createReviewPrompt(
   }
 }
 
-function getTaskBody(task: OpenSpecTask) {
-  if (!task.rawLine.match(/^[-*]\s+\[[ x]\]/i)) {
-    throw new Error(`Invalid task line: ${task.rawLine}`)
+function splitTasksMd(tasksMd: string) {
+  return {
+    lineEnding: tasksMd.includes('\r\n') ? '\r\n' : '\n',
+    lines: tasksMd.split(/\r?\n/),
   }
-  const markerIndex = task.rawLine.indexOf(']')
-  if (markerIndex === -1) {
-    throw new Error(`Invalid task line: ${task.rawLine}`)
+}
+
+function getTaskLineIndex(lines: string[], task: OpenSpecTask) {
+  let currentOrdinal = 0
+  for (const [index, line] of lines.entries()) {
+    if (!line.match(/^[-*]\s+\[[ x]\]\s+/i)) {
+      continue
+    }
+    currentOrdinal += 1
+    if (currentOrdinal === task.ordinal) {
+      return index
+    }
   }
-  return task.rawLine.slice(markerIndex + 1).trimStart()
+  throw new Error(`Task line not found for handle: ${task.handle}`)
 }
 
 function isTaskChecked(tasksMd: string, task: OpenSpecTask) {
-  const taskBody = getTaskBody(task)
-  const pattern = new RegExp(
-    String.raw`^[-*]\s+\[[xX]\]\s+${escapeRegExp(taskBody)}$`,
-    'm',
-  )
-  return pattern.test(tasksMd)
+  const { lines } = splitTasksMd(tasksMd)
+  const line = lines[getTaskLineIndex(lines, task)]
+  if (!line) {
+    return false
+  }
+  return /^[-*]\s+\[x\]\s+/i.test(line)
 }
 
 async function updateTaskCheckbox(
@@ -110,17 +116,20 @@ async function updateTaskCheckbox(
   checked: boolean,
 ) {
   const content = await readFile(tasksPath, 'utf8')
-  const taskBody = getTaskBody(task)
-  const pattern = new RegExp(
-    String.raw`^([-*]\s+)\[[ xX]\]\s+${escapeRegExp(taskBody)}$`,
-    'm',
-  )
+  const { lineEnding, lines } = splitTasksMd(content)
+  const targetIndex = getTaskLineIndex(lines, task)
+  const targetLine = lines[targetIndex]
+  if (!targetLine) {
+    throw new Error(`Task line not found for handle: ${task.handle}`)
+  }
+  const pattern = /^([-*]\s+)\[[ x]\](\s+(?:\S.*)?)$/i
+  const match = targetLine.match(pattern)
+  if (!match) {
+    throw new Error(`Invalid task line: ${targetLine}`)
+  }
   const replacementCheckbox = checked ? '[X]' : '[ ]'
-  const updated = content.replace(
-    pattern,
-    `$1${replacementCheckbox} ${taskBody}`,
-  )
-  await writeFile(tasksPath, updated)
+  lines[targetIndex] = `${match[1]}${replacementCheckbox}${match[2]}`
+  await writeFile(tasksPath, lines.join(lineEnding))
 }
 
 export interface CreateOpenSpecSessionInput extends OpenTaskSourceInput {

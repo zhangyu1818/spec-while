@@ -280,6 +280,31 @@ test('openspec source can toggle completion for unnumbered tasks via synthetic h
   expect(await session.isTaskCompleted('task-1')).toBe(false)
 })
 
+test('openspec source keeps duplicate unnumbered task bodies isolated by synthetic handle', async () => {
+  const fixture = await createOpenSpecChangeFixture({
+    tasksMd: `## 1. Execute
+- [ ] 重复任务
+- [ ] 重复任务
+`,
+  })
+  mockState.applyResult.contextFiles = {
+    design: fixture.designPath,
+    proposal: fixture.proposalPath,
+    specs: path.join(fixture.changeDir, 'specs/**/*.md'),
+    tasks: fixture.tasksPath,
+  }
+
+  const session = await openspecTaskSource.open({
+    featureDir: fixture.changeDir,
+    featureId: fixture.changeId,
+    workspaceRoot: fixture.root,
+  })
+
+  await session.applyTaskCompletion('task-1')
+  expect(await session.isTaskCompleted('task-1')).toBe(true)
+  expect(await session.isTaskCompleted('task-2')).toBe(false)
+})
+
 test('openspec source treats lowercase x as completed state', async () => {
   const fixture = await createOpenSpecChangeFixture({
     tasksMd: `## 1. CLI 与配置
