@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.32.1",
   "description": "Git-first task orchestrator for Spec Kit workspaces",
   "author": "Zhang Yu",
-  "license": "ISC",
+  "license": "MIT",
   "homepage": "https://github.com/zhangyu1818/spec-while#readme",
   "repository": {
     "type": "git",
