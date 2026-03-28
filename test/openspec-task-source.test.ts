@@ -172,6 +172,19 @@ test('readContextFileMap expands absolute specs globs from the change directory 
   expect(contextMap.get('specs')).toContain('Example Capability')
 })
 
+test('readContextFileMap lets ** globs match files directly under the glob root', async () => {
+  const { changeDir } = await createOpenSpecChangeFixture({
+    includeRootSpec: true,
+  })
+
+  const contextMap = await readContextFileMap(changeDir, {
+    specs: path.join(changeDir, 'specs/**/*.md'),
+  })
+
+  expect(contextMap.get('specs')).toContain('Root Capability')
+  expect(contextMap.get('specs')).toContain('Example Capability')
+})
+
 test('openspec source builds a session that keeps stable handles and apply-aligned prompt sections', async () => {
   const fixture = await createOpenSpecChangeFixture()
   mockState.applyResult.contextFiles = {
@@ -236,6 +249,35 @@ test('openspec source toggles task completion by stable handle and resolves ordi
   expect(await session.isTaskCompleted('1.1')).toBe(true)
   await session.revertTaskCompletion('1.1')
   expect(await session.isTaskCompleted('1.1')).toBe(false)
+})
+
+test('openspec source can toggle completion for unnumbered tasks via synthetic handles', async () => {
+  const fixture = await createOpenSpecChangeFixture({
+    tasksMd: `## 1. Execute
+- [ ] 准备上下文
+- [ ] 执行实现
+`,
+  })
+  mockState.applyResult.contextFiles = {
+    design: fixture.designPath,
+    proposal: fixture.proposalPath,
+    specs: path.join(fixture.changeDir, 'specs/**/*.md'),
+    tasks: fixture.tasksPath,
+  }
+
+  const session = await openspecTaskSource.open({
+    featureDir: fixture.changeDir,
+    featureId: fixture.changeId,
+    workspaceRoot: fixture.root,
+  })
+
+  expect(session.listTasks()).toEqual(['task-1', 'task-2'])
+  expect(session.resolveTaskSelector('1')).toBe('task-1')
+  expect(await session.isTaskCompleted('task-1')).toBe(false)
+  await session.applyTaskCompletion('task-1')
+  expect(await session.isTaskCompleted('task-1')).toBe(true)
+  await session.revertTaskCompletion('task-1')
+  expect(await session.isTaskCompleted('task-1')).toBe(false)
 })
 
 test('openspec source treats lowercase x as completed state', async () => {

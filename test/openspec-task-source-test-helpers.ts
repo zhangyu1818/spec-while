@@ -8,6 +8,7 @@ export interface OpenSpecChangeFixture {
   designPath: string
   proposalPath: string
   root: string
+  rootSpecPath?: string
   specPath: string
   tasksPath: string
 }
@@ -15,6 +16,7 @@ export interface OpenSpecChangeFixture {
 export async function createOpenSpecChangeFixture(
   input: {
     changeId?: string
+    includeRootSpec?: boolean
     tasksMd?: string
   } = {},
 ): Promise<OpenSpecChangeFixture> {
@@ -24,6 +26,9 @@ export async function createOpenSpecChangeFixture(
   const proposalPath = path.join(changeDir, 'proposal.md')
   const designPath = path.join(changeDir, 'design.md')
   const tasksPath = path.join(changeDir, 'tasks.md')
+  const rootSpecPath = input.includeRootSpec
+    ? path.join(changeDir, 'specs', 'spec.md')
+    : undefined
   const specPath = path.join(
     changeDir,
     'specs',
@@ -67,6 +72,18 @@ export async function createOpenSpecChangeFixture(
 The system MUST support an example capability.
 `,
   )
+  if (rootSpecPath) {
+    await writeFile(
+      rootSpecPath,
+      `# Root Capability
+
+## ADDED Requirements
+
+### Requirement: Root Capability
+The system MUST support a root capability.
+`,
+    )
+  }
 
   return {
     changeDir,
@@ -74,6 +91,7 @@ The system MUST support an example capability.
     designPath,
     proposalPath,
     root,
+    rootSpecPath,
     specPath,
     tasksPath,
   }

@@ -84,9 +84,21 @@ function createReviewPrompt(
   }
 }
 
-function isTaskChecked(tasksMd: string, taskHandle: string) {
+function getTaskBody(task: OpenSpecTask) {
+  if (!task.rawLine.match(/^[-*]\s+\[[ x]\]/i)) {
+    throw new Error(`Invalid task line: ${task.rawLine}`)
+  }
+  const markerIndex = task.rawLine.indexOf(']')
+  if (markerIndex === -1) {
+    throw new Error(`Invalid task line: ${task.rawLine}`)
+  }
+  return task.rawLine.slice(markerIndex + 1).trimStart()
+}
+
+function isTaskChecked(tasksMd: string, task: OpenSpecTask) {
+  const taskBody = getTaskBody(task)
   const pattern = new RegExp(
-    String.raw`^[-*]\s+\[[xX]\]\s+${escapeRegExp(taskHandle)}(?=\s)`,
+    String.raw`^[-*]\s+\[[xX]\]\s+${escapeRegExp(taskBody)}$`,
     'm',
   )
   return pattern.test(tasksMd)
@@ -94,16 +106,20 @@ function isTaskChecked(tasksMd: string, taskHandle: string) {
 
 async function updateTaskCheckbox(
   tasksPath: string,
-  taskHandle: string,
+  task: OpenSpecTask,
   checked: boolean,
 ) {
   const content = await readFile(tasksPath, 'utf8')
+  const taskBody = getTaskBody(task)
   const pattern = new RegExp(
-    String.raw`^([-*]\s+\[[ xX]\]\s+)${escapeRegExp(taskHandle)}(?=\s)`,
+    String.raw`^([-*]\s+)\[[ xX]\]\s+${escapeRegExp(taskBody)}$`,
     'm',
   )
-  const replacementPrefix = checked ? '- [X] ' : '- [ ] '
-  const updated = content.replace(pattern, `${replacementPrefix}${taskHandle}`)
+  const replacementCheckbox = checked ? '[X]' : '[ ]'
+  const updated = content.replace(
+    pattern,
+    `$1${replacementCheckbox} ${taskBody}`,
+  )
   await writeFile(tasksPath, updated)
 }
 
@@ -142,10 +158,11 @@ export function createOpenSpecSession(
 
   return {
     async applyTaskCompletion(taskHandle: string) {
+      const task = getTask(taskHandle)
       if (await this.isTaskCompleted(taskHandle)) {
         return
       }
-      await updateTaskCheckbox(tasksPath, taskHandle, true)
+      await updateTaskCheckbox(tasksPath, task, true)
     },
     buildCommitSubject(taskHandle: string) {
       const task = getTask(taskHandle)
@@ -176,8 +193,9 @@ export function createOpenSpecSession(
       return []
     },
     async isTaskCompleted(taskHandle: string) {
+      const task = getTask(taskHandle)
       const tasksMd = await readFile(tasksPath, 'utf8')
-      return isTaskChecked(tasksMd, taskHandle)
+      return isTaskChecked(tasksMd, task)
     },
     listTasks() {
       return input.tasks.map((task) => task.handle)
@@ -197,10 +215,11 @@ export function createOpenSpecSession(
       return task.handle
     },
     async revertTaskCompletion(taskHandle: string) {
+      const task = getTask(taskHandle)
       if (!(await this.isTaskCompleted(taskHandle))) {
         return
       }
-      await updateTaskCheckbox(tasksPath, taskHandle, false)
+      await updateTaskCheckbox(tasksPath, task, false)
     },
   }
 }
