@@ -67,3 +67,29 @@ test('spec-kit source parses raw generated tasks without enhanced fields', async
     title: 'Tasks',
   })
 })
+
+test('spec-kit source treats lowercase x as completed state', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'while-spec-kit-source-'))
+  const featureDir = path.join(root, 'specs', '001-engine-skeleton')
+  await mkdir(featureDir, { recursive: true })
+  await writeFile(path.join(featureDir, 'spec.md'), '# spec\n')
+  await writeFile(path.join(featureDir, 'plan.md'), '# plan\n')
+  await writeFile(
+    path.join(featureDir, 'tasks.md'),
+    `# Tasks: Deterministic Engine Skeleton
+
+## Phase 1: Setup (Shared Infrastructure)
+
+- [x] T001 Add the failing contract test
+- [ ] T002 Implement named test commands
+`,
+  )
+
+  const session = await specKitTaskSource.open({
+    featureDir,
+    featureId: '001-engine-skeleton',
+    workspaceRoot: root,
+  })
+
+  await expect(session.isTaskCompleted('T001')).resolves.toBe(true)
+})

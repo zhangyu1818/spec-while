@@ -19,7 +19,7 @@ async function readRequiredTextFile(filePath: string) {
 }
 
 function isTaskChecked(tasksMd: string, taskId: string) {
-  const pattern = new RegExp(String.raw`^- \[X\] ${taskId}(?=\b)`, 'm')
+  const pattern = new RegExp(String.raw`^- \[[Xx]\] ${taskId}(?=\b)`, 'm')
   return pattern.test(tasksMd)
 }
 
