@@ -1,17 +1,17 @@
 {
-  "name": "spec-while",
+  "name": "task-while",
   "version": "0.0.1",
   "packageManager": "pnpm@10.32.1",
-  "description": "Git-first task orchestrator for Spec Kit workspaces",
+  "description": "Git-first task orchestrator for task-source workspaces",
   "author": "Zhang Yu",
   "license": "MIT",
-  "homepage": "https://github.com/zhangyu1818/spec-while#readme",
+  "homepage": "https://github.com/zhangyu1818/task-while#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zhangyu1818/spec-while.git"
+    "url": "git+https://github.com/zhangyu1818/task-while.git"
   },
   "bugs": {
-    "url": "https://github.com/zhangyu1818/spec-while/issues"
+    "url": "https://github.com/zhangyu1818/task-while/issues"
   },
   "keywords": [
     "spec-kit",
@@ -21,7 +21,7 @@
     "git"
   ],
   "bin": {
-    "spec-while": "bin/spec-while.mjs"
+    "task-while": "bin/task-while.mjs"
   },
   "files": [
     "LICENSE",

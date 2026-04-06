@@ -17,7 +17,7 @@ test('buildSnapshotArgs passes the GraphQL document as query=', () => {
     number: 1,
     owner: 'zhangyu1818',
     reactionsAfter: null,
-    repo: 'spec-while',
+    repo: 'task-while',
     reviewsAfter: null,
     reviewThreadsAfter: null,
   })

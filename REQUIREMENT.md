@@ -2,7 +2,7 @@
 
 ## Overview
 
-`spec-while` has two execution surfaces:
+`task-while` has two execution surfaces:
 
 - `run`: a single-feature, task-by-task orchestrator built around a task source protocol
 - `batch`: a standalone YAML-driven file processing command
@@ -67,14 +67,14 @@ For `task.source: openspec`, `--feature` identifies the OpenSpec change id.
 
 ## Commands
 
-### `spec-while run`
+### `task-while run`
 
 - initializes `.while` for the feature when no state exists
 - resumes from existing `.while/state.json` when state already exists
 - requires a clean worktree
 - supports `--until-task`
 
-### `spec-while batch`
+### `task-while batch`
 
 - accepts `--config <path>` pointing to a standalone YAML file
 - accepts optional `--verbose` to print per-file failure reasons to `stderr`
@@ -143,7 +143,7 @@ The built-in `openspec` source:
 - uses explicit numbering such as `1.1` or `2.3` as the stable task handle
 - falls back to an ordinal-only synthetic handle when no explicit numbering exists
 - exposes no explicit dependencies, so tasks execute in file order
-- aligns implement/review prompts with `openspec instructions apply --json`, while still keeping checkbox writes under `spec-while` integrate control
+- aligns implement/review prompts with `openspec instructions apply --json`, while still keeping checkbox writes under `task-while` integrate control
 
 Validation rejects:
 

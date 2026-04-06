@@ -1,6 +1,6 @@
-# spec-while
+# task-while
 
-`spec-while` is a git-first task orchestrator built around a task source protocol.
+`task-while` is a git-first task orchestrator built around a task source protocol. The published package name and CLI binary are both `task-while`.
 
 It reads workflow settings from `while.yaml`, opens the configured task source, executes one task at a time, reviews the result, integrates approved work, and creates one git commit per completed task. The built-in task sources are `spec-kit`, which consumes `spec.md`, `plan.md`, and `tasks.md` under `specs/<feature>/`, and `openspec`, which consumes an OpenSpec change under `openspec/changes/<change>/`.
 
@@ -29,13 +29,13 @@ Current built-in source requirements:
 ## Install
 
 ```bash
-pnpm add -D spec-while
+pnpm add -D task-while
 ```
 
 Run it with:
 
 ```bash
-pnpm exec spec-while run
+pnpm exec task-while run
 ```
 
 ## Configuration
@@ -76,13 +76,13 @@ workflow:
 
 ## Commands
 
-### `spec-while run`
+### `task-while run`
 
 Runs the current feature workflow from the existing `.while` state or initializes a new one. Run it from the workspace root so the current directory contains the source-specific root, such as `specs/` for `spec-kit` or `openspec/changes/` for `openspec`.
 
 ```bash
 cd /path/to/workspace
-pnpm exec spec-while run --feature 001-demo
+pnpm exec task-while run --feature 001-demo
 ```
 
 Useful flags:
@@ -92,13 +92,13 @@ Useful flags:
 - `--until-task <taskSelector>`: stop after the target task reaches `done`
 - `--verbose`: stream agent events to `stderr`
 
-### `spec-while batch`
+### `task-while batch`
 
 Runs a standalone YAML-driven batch job. This command does not read `while.yaml`, does not require `specs/`, and does not use the task-source workflow.
 
 ```bash
 cd /path/to/workspace
-pnpm exec spec-while batch --config ./batch.yaml
+pnpm exec task-while batch --config ./batch.yaml
 ```
 
 Batch config example:
@@ -141,7 +141,7 @@ Each task follows this lifecycle:
 
 1. The implement role receives a task-source-built prompt for the current task.
 2. The reviewer evaluates the task-source-built review prompt plus changed-file context and overall risk.
-3. If review is approved, `spec-while` asks the task source to apply its completion marker, creates the final integration commit, and records integrate artifacts under `.while`.
+3. If review is approved, `task-while` asks the task source to apply its completion marker, creates the final integration commit, and records integrate artifacts under `.while`.
 
 In `pull-request` mode:
 
@@ -195,7 +195,7 @@ task:
 Example run:
 
 ```bash
-pnpm exec spec-while run --feature example-change
+pnpm exec task-while run --feature example-change
 ```
 
 Current built-in `openspec` behavior:
@@ -203,8 +203,8 @@ Current built-in `openspec` behavior:
 - `--feature` maps to `openspec/changes/<change>`
 - stable task handles come from explicit numbering in `tasks.md`, such as `1.1` and `2.3`
 - implement/review prompts include the current task, task group, `proposal.md`, `design.md`, expanded `specs/**/*.md`, full `tasks.md`, and the OpenSpec apply instruction/state/progress
-- completion is still written by `spec-while` after review/integrate success; it does not adopt `/opsx:apply`'s immediate checkbox update behavior
-- `spec-while` consumes OpenSpec artifacts and CLI JSON, but it does not run `/opsx:propose`
+- completion is still written by `task-while` after review/integrate success; it does not adopt `/opsx:apply`'s immediate checkbox update behavior
+- `task-while` consumes OpenSpec artifacts and CLI JSON, but it does not run `/opsx:propose`
 
 Task retry budget is configured globally in `while.yaml`:
 
@@ -213,14 +213,14 @@ task:
   maxIterations: 2
 ```
 
-## What `spec-while` Does Not Do
+## What `task-while` Does Not Do
 
-`spec-while` does not replace Spec Kit's project-level workflow. It does not run Spec Kit commands, checklists, hooks, or preset-installed skills.
+`task-while` does not replace Spec Kit's project-level workflow. It does not run Spec Kit commands, checklists, hooks, or preset-installed skills.
 
 Its contract with the selected task source is simple:
 
 - the task source parses source artifacts and provides prompts plus completion operations
-- `spec-while` orchestrates implement, review, integrate, and persistence around that protocol
+- `task-while` orchestrates implement, review, integrate, and persistence around that protocol
 
 The standalone `batch` command is separate from this contract. It does not use task sources, task graphs, review/integrate stages, or git-first completion.
 

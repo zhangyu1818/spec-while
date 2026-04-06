@@ -33,7 +33,7 @@ function createPullRequestBody(context: PullRequestReviewPhaseContext) {
     `Task: ${context.commitMessage}`,
     `Attempt: ${context.attempt}`,
     '',
-    'Managed by spec-while.',
+    'Managed by task-while.',
   ].join('\n')
 }
 

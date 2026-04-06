@@ -131,7 +131,7 @@ export class GitRuntime implements GitPort {
     )
 
     if (relevantLines.length !== 0) {
-      throw new Error('Worktree must be clean before running spec-while')
+      throw new Error('Worktree must be clean before running task-while')
     }
   }
 }

@@ -25,11 +25,11 @@ async function resolveWorkspaceRoot(cwd: string, taskSource: string) {
   if (!featureRootExists) {
     if (taskSource === 'openspec') {
       throw new Error(
-        'Current working directory must contain an openspec/changes/ directory. Run spec-while from the workspace root.',
+        'Current working directory must contain an openspec/changes/ directory. Run task-while from the workspace root.',
       )
     }
     throw new Error(
-      'Current working directory must contain a specs/ directory. Run spec-while from the workspace root.',
+      'Current working directory must contain a specs/ directory. Run task-while from the workspace root.',
     )
   }
   return workspaceRoot
